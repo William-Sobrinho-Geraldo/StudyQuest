@@ -105,6 +105,21 @@ export type Database = {
         Args: Record<string, never>
         Returns: number
       }
+      study_history: {
+        Args: { p_anchor?: string | null; p_period: string }
+        Returns: {
+          bucket_date: string
+          hour: number
+          minutes: number
+          sessions: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "study_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       today_study_minutes: {
         Args: Record<string, never>
         Returns: number

@@ -1,6 +1,6 @@
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../features/auth/AuthContext'
-import { MetricsCharts } from '../features/metrics/components/MetricsCharts'
+import { StudyHistory } from '../features/metrics/components/StudyHistory'
 import { DailyGoalCard } from '../features/profile/components/DailyGoalCard'
 import { HeroProfile } from '../features/profile/components/HeroProfile'
 import { StreakCard } from '../features/profile/components/StreakCard'
@@ -35,7 +35,7 @@ export function DashboardPage() {
           <StudyTimer />
         </div>
 
-        <MetricsCharts />
+        <StudyHistory />
       </StudyTimerProvider>
     </AppShell>
   )
