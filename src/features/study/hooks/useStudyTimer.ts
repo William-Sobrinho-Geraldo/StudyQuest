@@ -62,8 +62,8 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     setStatus(next)
   }, [])
 
-  const finish = useCallback(async () => {
-    if (completedRef.current) return
+  const finish = useCallback(async (): Promise<StudyTimerResult | null> => {
+    if (completedRef.current) return null
     completedRef.current = true
     endTimeRef.current = null
     clearTimer()
@@ -88,6 +88,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     } finally {
       setIsSaving(false)
     }
+    return result
   }, [changeStatus, clearTimer, saveSession])
 
   const tick = useCallback(() => {
@@ -201,6 +202,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     start,
     pause,
     resume,
+    finish,
     reset,
   }
 }

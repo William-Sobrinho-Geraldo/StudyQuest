@@ -1,6 +1,7 @@
 import { Coins, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
 import { getLevelProgress } from '../../../utils/leveling'
 import { useAuth } from '../../auth/AuthContext'
 
@@ -10,10 +11,9 @@ interface ProfileStats {
   gold: number
 }
 
-const DEV_GIFT = { xp: 250, gold: 50 }
-
 export function HeroProfile() {
   const { user } = useAuth()
+  const timer = useStudyTimerContext()
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [granting, setGranting] = useState(false)
@@ -40,20 +40,31 @@ export function HeroProfile() {
     void refreshProfile().finally(() => setLoading(false))
   }, [refreshProfile])
 
+  const hasActiveSession = timer.status === 'running' || timer.status === 'paused'
+
   const handleDevGrant = async () => {
     if (granting) return
     setGranting(true)
     setError(null)
-    const { error } = await supabase.rpc('add_xp', {
-      p_xp: DEV_GIFT.xp,
-      p_gold: DEV_GIFT.gold,
-    })
-    if (error) {
-      setError(error.message)
-    } else {
-      await refreshProfile()
+    try {
+      if (!hasActiveSession) {
+        setError('Inicie uma sessão de estudo antes de concluí-la.')
+        return
+      }
+      const reward = await timer.finish()
+      if (!reward) return
+      const { error } = await supabase.rpc('add_xp', {
+        p_xp: reward.xp,
+        p_gold: reward.gold,
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        await refreshProfile()
+      }
+    } finally {
+      setGranting(false)
     }
-    setGranting(false)
   }
 
   if (loading) {
@@ -129,7 +140,12 @@ export function HeroProfile() {
         <button
           type="button"
           onClick={() => void handleDevGrant()}
-          disabled={granting}
+          disabled={granting || !hasActiveSession}
+          title={
+            hasActiveSession
+              ? 'Encerra a sessão em andamento e soma XP/Gold ao perfil'
+              : 'Inicie o timer de estudo antes de concluir a sessão'
+          }
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {granting ? 'Salvando...' : 'Concluir Sessão (Teste Dev)'}

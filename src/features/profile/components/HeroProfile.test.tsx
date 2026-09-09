@@ -1,8 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../auth/AuthContext'
+import {
+  StudyTimerProvider,
+  useStudyTimerContext,
+  type StudyTimerValue,
+} from '../../study/context/StudyTimerContext'
 import { HeroProfile } from './HeroProfile'
 
 const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
@@ -15,6 +20,14 @@ const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
 vi.mock('../../../lib/supabase', () => ({
   supabase: { auth: { getSession, onAuthStateChange }, from, rpc },
 }))
+
+let timerRef: { current: StudyTimerValue | null } = { current: null }
+
+function TimerHarness() {
+  const timer = useStudyTimerContext()
+  timerRef.current = timer
+  return <span data-testid="timer-status">{timer.status}</span>
+}
 
 interface ProfileRow {
   level: number
@@ -63,10 +76,19 @@ function renderProfile() {
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <AuthProvider>
-        <HeroProfile />
+        <StudyTimerProvider>
+          <TimerHarness />
+          <HeroProfile />
+        </StudyTimerProvider>
       </AuthProvider>
     </MemoryRouter>,
   )
+}
+
+function startSession() {
+  act(() => {
+    timerRef.current?.start()
+  })
 }
 
 beforeEach(() => {
@@ -95,7 +117,7 @@ describe('HeroProfile', () => {
     expect(screen.getByTestId('hero-gold')).toHaveTextContent('0 Gold')
   })
 
-  it('chama a RPC add_xp no botão dev, recarrega e reage em tempo real', async () => {
+  it('encerra a sessão ativa, soma a recompensa dela via RPC e reage em tempo real', async () => {
     const user = userEvent.setup()
     mockSession()
     mockProfileFetch([
@@ -106,6 +128,8 @@ describe('HeroProfile', () => {
 
     renderProfile()
     await screen.findByText('50/100 XP')
+    startSession()
+    expect(screen.getByTestId('timer-status')).toHaveTextContent('running')
 
     await user.click(screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }))
 
@@ -113,12 +137,26 @@ describe('HeroProfile', () => {
     expect(screen.getByText('Nível 3')).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 250, p_gold: 50 })
+    expect(screen.getByTestId('timer-status')).toHaveTextContent('completed')
 
     await waitFor(() => {
       expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: '22.50%' })
     })
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '23')
     expect(screen.getByTestId('hero-gold')).toHaveTextContent('50 Gold')
+  })
+
+  it('fica desabilitado enquanto não há sessão de estudo em andamento', async () => {
+    mockSession()
+    mockProfileFetch([{ level: 1, current_xp: 50, gold: 0 }])
+
+    renderProfile()
+    await screen.findByText('50/100 XP')
+
+    expect(
+      screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }),
+    ).toBeDisabled()
+    expect(screen.getByTestId('timer-status')).toHaveTextContent('idle')
   })
 
   it('sem registro em profiles, assume nível 1 com barra vazia', async () => {
@@ -141,6 +179,7 @@ describe('HeroProfile', () => {
 
     renderProfile()
     await screen.findByText('50/100 XP')
+    startSession()
 
     await user.click(screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }))
 

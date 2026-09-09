@@ -1,12 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { StudyTimer } from './StudyTimer'
+import { StudyTimerProvider } from '../context/StudyTimerContext'
 
 const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
 
 vi.mock('../services/studySessionService', () => ({
   saveStudySession: saveStudySessionMock,
 }))
+
+function renderTimer() {
+  return render(
+    <StudyTimerProvider>
+      <StudyTimer />
+    </StudyTimerProvider>,
+  )
+}
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -19,7 +28,7 @@ afterEach(() => {
 
 describe('StudyTimer — UI', () => {
   it('renderiza o estado inicial com 25 min e 2 pausas disponíveis', () => {
-    render(<StudyTimer />)
+    renderTimer()
 
     expect(screen.getByRole('timer')).toHaveTextContent('25:00')
     expect(screen.getByRole('button', { name: /iniciar/i })).toBeInTheDocument()
@@ -29,7 +38,7 @@ describe('StudyTimer — UI', () => {
   })
 
   it('permite selecionar a duração e inicia a contagem', () => {
-    render(<StudyTimer />)
+    renderTimer()
 
     fireEvent.click(screen.getByRole('button', { name: '30 min' }))
     expect(screen.getByRole('timer')).toHaveTextContent('30:00')
@@ -43,7 +52,7 @@ describe('StudyTimer — UI', () => {
   })
 
   it('bloqueia o botão de pausa após o limite de 2 pausas', () => {
-    render(<StudyTimer />)
+    renderTimer()
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
 
@@ -59,7 +68,7 @@ describe('StudyTimer — UI', () => {
   })
 
   it('finaliza a sessão, calcula recompensas e salva no histórico', async () => {
-    render(<StudyTimer />)
+    renderTimer()
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
 
@@ -81,7 +90,7 @@ describe('StudyTimer — UI', () => {
   })
 
   it('permite reiniciar e iniciar uma nova sessão', async () => {
-    render(<StudyTimer />)
+    renderTimer()
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
 
