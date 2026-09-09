@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { ForgePage } from './pages/ForgePage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { QuestsPage } from './pages/QuestsPage'
 
 export function App() {
   return (
@@ -32,6 +33,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <LeaderboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quests"
+          element={
+            <ProtectedRoute>
+              <QuestsPage />
             </ProtectedRoute>
           }
         />

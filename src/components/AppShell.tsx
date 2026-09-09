@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Hammer, LayoutDashboard, LogOut, Sparkles, Trophy } from 'lucide-react'
+import { Hammer, LayoutDashboard, LogOut, Sparkles, Swords, Trophy } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 
 const NAV_LINKS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/forge', label: 'Forge', icon: Hammer, end: false },
+  { to: '/quests', label: 'Quests', icon: Swords, end: false },
   { to: '/leaderboard', label: 'Leaderboard', icon: Trophy, end: false },
 ]
 

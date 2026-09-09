@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
 import { getLevelProgress } from '../../../utils/leveling'
 import { useAuth } from '../../auth/AuthContext'
+import { REWARD_COLORS } from '../../../lib/rewardColors'
 
 interface ProfileStats {
   level: number
@@ -125,12 +126,12 @@ export function HeroProfile() {
           />
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-          <span data-testid="hero-xp" className="flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+          <span data-testid="hero-xp" className={`flex items-center gap-1.5 ${REWARD_COLORS.xp}`}>
+            <Sparkles className={`h-3.5 w-3.5 ${REWARD_COLORS.xpIcon}`} aria-hidden="true" />
             {xpIntoLevel}/{nextLevelXp} XP
           </span>
-          <span data-testid="hero-gold" className="flex items-center gap-1.5">
-            <Coins className="h-3.5 w-3.5 text-yellow-500" aria-hidden="true" />
+          <span data-testid="hero-gold" className={`flex items-center gap-1.5 ${REWARD_COLORS.gold}`}>
+            <Coins className={`h-3.5 w-3.5 ${REWARD_COLORS.goldIcon}`} aria-hidden="true" />
             {gold} Gold
           </span>
         </div>

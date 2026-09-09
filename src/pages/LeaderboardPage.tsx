@@ -1,5 +1,6 @@
 import { CheckCircle2, Trophy } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { REWARD_COLORS } from '../lib/rewardColors'
 
 const LEADERBOARD = [
   { position: 1, name: 'Mestre Alquimista', score: 2450 },
@@ -29,7 +30,7 @@ export function LeaderboardPage() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
               )}
             </div>
-            <span className="font-mono text-sm text-slate-400">{score} XP</span>
+            <span className={`font-mono text-sm ${REWARD_COLORS.xp}`}>{score} XP</span>
           </div>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import { Coins, Loader2, Pause, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { MAX_PAUSES, generateStudyOptions } from '../lib/studyRules'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
+import { REWARD_COLORS } from '../../../lib/rewardColors'
 
 const PRIMARY_BUTTON =
   'flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
@@ -98,12 +99,12 @@ export function StudyTimer() {
         >
           <p className="font-semibold text-emerald-300">Sessão concluída!</p>
           <div className="mt-2 flex items-center justify-center gap-6">
-            <p className="flex items-center gap-1.5 text-sm font-medium text-white">
-              <Sparkles className="h-4 w-4 text-indigo-400" aria-hidden="true" />
+            <p className={`flex items-center gap-1.5 text-sm font-medium ${REWARD_COLORS.xp}`}>
+              <Sparkles className={`h-4 w-4 ${REWARD_COLORS.xpIcon}`} aria-hidden="true" />
               +{timer.lastResult.xp} XP
             </p>
-            <p className="flex items-center gap-1.5 text-sm font-medium text-amber-300">
-              <Coins className="h-4 w-4" aria-hidden="true" />
+            <p className={`flex items-center gap-1.5 text-sm font-medium ${REWARD_COLORS.gold}`}>
+              <Coins className={`h-4 w-4 ${REWARD_COLORS.goldIcon}`} aria-hidden="true" />
               +{timer.lastResult.gold} Gold
             </p>
           </div>
