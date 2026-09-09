@@ -17,23 +17,29 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          current_streak: number
           current_xp: number
           gold: number
           id: string
+          last_streak_date: string | null
           level: number
         }
         Insert: {
           created_at?: string
+          current_streak?: number
           current_xp?: number
           gold?: number
           id: string
+          last_streak_date?: string | null
           level?: number
         }
         Update: {
           created_at?: string
+          current_streak?: number
           current_xp?: number
           gold?: number
           id?: string
+          last_streak_date?: string | null
           level?: number
         }
         Relationships: []
@@ -77,9 +83,11 @@ export type Database = {
         Args: { p_gold: number; p_xp: number }
         Returns: {
           created_at: string
+          current_streak: number
           current_xp: number
           gold: number
           id: string
+          last_streak_date: string | null
           level: number
         }[]
         SetofOptions: {
@@ -88,6 +96,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      refresh_streak: {
+        Args: Record<string, never>
+        Returns: number
       }
     }
     Enums: {
