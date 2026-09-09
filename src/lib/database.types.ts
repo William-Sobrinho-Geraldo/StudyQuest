@@ -47,6 +47,96 @@ export type Database = {
         }
         Relationships: []
       }
+      quest_claims: {
+        Row: {
+          claimed_at: string
+          quest_id: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          quest_id: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          quest_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quests: {
+        Row: {
+          category: string
+          description: string
+          enabled: boolean
+          id: string
+          metric: string
+          period: string
+          reward_gold: number
+          reward_xp: number
+          target: number
+          title: string
+          trail: string | null
+        }
+        Insert: {
+          category: string
+          description: string
+          enabled?: boolean
+          id: string
+          metric: string
+          period: string
+          reward_gold?: number
+          reward_xp?: number
+          target: number
+          title: string
+          trail?: string | null
+        }
+        Update: {
+          category?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          metric?: string
+          period?: string
+          reward_gold?: number
+          reward_xp?: number
+          target?: number
+          title?: string
+          trail?: string | null
+        }
+        Relationships: []
+      }
+      rewards_log: {
+        Row: {
+          created_at: string
+          gold: number
+          id: number
+          source: string
+          source_id: string | null
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          gold?: number
+          id?: number
+          source: string
+          source_id?: string | null
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          gold?: number
+          id?: number
+          source?: string
+          source_id?: string | null
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       study_sessions: {
         Row: {
           completed_at: string
@@ -97,6 +187,50 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_quest: {
+        Args: { p_quest_id: string }
+        Returns: {
+          created_at: string
+          current_streak: number
+          current_xp: number
+          daily_goal_minutes: number
+          gold: number
+          id: string
+          last_streak_date: string | null
+          level: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      quest_progress: {
+        Args: Record<string, never>
+        Returns: {
+          category: string
+          claimed: boolean
+          completed: boolean
+          current_value: number
+          description: string
+          enabled: boolean
+          id: string
+          metric: string
+          period: string
+          reward_gold: number
+          reward_xp: number
+          target: number
+          title: string
+          trail: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "quest_progress"
           isOneToOne: false
           isSetofReturn: true
         }
