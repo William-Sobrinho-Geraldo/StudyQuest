@@ -1,20 +1,28 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Session } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../auth/AuthContext'
+import {
+  StudyTimerProvider,
+  useStudyTimerContext,
+  type StudyTimerValue,
+} from '../../study/context/StudyTimerContext'
 import { DailyGoalCard } from './DailyGoalCard'
 
-const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
+const { getSession, onAuthStateChange, from, rpc, saveStudySession } = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
+  saveStudySession: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({
   supabase: { auth: { getSession, onAuthStateChange }, from, rpc },
 }))
+
+vi.mock('../../study/services/studySessionService', () => ({ saveStudySession }))
 
 const SESSION = {
   access_token: 'test-token',
@@ -53,10 +61,21 @@ function mockGoal(goal: number | null) {
   })
 }
 
+let timerRef: { current: StudyTimerValue | null } = { current: null }
+
+function TimerProbe() {
+  const timer = useStudyTimerContext()
+  timerRef.current = timer
+  return null
+}
+
 function renderCard() {
   return render(
     <AuthProvider>
-      <DailyGoalCard />
+      <StudyTimerProvider>
+        <DailyGoalCard />
+        <TimerProbe />
+      </StudyTimerProvider>
     </AuthProvider>,
   )
 }
@@ -65,6 +84,7 @@ describe('DailyGoalCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSession()
+    timerRef.current = null
   })
 
   it('mostra o estudo de hoje e a meta diária do perfil', async () => {
@@ -144,5 +164,23 @@ describe('DailyGoalCard', () => {
     await user.click(screen.getByRole('button', { name: 'Cancelar edição da meta diária' }))
 
     expect(screen.getByText('90 / 120 min')).toBeInTheDocument()
+  })
+
+  it('atualiza os minutos de hoje logo após concluir uma sessão', async () => {
+    saveStudySession.mockResolvedValue({} as never)
+    mockGoal(40)
+    rpc
+      .mockResolvedValueOnce({ data: 100, error: null })
+      .mockResolvedValueOnce({ data: 120, error: null })
+
+    renderCard()
+
+    expect(await screen.findByText('100 / 40 min')).toBeInTheDocument()
+
+    await act(async () => {
+      await timerRef.current?.finish()
+    })
+
+    expect(screen.getByText('120 / 40 min')).toBeInTheDocument()
   })
 })

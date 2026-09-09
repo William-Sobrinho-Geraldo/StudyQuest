@@ -41,6 +41,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const [lastResult, setLastResult] = useState<StudyTimerResult | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [sessionCompletedAt, setSessionCompletedAt] = useState<number | null>(null)
 
   const statusRef = useRef<StudyTimerStatus>('idle')
   const pausesUsedRef = useRef(0)
@@ -79,6 +80,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     setIsSaving(true)
     try {
       await saveSession(result)
+      setSessionCompletedAt(Date.now())
     } catch (error) {
       setSaveError(
         error instanceof Error
@@ -179,6 +181,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     setLastResult(null)
     setSaveError(null)
     setIsSaving(false)
+    setSessionCompletedAt(null)
     changeStatus('idle')
   }, [changeStatus, clearTimer])
 
@@ -198,6 +201,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     lastResult,
     saveError,
     isSaving,
+    sessionCompletedAt,
     selectDuration,
     start,
     pause,

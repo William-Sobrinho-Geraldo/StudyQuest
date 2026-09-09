@@ -1,19 +1,29 @@
 import { Check, Pencil, Target, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
+import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
 
 const DEFAULT_DAILY_GOAL_MINUTES = 30
 const MAX_DAILY_GOAL_MINUTES = 1200
 
 export function DailyGoalCard() {
   const { user } = useAuth()
+  const { sessionCompletedAt } = useStudyTimerContext()
   const [goal, setGoal] = useState<number | null>(null)
   const [todayMinutes, setTodayMinutes] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const loadMinutes = useCallback(async () => {
+    if (!user) return
+    const { data, error } = await supabase.rpc('today_study_minutes')
+    if (!error && typeof data === 'number') {
+      setTodayMinutes(data)
+    }
+  }, [user])
 
   useEffect(() => {
     let active = true
@@ -41,6 +51,11 @@ export function DailyGoalCard() {
       active = false
     }
   }, [user])
+
+  useEffect(() => {
+    if (sessionCompletedAt === null) return
+    void loadMinutes()
+  }, [sessionCompletedAt, loadMinutes])
 
   const startEditing = () => {
     setInputValue(String(goal ?? DEFAULT_DAILY_GOAL_MINUTES))
