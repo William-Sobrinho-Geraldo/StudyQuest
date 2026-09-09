@@ -134,23 +134,39 @@ describe('QuestsPage', () => {
     })
   })
 
-  it('exibe as três categorias e as quests principais por padrão, agrupadas por trilha', async () => {
+  it('exibe as três categorias e abre as quests diárias por padrão', async () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Quests' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Quests Principais' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
     expect(screen.getByRole('button', { name: 'Quests Diárias' })).toHaveAttribute(
       'aria-pressed',
-      'false',
+      'true',
     )
     expect(screen.getByRole('button', { name: 'Quests Semanais' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
+    expect(screen.getByRole('button', { name: 'Quests Principais' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
 
+    expect(screen.getByText('Aquecimento')).toBeInTheDocument()
+    expect(screen.getByText('Maratona Diária')).toBeInTheDocument()
+    expect(screen.queryByText('Trilha de Nível (O Despertar do Herói)')).not.toBeInTheDocument()
+  })
+
+  it('agrupa as quests principais por trilha ao clicar no submenu', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Quests' })
+    await user.click(screen.getByRole('button', { name: 'Quests Principais' }))
+
+    expect(screen.getByRole('button', { name: 'Quests Principais' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     expect(screen.getByText('Trilha de Nível (O Despertar do Herói)')).toBeInTheDocument()
     expect(screen.getByText('Trilha da Forja (Poder Implacável)')).toBeInTheDocument()
     expect(screen.getByText('O Início da Jornada')).toBeInTheDocument()

@@ -54,7 +54,7 @@ interface QuestGroup {
 }
 
 export function QuestsPage() {
-  const [selectedId, setSelectedId] = useState<QuestCategoryId>('main')
+  const [selectedId, setSelectedId] = useState<QuestCategoryId>('daily')
   const [quests, setQuests] = useState<QuestProgressRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
