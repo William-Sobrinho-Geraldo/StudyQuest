@@ -122,9 +122,9 @@ describe('HeroProfile', () => {
     mockSession()
     mockProfileFetch([
       { level: 1, current_xp: 50, gold: 0 },
-      { level: 3, current_xp: 500, gold: 50 },
+      { level: 3, current_xp: 300, gold: 50 },
     ])
-    rpc.mockResolvedValue({ data: [{ level: 3, current_xp: 500, gold: 50 }], error: null })
+    rpc.mockResolvedValue({ data: [{ level: 3, current_xp: 300, gold: 50 }], error: null })
 
     renderProfile()
     await screen.findByText('50/100 XP')
@@ -133,16 +133,16 @@ describe('HeroProfile', () => {
 
     await user.click(screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }))
 
-    await screen.findByText('117/520 XP')
+    await screen.findByText('85/132 XP')
     expect(screen.getByText('Nível 3')).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 250, p_gold: 50 })
     expect(screen.getByTestId('timer-status')).toHaveTextContent('completed')
 
     await waitFor(() => {
-      expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: '22.50%' })
+      expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: '64.39%' })
     })
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '23')
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '64')
     expect(screen.getByTestId('hero-gold')).toHaveTextContent('50 Gold')
   })
 

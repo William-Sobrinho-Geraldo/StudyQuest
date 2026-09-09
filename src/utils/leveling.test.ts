@@ -2,18 +2,69 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import {
   calculateLevelFromXp,
   getLevelProgress,
+  growthRateForLevel,
   totalXpForLevel,
   xpForNextLevel,
   type LevelProgress,
 } from './leveling'
 
+describe('growthRateForLevel', () => {
+  it('usa a taxa da faixa correspondente ao nível', () => {
+    expect(growthRateForLevel(1)).toBe(0.15)
+    expect(growthRateForLevel(15)).toBe(0.15)
+    expect(growthRateForLevel(16)).toBe(0.12)
+    expect(growthRateForLevel(25)).toBe(0.12)
+    expect(growthRateForLevel(26)).toBe(0.1)
+    expect(growthRateForLevel(40)).toBe(0.1)
+    expect(growthRateForLevel(41)).toBe(0.08)
+    expect(growthRateForLevel(60)).toBe(0.08)
+    expect(growthRateForLevel(61)).toBe(0.06)
+    expect(growthRateForLevel(80)).toBe(0.06)
+    expect(growthRateForLevel(81)).toBe(0.04)
+    expect(growthRateForLevel(100)).toBe(0.04)
+    expect(growthRateForLevel(101)).toBe(0.03)
+    expect(growthRateForLevel(10_000)).toBe(0.03)
+  })
+
+  it('trata níveis inválidos como faixa mínima', () => {
+    expect(growthRateForLevel(0)).toBe(0.15)
+    expect(growthRateForLevel(-5)).toBe(0.15)
+    expect(growthRateForLevel(3.9)).toBe(0.15)
+  })
+})
+
 describe('xpForNextLevel', () => {
-  it('segue a fórmula 100 * (nível ^ 1.5) arredondada', () => {
+  it('sempre exige mais XP que o nível anterior dentro da mesma faixa', () => {
     expect(xpForNextLevel(1)).toBe(100)
-    expect(xpForNextLevel(2)).toBe(283)
-    expect(xpForNextLevel(3)).toBe(520)
-    expect(xpForNextLevel(4)).toBe(800)
-    expect(xpForNextLevel(5)).toBe(1118)
+    expect(xpForNextLevel(2)).toBe(115)
+    expect(xpForNextLevel(3)).toBe(132)
+    expect(xpForNextLevel(4)).toBe(152)
+    expect(xpForNextLevel(5)).toBe(175)
+    expect(xpForNextLevel(10)).toBe(352)
+
+    for (let level = 2; level <= 100; level++) {
+      expect(xpForNextLevel(level)).toBeGreaterThan(xpForNextLevel(level - 1))
+    }
+  })
+
+  it('aplica a taxa de crescimento correta em cada faixa', () => {
+    const expected: Array<[number, number]> = [
+      [15, 708],
+      [16, 793],
+      [25, 2200],
+      [26, 2420],
+      [40, 9193],
+      [41, 9928],
+      [60, 42845],
+      [61, 45416],
+      [80, 137409],
+      [81, 142905],
+      [100, 301081],
+      [101, 310113],
+    ]
+    for (const [level, threshold] of expected) {
+      expect(xpForNextLevel(level)).toBe(threshold)
+    }
   })
 })
 
@@ -21,10 +72,28 @@ describe('totalXpForLevel', () => {
   it('acumula o escalonamento de todos os níveis anteriores', () => {
     expect(totalXpForLevel(1)).toBe(0)
     expect(totalXpForLevel(2)).toBe(100)
-    expect(totalXpForLevel(3)).toBe(383)
-    expect(totalXpForLevel(4)).toBe(903)
-    expect(totalXpForLevel(5)).toBe(1703)
-    expect(totalXpForLevel(6)).toBe(2821)
+    expect(totalXpForLevel(3)).toBe(215)
+    expect(totalXpForLevel(4)).toBe(347)
+    expect(totalXpForLevel(5)).toBe(499)
+  })
+
+  it('respeita as bordas das faixas de dificuldade', () => {
+    const boundaries: Array<[number, number]> = [
+      [15, 4053],
+      [16, 4761],
+      [25, 16481],
+      [26, 18681],
+      [40, 86388],
+      [41, 95581],
+      [60, 507035],
+      [61, 549880],
+      [80, 2083106],
+      [81, 2220515],
+      [100, 6174884],
+    ]
+    for (const [level, total] of boundaries) {
+      expect(totalXpForLevel(level)).toBe(total)
+    }
   })
 })
 
@@ -36,19 +105,27 @@ describe('calculateLevelFromXp', () => {
 
   it('sobe de nível exatamente na borda do acumulado', () => {
     expect(calculateLevelFromXp(100)).toBe(2)
-    expect(calculateLevelFromXp(382)).toBe(2)
-    expect(calculateLevelFromXp(383)).toBe(3)
-    expect(calculateLevelFromXp(903)).toBe(4)
-    expect(calculateLevelFromXp(2821)).toBe(6)
-    expect(calculateLevelFromXp(2820)).toBe(5)
+    expect(calculateLevelFromXp(114)).toBe(2)
+    expect(calculateLevelFromXp(215)).toBe(3)
+    expect(calculateLevelFromXp(347)).toBe(4)
+    expect(calculateLevelFromXp(903)).toBe(7)
+  })
+
+  it('cada faixa começa apenas após o XP acumulado da faixa anterior', () => {
+    expect(calculateLevelFromXp(4052)).toBe(14)
+    expect(calculateLevelFromXp(4053)).toBe(15)
+    expect(calculateLevelFromXp(4761)).toBe(16)
+    expect(calculateLevelFromXp(16481)).toBe(25)
+    expect(calculateLevelFromXp(18681)).toBe(26)
+    expect(calculateLevelFromXp(95581)).toBe(41)
+    expect(calculateLevelFromXp(2220515)).toBe(81)
+    expect(calculateLevelFromXp(6174884)).toBe(100)
   })
 
   it('eleva múltiplos níveis em saltos massivos de XP', () => {
-    expect(calculateLevelFromXp(1_000_000)).toBe(57)
-    const huge = 57
-    expect(huge).toBeGreaterThan(50)
-    const base = calculateLevelFromXp(1000)
-    expect(huge).toBeGreaterThan(base * 5)
+    expect(calculateLevelFromXp(10_000)).toBe(21)
+    expect(calculateLevelFromXp(100_000)).toBe(41)
+    expect(calculateLevelFromXp(1_000_000)).toBe(69)
 
     for (const xp of [10_000, 100_000, 1_000_000, 10_000_000]) {
       const level = calculateLevelFromXp(xp)
@@ -93,19 +170,19 @@ describe('getLevelProgress', () => {
       xpForNextLevel: 100,
       progress: 0.5,
     })
-    expect(getLevelProgress(150)).toEqual({
-      level: 2,
-      xpIntoLevel: 50,
-      xpForNextLevel: 283,
-      progress: 50 / 283,
+    expect(getLevelProgress(300)).toEqual({
+      level: 3,
+      xpIntoLevel: 85,
+      xpForNextLevel: 132,
+      progress: 85 / 132,
     })
   })
 
   it('reconhece a borda exata do nível como marco (0% de progresso)', () => {
-    expect(getLevelProgress(383)).toEqual({
+    expect(getLevelProgress(215)).toEqual({
       level: 3,
       xpIntoLevel: 0,
-      xpForNextLevel: 520,
+      xpForNextLevel: 132,
       progress: 0,
     })
   })
