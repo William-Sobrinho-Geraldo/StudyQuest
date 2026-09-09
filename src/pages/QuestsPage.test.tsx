@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../features/auth/AuthContext'
+import { ToastProvider } from '../components/Toast'
 import { type QuestProgressRow } from '../features/quests/services/questsService'
 import { QuestsPage } from './QuestsPage'
 
@@ -47,6 +48,7 @@ const catalog: QuestProgressRow[] = [
     target: 1,
     current_value: 1,
     completed: true,
+    reward_chest_tier: 'rare',
   }),
   makeQuest({
     id: 'daily-6',
@@ -57,6 +59,7 @@ const catalog: QuestProgressRow[] = [
     current_value: 45,
     reward_xp: 450,
     reward_gold: 100,
+    reward_chest_tier: 'common',
   }),
   makeQuest({
     id: 'daily-9',
@@ -106,11 +109,13 @@ const catalog: QuestProgressRow[] = [
 
 function renderPage() {
   return render(
-    <AuthProvider>
-      <MemoryRouter>
-        <QuestsPage />
-      </MemoryRouter>
-    </AuthProvider>,
+    <ToastProvider>
+      <AuthProvider>
+        <MemoryRouter>
+          <QuestsPage />
+        </MemoryRouter>
+      </AuthProvider>
+    </ToastProvider>,
   )
 }
 
@@ -195,12 +200,16 @@ describe('QuestsPage', () => {
     expect(screen.getByText('50 XP')).toBeInTheDocument()
     expect(screen.getByText('10 Gold')).toBeInTheDocument()
 
+    expect(screen.getByText('Baú Raro')).toBeInTheDocument()
+    expect(screen.getByTestId('quest-chest-daily-1')).toHaveClass('text-blue-400')
+    expect(screen.getByText('Baú Comum')).toBeInTheDocument()
+
     const claimButtons = screen.getAllByRole('button', { name: 'Reivindicar' })
     expect(claimButtons).toHaveLength(3)
     expect(claimButtons.filter((button) => !(button as HTMLButtonElement).disabled)).toHaveLength(1)
   })
 
-  it('reivindica uma quest concluída e volta a listá-la como Reivindicado', async () => {
+  it('reivindica uma quest concluída, notifica o baú recebido e volta a listá-la como Reivindicado', async () => {
     const user = userEvent.setup()
     renderPage()
 
@@ -214,6 +223,9 @@ describe('QuestsPage', () => {
     if (claimButton) await user.click(claimButton)
 
     expect(rpc).toHaveBeenCalledWith('claim_quest', { p_quest_id: 'daily-1' })
+    expect(
+      await screen.findByText('Você recebeu um Baú Raro! Verifique seu inventário.'),
+    ).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Reivindicado' })).toBeDisabled()
     expect(screen.getByText(/100 XP/)).toBeInTheDocument()
   })

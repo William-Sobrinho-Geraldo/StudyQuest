@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory: {
+        Row: {
+          created_at: string
+          equipped: boolean
+          id: string
+          item_category: string
+          level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipped?: boolean
+          id?: string
+          item_category: string
+          level?: number
+          name?: string | null
+          quantity?: number
+          rarity: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipped?: boolean
+          id?: string
+          item_category?: string
+          level?: number
+          name?: string | null
+          quantity?: number
+          rarity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quest_claims: {
         Row: {
           claimed_at: string
@@ -247,6 +283,7 @@ export type Database = {
           id: string
           metric: string
           period: string
+          reward_chest_tier: string | null
           reward_gold: number
           reward_xp: number
           target: number
@@ -256,6 +293,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "quest_progress"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      open_inventory_chest: {
+        Args: { p_inventory_id: string }
+        Returns: {
+          created_at: string
+          equipped: boolean
+          id: string
+          item_category: string
+          level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
           isOneToOne: false
           isSetofReturn: true
         }

@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase'
+import type { QuestChestTier } from '../lib/chestTiers'
 
 export type QuestCategoryId = 'daily' | 'weekly' | 'main'
 
@@ -13,6 +14,7 @@ export interface QuestProgressRow {
   target: number
   reward_xp: number
   reward_gold: number
+  reward_chest_tier?: QuestChestTier | null
   enabled: boolean
   current_value: number
   completed: boolean

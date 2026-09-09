@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Coins, ScrollText, Sparkles, Sun, type LucideIcon } from 'lucide-react'
+import {
+  CalendarDays,
+  Coins,
+  Gift,
+  ScrollText,
+  Sparkles,
+  Sun,
+  type LucideIcon,
+} from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { useToast } from '../components/Toast'
 import {
   claimQuest,
   fetchQuestProgress,
   type QuestCategoryId,
   type QuestProgressRow,
 } from '../features/quests/services/questsService'
+import { CHEST_TIER_META } from '../features/quests/lib/chestTiers'
 import { REWARD_COLORS } from '../lib/rewardColors'
 
 const CATEGORIES: {
@@ -54,6 +64,7 @@ interface QuestGroup {
 }
 
 export function QuestsPage() {
+  const { showToast } = useToast()
   const [selectedId, setSelectedId] = useState<QuestCategoryId>('daily')
   const [quests, setQuests] = useState<QuestProgressRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,6 +101,11 @@ export function QuestsPage() {
     setClaimError(null)
     try {
       await claimQuest(quest.id)
+      if (quest.reward_chest_tier) {
+        showToast(
+          `Você recebeu um Baú ${CHEST_TIER_META[quest.reward_chest_tier].label}! Verifique seu inventário.`,
+        )
+      }
       const rows = await fetchQuestProgress()
       setQuests(rows)
     } catch (err) {
@@ -224,6 +240,17 @@ export function QuestsPage() {
                                 <Coins className="h-4 w-4" aria-hidden="true" />
                                 {quest.reward_gold} Gold
                               </span>
+                              {quest.reward_chest_tier ? (
+                                <span
+                                  data-testid={`quest-chest-${quest.id}`}
+                                  className={`flex items-center gap-1.5 font-medium ${
+                                    CHEST_TIER_META[quest.reward_chest_tier].textColor
+                                  }`}
+                                >
+                                  <Gift className="h-4 w-4" aria-hidden="true" />
+                                  Baú {CHEST_TIER_META[quest.reward_chest_tier].label}
+                                </span>
+                              ) : null}
                               <button
                                 type="button"
                                 disabled={

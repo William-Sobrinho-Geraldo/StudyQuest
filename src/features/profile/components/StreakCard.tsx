@@ -1,24 +1,29 @@
 import { Flame } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
 
 export function StreakCard() {
+  const { sessionCompletedAt } = useStudyTimerContext()
   const [streak, setStreak] = useState<number | null>(null)
 
-  useEffect(() => {
-    let active = true
-    void supabase.rpc('refresh_streak').then(({ data, error }) => {
-      if (!active) return
-      if (error || typeof data !== 'number') {
-        setStreak(0)
-        return
-      }
-      setStreak(data)
-    })
-    return () => {
-      active = false
+  const refreshStreak = useCallback(async () => {
+    const { data, error } = await supabase.rpc('refresh_streak')
+    if (error || typeof data !== 'number') {
+      setStreak(0)
+      return
     }
+    setStreak(data)
   }, [])
+
+  useEffect(() => {
+    void refreshStreak()
+  }, [refreshStreak])
+
+  useEffect(() => {
+    if (sessionCompletedAt === null) return
+    void refreshStreak()
+  }, [sessionCompletedAt, refreshStreak])
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={streak === null}>
