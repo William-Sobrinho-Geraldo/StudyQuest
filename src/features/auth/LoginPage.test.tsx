@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { within, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Session } from '@supabase/supabase-js'
 import { renderApp } from '../../test/test-utils'
@@ -7,8 +7,11 @@ import { renderApp } from '../../test/test-utils'
 const authMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   signInWithPassword: vi.fn(),
+  signUp: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChange: vi.fn(),
+  from: vi.fn(),
+  rpc: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -16,9 +19,12 @@ vi.mock('../../lib/supabase', () => ({
     auth: {
       getSession: authMocks.getSession,
       signInWithPassword: authMocks.signInWithPassword,
+      signUp: authMocks.signUp,
       signOut: authMocks.signOut,
       onAuthStateChange: authMocks.onAuthStateChange,
     },
+    from: authMocks.from,
+    rpc: authMocks.rpc,
   },
 }))
 
@@ -47,9 +53,18 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 beforeEach(() => {
   authMocks.getSession.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.signInWithPassword.mockResolvedValue({ data: { session: null }, error: null })
+  authMocks.signUp.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.onAuthStateChange.mockImplementation(() => ({
     data: { subscription: { unsubscribe: vi.fn() } },
   }))
+  authMocks.from.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    }),
+  })
+  authMocks.rpc.mockResolvedValue({ data: null, error: null })
 })
 
 afterEach(() => {
@@ -79,7 +94,7 @@ describe('LoginPage — fluxo de autenticação', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith(credentials)
-    expect(screen.getByText(credentials.email)).toBeInTheDocument()
+    expect(screen.getAllByText(credentials.email).length).toBeGreaterThan(0)
   })
 
   it('exibe erro e permanece no login quando as credenciais são inválidas', async () => {
@@ -105,5 +120,113 @@ describe('LoginPage — fluxo de autenticação', () => {
       'Informe seu email e senha.',
     )
     expect(authMocks.signInWithPassword).not.toHaveBeenCalled()
+  })
+})
+
+describe('RegisterModal — fluxo de cadastro', () => {
+  async function openRegister() {
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /cadastre-se/i }))
+  }
+
+  async function fillRegister(email: string, password: string) {
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    if (email) {
+      await user.type(within(dialog).getByLabelText(/email/i), email)
+    }
+    if (password) {
+      await user.type(within(dialog).getByLabelText(/senha/i), password)
+    }
+    await user.click(within(dialog).getByRole('button', { name: /criar conta/i }))
+  }
+
+  it('abre o modal ao clicar em Cadastre-se', async () => {
+    renderApp('/login')
+    await openRegister()
+
+    expect(screen.getByRole('dialog')).toHaveAccessibleName('Cadastre-se')
+    expect(screen.getByRole('button', { name: /criar conta/i })).toBeInTheDocument()
+  })
+
+  it('cadastra, faz login automático e navega para a home', async () => {
+    authMocks.signUp.mockResolvedValue({
+      data: { session: makeSession() },
+      error: null,
+    })
+
+    renderApp('/login')
+    await openRegister()
+    await fillRegister(credentials.email, credentials.password)
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
+    expect(screen.getAllByText(credentials.email).length).toBeGreaterThan(0)
+  })
+
+  it('exibe erro e permanece no modal quando o cadastro falha', async () => {
+    authMocks.signUp.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'User already registered' },
+    })
+
+    renderApp('/login')
+    await openRegister()
+    await fillRegister(credentials.email, credentials.password)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('User already registered')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
+  })
+
+  it('mostra aviso de confirmação de email quando não há sessão', async () => {
+    renderApp('/login')
+    await openRegister()
+    await fillRegister(credentials.email, credentials.password)
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Confirme seu email para ativar a conta',
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
+  })
+
+  it('valida senha com menos de 6 caracteres', async () => {
+    renderApp('/login')
+    await openRegister()
+    await fillRegister(credentials.email, '12345')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'A senha deve ter pelo menos 6 caracteres',
+    )
+    expect(authMocks.signUp).not.toHaveBeenCalled()
+  })
+
+  it('valida o formato do email antes de chamar o Supabase', async () => {
+    renderApp('/login')
+    await openRegister()
+    await fillRegister('email-sem-arroba', 'secret123')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Email inválido. Use o formato correto: nome@exemplo.com',
+    )
+    expect(authMocks.signUp).not.toHaveBeenCalled()
+  })
+
+  it('traduz o erro de email inválido retornado pelo Supabase', async () => {
+    authMocks.signUp.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Email address "admin@gmail.com" is invalid' },
+    })
+
+    renderApp('/login')
+    await openRegister()
+    await fillRegister('admin@gmail.com', 'secret123')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Email inválido. Use o formato correto: nome@exemplo.com',
+    )
+    expect(screen.queryByText(/^Email address/)).not.toBeInTheDocument()
+    expect(authMocks.signUp).toHaveBeenCalledOnce()
   })
 })

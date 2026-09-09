@@ -6,8 +6,11 @@ import { renderApp } from '../../test/test-utils'
 const authMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   signInWithPassword: vi.fn(),
+  signUp: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChange: vi.fn(),
+  from: vi.fn(),
+  rpc: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -15,9 +18,12 @@ vi.mock('../../lib/supabase', () => ({
     auth: {
       getSession: authMocks.getSession,
       signInWithPassword: authMocks.signInWithPassword,
+      signUp: authMocks.signUp,
       signOut: authMocks.signOut,
       onAuthStateChange: authMocks.onAuthStateChange,
     },
+    from: authMocks.from,
+    rpc: authMocks.rpc,
   },
 }))
 
@@ -47,6 +53,14 @@ beforeEach(() => {
   authMocks.onAuthStateChange.mockImplementation(() => ({
     data: { subscription: { unsubscribe: vi.fn() } },
   }))
+  authMocks.from.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    }),
+  })
+  authMocks.rpc.mockResolvedValue({ data: null, error: null })
 })
 
 afterEach(() => {

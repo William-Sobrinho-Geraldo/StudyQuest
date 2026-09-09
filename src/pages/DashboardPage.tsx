@@ -1,6 +1,9 @@
 import { BookOpen, Flame, Target } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../features/auth/AuthContext'
+import { MetricsCharts } from '../features/metrics/components/MetricsCharts'
+import { HeroProfile } from '../features/profile/components/HeroProfile'
+import { StudyTimer } from '../features/study/components/StudyTimer'
 
 const STATS = [
   { label: 'Módulos aprendidos', value: '8', icon: BookOpen },
@@ -18,6 +21,10 @@ export function DashboardPage() {
         Bem-vindo(a), {user?.email ?? 'explorador(a)'}.
       </p>
 
+      <div className="mt-8">
+        <HeroProfile />
+      </div>
+
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         {STATS.map(({ label, value, icon: Icon }) => (
           <div key={label} className="rounded-xl border border-slate-800 bg-slate-900 p-5">
@@ -27,6 +34,12 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <div className="mt-8">
+        <StudyTimer />
+      </div>
+
+      <MetricsCharts />
     </AppShell>
   )
 }

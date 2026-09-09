@@ -14,6 +14,7 @@ export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
 export interface SignInResult {
   error?: string
+  needsEmailConfirmation?: boolean
 }
 
 export interface AuthContextValue {
@@ -22,6 +23,7 @@ export interface AuthContextValue {
   isLoading: boolean
   isAuthenticated: boolean
   signIn: (email: string, password: string) => Promise<SignInResult>
+  signUp: (email: string, password: string) => Promise<SignInResult>
   signOut: () => Promise<void>
 }
 
@@ -70,6 +72,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {}
   }, [])
 
+  const signUp = useCallback(async (email: string, password: string): Promise<SignInResult> => {
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error) {
+      return { error: error.message }
+    }
+    if (data.session) {
+      setUser(data.session.user)
+      setStatus('authenticated')
+      return {}
+    }
+    return { needsEmailConfirmation: true }
+  }, [])
+
   const signOut = useCallback(async (): Promise<void> => {
     const { error } = await supabase.auth.signOut()
     if (!error) {
@@ -85,9 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading: status === 'loading',
       isAuthenticated: status === 'authenticated',
       signIn,
+      signUp,
       signOut,
     }),
-    [user, status, signIn, signOut],
+    [user, status, signIn, signUp, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
