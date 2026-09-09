@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           current_streak: number
           current_xp: number
+          daily_goal_minutes: number
           gold: number
           id: string
           last_streak_date: string | null
@@ -28,6 +29,7 @@ export type Database = {
           created_at?: string
           current_streak?: number
           current_xp?: number
+          daily_goal_minutes?: number
           gold?: number
           id: string
           last_streak_date?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           created_at?: string
           current_streak?: number
           current_xp?: number
+          daily_goal_minutes?: number
           gold?: number
           id?: string
           last_streak_date?: string | null
@@ -85,6 +88,7 @@ export type Database = {
           created_at: string
           current_streak: number
           current_xp: number
+          daily_goal_minutes: number
           gold: number
           id: string
           last_streak_date: string | null
@@ -98,6 +102,10 @@ export type Database = {
         }
       }
       refresh_streak: {
+        Args: Record<string, never>
+        Returns: number
+      }
+      today_study_minutes: {
         Args: Record<string, never>
         Returns: number
       }
