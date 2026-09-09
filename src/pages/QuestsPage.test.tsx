@@ -51,37 +51,56 @@ describe('QuestsPage', () => {
       'false',
     )
 
-    expect(screen.getByText('Estude 20 minutos por dia durante 7 dias seguidos')).toBeInTheDocument()
-    expect(screen.getByText('Complete a sua primeira sessão de estudo')).toBeInTheDocument()
-    expect(screen.getByText('Alcance o nível 10')).toBeInTheDocument()
+    expect(screen.getByText('Trilha de Nível (O Despertar do Herói)')).toBeInTheDocument()
+    expect(screen.getByText('O Início da Jornada')).toBeInTheDocument()
+    expect(screen.getByText('A Divindade Acadêmica')).toBeInTheDocument()
   })
 
-  it('mostra as recompensas em XP e Gold ao lado de cada quest', async () => {
+  it('agrupa as quests principais em trilhas com título, descrição e recompensas', async () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Quests' })
 
-    expect(screen.getByText('500 XP')).toBeInTheDocument()
-    expect(screen.getByText('100 Gold')).toBeInTheDocument()
-    expect(screen.getByText('100 XP')).toBeInTheDocument()
-    expect(screen.getByText('20 Gold')).toBeInTheDocument()
+    for (const trail of [
+      'Trilha de Nível (O Despertar do Herói)',
+      'Trilha de Tempo (Os Arquivos de Alexandria)',
+      'Trilha de Sessões (Veterano de Guerra)',
+      'Trilha da Forja (Poder Implacável)',
+      'Trilha de Economia (O Tesouro do Dragão)',
+    ]) {
+      expect(screen.getByText(trail)).toBeInTheDocument()
+    }
+
+    expect(screen.getByText('Acumule 1.000 minutos de estudo no total.')).toBeInTheDocument()
+    expect(screen.getByText('Avatar da Guerra')).toBeInTheDocument()
+    expect(screen.getByText('Tenha TODOS os 4 slots Nível 100 no refino máximo (+12).')).toBeInTheDocument()
+    expect(screen.getByText('Ganhe 250.000 de Ouro total na jornada.')).toBeInTheDocument()
+
+    expect(screen.getByText('500000 XP')).toBeInTheDocument()
+    expect(screen.getByText('600000 XP')).toBeInTheDocument()
+    expect(screen.getByText('65000 Gold')).toBeInTheDocument()
   })
 
-  it('alterna para as quests diárias ao clicar no submenu', async () => {
+  it('mostra recompensas lado a lado e botão Reivindicar desabilitado para quests não concluídas', async () => {
     const user = userEvent.setup()
     renderPage()
 
     await screen.findByRole('heading', { name: 'Quests' })
     await user.click(screen.getByRole('button', { name: 'Quests Diárias' }))
 
-    expect(screen.getByRole('button', { name: 'Quests Diárias' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    expect(screen.getByText('Complete a sua meta diária de estudo')).toBeInTheDocument()
-    expect(screen.getByText('Conclua 3 sessões de estudo hoje')).toBeInTheDocument()
-    expect(screen.getByText('150 XP')).toBeInTheDocument()
-    expect(screen.queryByText('Estude 20 minutos por dia durante 7 dias seguidos')).not.toBeInTheDocument()
+    const questCards = screen.getAllByText(/sessão de foco/i)
+    expect(questCards.length).toBeGreaterThan(0)
+
+    expect(screen.getByText('450 XP')).toBeInTheDocument()
+    expect(screen.getByText('100 Gold')).toBeInTheDocument()
+    expect(screen.getByText('50 XP')).toBeInTheDocument()
+    expect(screen.getByText('10 Gold')).toBeInTheDocument()
+
+    const claimButtons = screen.getAllByRole('button', { name: 'Reivindicar' })
+    expect(claimButtons).toHaveLength(9)
+    for (const button of claimButtons) {
+      expect(button).toBeDisabled()
+    }
   })
 
   it('alterna para as quests semanais ao clicar no submenu', async () => {
@@ -91,9 +110,28 @@ describe('QuestsPage', () => {
     await screen.findByRole('heading', { name: 'Quests' })
     await user.click(screen.getByRole('button', { name: 'Quests Semanais' }))
 
-    expect(screen.getByText('Acumule 5 horas de estudo nesta semana')).toBeInTheDocument()
-    expect(screen.getByText('Mantenha a sequência de estudos por 7 dias')).toBeInTheDocument()
-    expect(screen.getByText('600 XP')).toBeInTheDocument()
-    expect(screen.getByText('120 Gold')).toBeInTheDocument()
+    expect(screen.getByText('Resiliência Semanal')).toBeInTheDocument()
+    expect(screen.getByText('Acumule 350 minutos (aprox. 6 horas) de estudo na semana.')).toBeInTheDocument()
+    expect(screen.getByText('2000 XP')).toBeInTheDocument()
+    expect(screen.getByText('400 Gold')).toBeInTheDocument()
+    expect(screen.getByText('Chama Inapagável')).toBeInTheDocument()
+    expect(screen.getByText('1200 XP')).toBeInTheDocument()
+
+    const claimButtons = screen.getAllByRole('button', { name: 'Reivindicar' })
+    for (const button of claimButtons) {
+      expect(button).toBeDisabled()
+    }
+  })
+
+  it('some as quests de outras categorias ao alternar de submenu', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Quests' })
+    await user.click(screen.getByRole('button', { name: 'Quests Diárias' }))
+
+    expect(screen.getByText('Aquecimento')).toBeInTheDocument()
+    expect(screen.queryByText('Avatar da Guerra')).not.toBeInTheDocument()
+    expect(screen.queryByText('Resiliência Semanal')).not.toBeInTheDocument()
   })
 })
