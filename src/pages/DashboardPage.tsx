@@ -1,5 +1,7 @@
+import { useCallback, useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../features/auth/AuthContext'
+import { RewardChestCard } from '../features/chest/components/RewardChestCard'
 import { StudyHistory } from '../features/metrics/components/StudyHistory'
 import { DailyGoalCard } from '../features/profile/components/DailyGoalCard'
 import { HeroProfile } from '../features/profile/components/HeroProfile'
@@ -9,6 +11,11 @@ import { StudyTimer } from '../features/study/components/StudyTimer'
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const [profileEpoch, setProfileEpoch] = useState(0)
+
+  const handleChestClaimed = useCallback(() => {
+    setProfileEpoch((epoch) => epoch + 1)
+  }, [])
 
   return (
     <AppShell>
@@ -19,10 +26,11 @@ export function DashboardPage() {
         </p>
 
         <div className="mt-8">
-          <HeroProfile />
+          <HeroProfile key={profileEpoch} />
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <RewardChestCard onClaimed={handleChestClaimed} />
           <StreakCard />
           <DailyGoalCard />
         </div>

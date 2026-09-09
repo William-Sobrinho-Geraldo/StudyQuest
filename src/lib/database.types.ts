@@ -22,6 +22,7 @@ export type Database = {
           daily_goal_minutes: number
           gold: number
           id: string
+          last_chest_claim: string
           last_streak_date: string | null
           level: number
         }
@@ -32,6 +33,7 @@ export type Database = {
           daily_goal_minutes?: number
           gold?: number
           id: string
+          last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
         }
@@ -42,6 +44,7 @@ export type Database = {
           daily_goal_minutes?: number
           gold?: number
           id?: string
+          last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
         }
@@ -181,6 +184,7 @@ export type Database = {
           daily_goal_minutes: number
           gold: number
           id: string
+          last_chest_claim: string
           last_streak_date: string | null
           level: number
         }[]
@@ -200,6 +204,27 @@ export type Database = {
           daily_goal_minutes: number
           gold: number
           id: string
+          last_chest_claim: string
+          last_streak_date: string | null
+          level: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_chest_reward: {
+        Args: Record<string, never>
+        Returns: {
+          created_at: string
+          current_streak: number
+          current_xp: number
+          daily_goal_minutes: number
+          gold: number
+          id: string
+          last_chest_claim: string
           last_streak_date: string | null
           level: number
         }[]
