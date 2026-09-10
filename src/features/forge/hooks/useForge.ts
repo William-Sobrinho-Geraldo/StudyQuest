@@ -3,9 +3,10 @@ import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
 import {
   MAX_REFINE_LEVEL,
-  REFINE_COST,
   SLOTS,
   attemptRefine,
+  canEquip,
+  refineCost,
   successRate,
   type EquipmentSlot,
   type RefineResult,
@@ -28,6 +29,9 @@ export interface SelectedMeta {
   cost: number
   isMax: boolean
   canAfford: boolean
+  // Regra de uso: item só pode ser equipado se item_level <= nível do personagem.
+  canEquip: boolean
+  blockedByLevel: boolean
 }
 
 interface LegacyGearRow {
@@ -35,7 +39,8 @@ interface LegacyGearRow {
   item_category: EquipmentSlot
   rarity: ForgeRarity
   name: string
-  level: number
+  item_level: number
+  enhancement_level: number
   quantity: 1
   equipped: boolean
 }
@@ -50,7 +55,8 @@ function makeLegacyGearRow(
     item_category: item.slot,
     rarity: 'common',
     name: item.name,
-    level: item.level,
+    item_level: item.itemLevel,
+    enhancement_level: item.enhancementLevel,
     quantity: 1,
     equipped,
   }
@@ -63,6 +69,7 @@ export function useForge() {
   const [chests, setChests] = useState<SupplyChestRow[]>([])
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [gold, setGold] = useState<number | null>(null)
+  const [characterLevel, setCharacterLevel] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [lastResult, setLastResult] = useState<RefineResult | null>(null)
@@ -97,8 +104,9 @@ export function useForge() {
     }
 
     const load = async () => {
-      const [goldResult, rowsResult] = await Promise.all([
+      const [goldResult, levelResult, rowsResult] = await Promise.all([
         supabase.from('profiles').select('gold').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('level').eq('id', user.id).maybeSingle(),
         supabase.from('inventory').select('*').eq('user_id', user.id),
       ])
 
@@ -108,6 +116,12 @@ export function useForge() {
         setError(goldResult.error.message)
       } else {
         setGold(goldResult.data?.gold ?? 0)
+      }
+
+      if (levelResult.error) {
+        setError(levelResult.error.message)
+      } else {
+        setCharacterLevel(levelResult.data?.level ?? 1)
       }
 
       if (rowsResult.error) {
@@ -158,15 +172,19 @@ export function useForge() {
 
   const selectedMeta: SelectedMeta | null = useMemo(() => {
     if (!selectedItem) return null
-    const level = selectedItem.level
+    const enhancementLevel = selectedItem.enhancementLevel
+    const cost = refineCost(selectedItem.itemLevel, enhancementLevel)
+    const levelOk = characterLevel !== null && canEquip(selectedItem.itemLevel, characterLevel)
     return {
       item: selectedItem,
-      rate: successRate(level),
-      cost: REFINE_COST[level] ?? 0,
-      isMax: level >= MAX_REFINE_LEVEL,
-      canAfford: gold !== null && gold >= (REFINE_COST[level] ?? 0),
+      rate: successRate(enhancementLevel),
+      cost,
+      isMax: enhancementLevel >= MAX_REFINE_LEVEL,
+      canAfford: gold !== null && gold >= cost,
+      canEquip: levelOk,
+      blockedByLevel: characterLevel !== null && !levelOk,
     }
-  }, [gold, selectedItem])
+  }, [characterLevel, gold, selectedItem])
 
   const selectItem = useCallback((itemId: string) => {
     setSelectedItemId(itemId)
@@ -179,7 +197,13 @@ export function useForge() {
   const refine = useCallback(async () => {
     if (!user || gold === null || busy || !selectedItem) return
 
-    const outcome = attemptRefine(selectedItem.slot, selectedItem.level, gold, Math.random())
+    const outcome = attemptRefine(
+      selectedItem.slot,
+      selectedItem.itemLevel,
+      selectedItem.enhancementLevel,
+      gold,
+      Math.random(),
+    )
     if (outcome.status === 'unavailable') {
       setError(
         outcome.reason === 'max_level'
@@ -194,7 +218,7 @@ export function useForge() {
     const previousInventory = inventory
     const previousGold = gold
     const nextGold = gold - result.cost
-    const nextItem: ForgeItem = { ...selectedItem, level: result.levelAfter }
+    const nextItem: ForgeItem = { ...selectedItem, enhancementLevel: result.enhancementAfter }
     const isEquippedPiece = SLOTS.some((slot) => equipped[slot]?.id === selectedItem.id)
 
     let nextEquipped = previousEquipped
@@ -214,18 +238,38 @@ export function useForge() {
     setInventory(nextInventory)
     setGold(nextGold)
 
-    const [goldResult, itemResult] = await Promise.all([
-      supabase.from('profiles').update({ gold: nextGold }).eq('id', user.id),
-      supabase.from('inventory').update({ level: result.levelAfter }).eq('id', selectedItem.id),
-    ])
+    // Persiste de forma atômica no servidor: a RPC valida o estado do item,
+    // desconta o Gold e aplica o novo enhancement. O rolamento veio do cliente.
+    const { data, error: rpcError } = await supabase.rpc('refine_item', {
+      p_inventory_id: selectedItem.id,
+      p_success: result.success,
+      p_enhancement_level: selectedItem.enhancementLevel,
+    })
 
-    const failed = goldResult.error ?? itemResult.error
-    if (failed) {
+    if (rpcError) {
       setEquipped(previousEquipped)
       setInventory(previousInventory)
       setGold(previousGold)
       setLastResult(null)
-      setError(failed.message)
+      setError(rpcError.message)
+    } else {
+      // Usa a linha devolvida pelo servidor como verdade (evita divergência).
+      const row = ((data ?? []) as InventoryRow[]).find(isGearRow)
+      if (row) {
+        const authoritative = gearRowToForgeItem(row)
+        if (isEquippedPiece) {
+          setEquipped((previous) => ({
+            ...previous,
+            [authoritative.slot]: authoritative,
+          }))
+        } else {
+          setInventory((previous) =>
+            previous.map((item) =>
+              item.id === authoritative.id ? authoritative : item,
+            ),
+          )
+        }
+      }
     }
 
     setBusy(false)
@@ -236,6 +280,12 @@ export function useForge() {
       if (!user || busy) return
       const incoming = inventory.find((item) => item.id === itemId)
       if (!incoming) return
+      if (characterLevel !== null && !canEquip(incoming.itemLevel, characterLevel)) {
+        setError(
+          `Item Nível ${incoming.itemLevel} requer personagem Nível ${incoming.itemLevel}.`,
+        )
+        return
+      }
 
       const current = equipped[slot]
       const previousEquipped = equipped
@@ -267,7 +317,7 @@ export function useForge() {
       }
       setBusy(false)
     },
-    [busy, equipped, inventory, user],
+    [busy, characterLevel, equipped, inventory, user],
   )
 
   const openChest = useCallback(
@@ -278,6 +328,7 @@ export function useForge() {
 
       const { data, error: rpcError } = await supabase.rpc('open_inventory_chest', {
         p_inventory_id: chestId,
+        p_character_level: characterLevel,
       })
 
       setBusy(false)
@@ -301,7 +352,7 @@ export function useForge() {
       setInventory((previous) => [...previous, item])
       return item
     },
-    [busy, user],
+    [busy, characterLevel, user],
   )
 
   return {
@@ -311,6 +362,7 @@ export function useForge() {
     selectedItemId,
     selectedMeta,
     gold,
+    characterLevel,
     busy,
     loading,
     lastResult,

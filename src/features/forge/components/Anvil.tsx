@@ -5,10 +5,13 @@ import { MAX_REFINE_LEVEL, SLOT_LABELS, type RefineResult } from '../lib/forgeRu
 import { readItemDrag } from '../lib/dragAndDrop'
 import type { SelectedMeta } from '../hooks/useForge'
 import { ItemBadge } from './ItemBadge'
+import { ItemCard } from './ItemCard'
 
 function refineButtonLabel(meta: SelectedMeta): string {
   if (meta.isMax) return `Refinar ${meta.item.name} (máximo)`
-  return `Refinar ${meta.item.name} de +${meta.item.level} para +${meta.item.level + 1}`
+  return `Refinar ${meta.item.name} de +${meta.item.enhancementLevel} para +${
+    meta.item.enhancementLevel + 1
+  }`
 }
 
 interface AnvilProps {
@@ -38,6 +41,14 @@ export function Anvil({
   onClearSelection,
   onRefine,
 }: AnvilProps) {
+  const refineDisabled =
+    !canUseForge ||
+    !selectedMeta ||
+    busy ||
+    selectedMeta.isMax ||
+    !selectedMeta.canAfford ||
+    selectedMeta.blockedByLevel
+
   return (
     <section
       aria-label="Bigorna de refino"
@@ -88,16 +99,31 @@ export function Anvil({
         {selectedMeta ? (
           <div
             data-testid="anvil-selected-item"
-            className="flex w-full items-center justify-between gap-4"
+            className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
           >
-            <div className="flex min-w-0 flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-orange-400">
-                {SLOT_LABELS[selectedMeta.item.slot]} pronto para refino
-              </p>
-              <ItemBadge item={selectedMeta.item} />
+            <div className="flex items-start gap-2">
+              <ItemCard
+                item={selectedMeta.item}
+                blocked={selectedMeta.blockedByLevel}
+                className="flex min-w-0 flex-1 flex-col gap-2 p-3"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-orange-400">
+                  {SLOT_LABELS[selectedMeta.item.slot]} pronto para refino
+                </p>
+                <ItemBadge item={selectedMeta.item} blocked={selectedMeta.blockedByLevel} />
+              </ItemCard>
+
+              <button
+                type="button"
+                onClick={onClearSelection}
+                aria-label="Remover item da bigorna"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
 
-            <div className="shrink-0 text-right text-sm text-slate-400">
+            <div className="shrink-0 text-sm text-slate-400 sm:text-right">
               <p>
                 Chance:{' '}
                 <span className="font-semibold text-white">
@@ -111,16 +137,12 @@ export function Anvil({
               {selectedMeta.isMax && (
                 <p className="mt-1 text-xs text-amber-400">Refino máximo atingido.</p>
               )}
+              {selectedMeta.blockedByLevel && (
+                <p className="mt-1 text-xs text-red-400">
+                  Requer personagem Nível {selectedMeta.item.itemLevel}.
+                </p>
+              )}
             </div>
-
-            <button
-              type="button"
-              onClick={onClearSelection}
-              aria-label="Remover item da bigorna"
-              className="shrink-0 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
           </div>
         ) : (
           <div data-testid="anvil-empty-state" className="flex flex-col items-center gap-2 text-center">
@@ -137,9 +159,9 @@ export function Anvil({
         type="button"
         data-testid="anvil-refine-button"
         aria-label={selectedMeta ? refineButtonLabel(selectedMeta) : 'Refinar item selecionado'}
-        disabled={!canUseForge || !selectedMeta || busy || selectedMeta.isMax || !selectedMeta.canAfford}
+        disabled={refineDisabled}
         onClick={onRefine}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {busy
@@ -147,7 +169,9 @@ export function Anvil({
           : selectedMeta
             ? selectedMeta.isMax
               ? `Máximo (+${MAX_REFINE_LEVEL})`
-              : `Refinar +${selectedMeta.item.level} → +${selectedMeta.item.level + 1}`
+              : `Refinar +${selectedMeta.item.enhancementLevel} → +${
+                  selectedMeta.item.enhancementLevel + 1
+                }`
             : 'Selecione um item'}
       </button>
 
@@ -165,8 +189,8 @@ export function Anvil({
           }`}
         >
           {lastResult.success
-            ? `Sucesso! ${SLOT_LABELS[lastResult.slot]} +${lastResult.levelBefore} → +${lastResult.levelAfter}`
-            : `Falha! ${SLOT_LABELS[lastResult.slot]} +${lastResult.levelBefore} → +${lastResult.levelAfter}`}
+            ? `Sucesso! ${SLOT_LABELS[lastResult.slot]} +${lastResult.enhancementBefore} → +${lastResult.enhancementAfter}`
+            : `Falha! ${SLOT_LABELS[lastResult.slot]} +${lastResult.enhancementBefore} → +${lastResult.enhancementAfter}`}
         </div>
       )}
 

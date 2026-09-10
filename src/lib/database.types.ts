@@ -53,35 +53,41 @@ export type Database = {
       inventory: {
         Row: {
           created_at: string
+          enhancement_level: number
           equipped: boolean
           id: string
           item_category: string
-          level: number
+          item_level: number
           name: string | null
           quantity: number
           rarity: string
+          stats: Json | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          enhancement_level?: number
           equipped?: boolean
           id?: string
           item_category: string
-          level?: number
+          item_level?: number
           name?: string | null
           quantity?: number
           rarity: string
+          stats?: Json | null
           user_id: string
         }
         Update: {
           created_at?: string
+          enhancement_level?: number
           equipped?: boolean
           id?: string
           item_category?: string
-          level?: number
+          item_level?: number
           name?: string | null
           quantity?: number
           rarity?: string
+          stats?: Json | null
           user_id?: string
         }
         Relationships: []
@@ -298,16 +304,44 @@ export type Database = {
         }
       }
       open_inventory_chest: {
-        Args: { p_inventory_id: string }
+        Args: { p_inventory_id: string; p_character_level?: number | null }
         Returns: {
           created_at: string
+          enhancement_level: number
           equipped: boolean
           id: string
           item_category: string
-          level: number
+          item_level: number
           name: string | null
           quantity: number
           rarity: string
+          stats: Json | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      refine_item: {
+        Args: {
+          p_inventory_id: string
+          p_success: boolean
+          p_enhancement_level: number
+        }
+        Returns: {
+          created_at: string
+          enhancement_level: number
+          equipped: boolean
+          id: string
+          item_category: string
+          item_level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          stats: Json | null
           user_id: string
         }[]
         SetofOptions: {

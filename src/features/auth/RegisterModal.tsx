@@ -63,7 +63,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-6 flex items-start justify-between">
@@ -80,7 +80,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="grid h-11 w-11 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -104,7 +104,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="voce@exemplo.com"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
             </div>
           </div>
@@ -126,7 +126,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Mínimo de 6 caracteres"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
             </div>
           </div>
@@ -152,7 +152,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-base font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

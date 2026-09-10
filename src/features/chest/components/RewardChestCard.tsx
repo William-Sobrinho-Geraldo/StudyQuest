@@ -146,7 +146,7 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
               type="button"
               onClick={() => void handleClaim()}
               disabled={!canClaim}
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex min-h-[48px] items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {claiming && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
               {claiming ? 'Reivindicando...' : 'Reivindicar'}

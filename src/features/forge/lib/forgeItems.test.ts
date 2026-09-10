@@ -19,7 +19,8 @@ function gearRow(overrides: Partial<GearInventoryRow> = {}): GearInventoryRow {
     item_category: 'weapon',
     rarity: 'rare',
     name: 'Espada do Saber',
-    level: 4,
+    item_level: 20,
+    enhancement_level: 4,
     quantity: 1,
     equipped: true,
   }
@@ -33,7 +34,8 @@ function chestRow(overrides: Partial<SupplyChestRow> = {}): SupplyChestRow {
     item_category: 'supply_chest',
     rarity: 'epic',
     name: null,
-    level: 0,
+    item_level: 0,
+    enhancement_level: 0,
     quantity: 2,
     equipped: false,
   }
@@ -57,14 +59,15 @@ describe('type guards e raridade', () => {
 })
 
 describe('gearRowToForgeItem', () => {
-  it('mapeia slot, nome, nível e raridade preservando o id da linha', () => {
+  it('mapeia slot, nome, item_level, enhancement_level e raridade', () => {
     const item = gearRowToForgeItem(gearRow())
 
     expect(item).toEqual({
       id: 'row-1',
       slot: 'weapon',
       name: 'Espada do Saber',
-      level: 4,
+      itemLevel: 20,
+      enhancementLevel: 4,
       rarity: 'rare',
     })
   })
@@ -77,15 +80,33 @@ describe('readLegacyEquipmentState', () => {
     expect(readLegacyEquipmentState()).toBeNull()
   })
 
-  it('lê e saneia o estado antigo do localStorage', () => {
+  it('lê e saneia o estado antigo do localStorage (level antigo vira enhancement)', () => {
     window.localStorage.clear()
     const legacy: { equipped: Record<string, ForgeItem>; inventory: ForgeItem[] } = {
       equipped: {
-        weapon: { id: 'equipped:weapon', slot: 'weapon', name: 'Espada do Aprendiz', level: 7 },
+        weapon: {
+          id: 'equipped:weapon',
+          slot: 'weapon',
+          name: 'Espada do Aprendiz',
+          itemLevel: 10,
+          enhancementLevel: 7,
+        },
       },
       inventory: [
-        { id: 'spare:helmet:0', slot: 'helmet', name: 'Coifa de Saber', level: 999 },
-        { id: 'spare:helmet:1', slot: 'helmet', name: 'Coifa quebrada', level: -4 },
+        {
+          id: 'spare:helmet:0',
+          slot: 'helmet',
+          name: 'Coifa de Saber',
+          itemLevel: 10,
+          enhancementLevel: 999,
+        },
+        {
+          id: 'spare:helmet:1',
+          slot: 'helmet',
+          name: 'Coifa quebrada',
+          itemLevel: 10,
+          enhancementLevel: -4,
+        },
       ],
     }
     window.localStorage.setItem(EQUIPMENT_STORAGE_KEY, JSON.stringify(legacy))
@@ -93,9 +114,26 @@ describe('readLegacyEquipmentState', () => {
     const state = readLegacyEquipmentState()
 
     expect(state).not.toBeNull()
-    expect(state?.equipped.weapon).toMatchObject({ id: 'equipped:weapon', level: 7 })
-    expect(state?.inventory[0].level).toBe(MAX_REFINE_LEVEL)
-    expect(state?.inventory[1].level).toBe(0)
+    expect(state?.equipped.weapon).toMatchObject({
+      id: 'equipped:weapon',
+      enhancementLevel: 7,
+    })
+    expect(state?.inventory[0].enhancementLevel).toBe(MAX_REFINE_LEVEL)
+    expect(state?.inventory[1].enhancementLevel).toBe(0)
+  })
+
+  it('valores antigos de nível sem os novos campos viram item_level padrão e enhancement', () => {
+    window.localStorage.clear()
+    const legacy = {
+      equipped: {
+        weapon: { id: 'w', slot: 'weapon', name: 'X', level: 5 },
+      },
+    }
+    window.localStorage.setItem(EQUIPMENT_STORAGE_KEY, JSON.stringify(legacy))
+
+    const state = readLegacyEquipmentState()
+
+    expect(state?.equipped.weapon).toMatchObject({ itemLevel: 10, enhancementLevel: 5 })
   })
 
   it('retorna null quando o armazenamento está corrompido', () => {

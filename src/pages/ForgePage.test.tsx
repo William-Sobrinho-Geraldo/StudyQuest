@@ -25,9 +25,12 @@ vi.mock('../lib/supabase', () => ({
 const USER_ID = 'user-1'
 
 let goldValue: number
+let characterLevelValue: number
 let inventoryRows: InventoryRow[]
 let insertResultRows: InventoryRow[]
 let updateError: { message: string } | null
+let rpcError: { message: string } | null
+let openChestResult: InventoryRow[]
 
 interface Capture {
   profileUpdatePatches: unknown[]
@@ -39,8 +42,9 @@ function makeGear(
   id: string,
   slot: EquipmentSlot,
   name: string,
-  level = 0,
+  enhancementLevel = 0,
   equipped = false,
+  itemLevel = 10,
 ): GearInventoryRow {
   return {
     id,
@@ -48,7 +52,8 @@ function makeGear(
     item_category: slot,
     rarity: 'common',
     name,
-    level,
+    item_level: itemLevel,
+    enhancement_level: enhancementLevel,
     quantity: 1,
     equipped,
   }
@@ -61,15 +66,16 @@ function makeChest(id: string, rarity: 'common' | 'rare' | 'epic', quantity: num
     item_category: 'supply_chest',
     rarity,
     name: null,
-    level: 0,
+    item_level: 0,
+    enhancement_level: 0,
     quantity,
     equipped: false,
   }
 }
 
-function forgeRows(weaponLevel = 0): InventoryRow[] {
+function forgeRows(weaponEnhancement = 0): InventoryRow[] {
   return [
-    makeGear('weapon-eq', 'weapon', 'Espada do Aprendiz', weaponLevel, true),
+    makeGear('weapon-eq', 'weapon', 'Espada do Aprendiz', weaponEnhancement, true),
     makeGear('helmet-eq', 'helmet', 'Elmo do Estudante', 0, true),
     makeGear('chest-eq', 'chest', 'Peitoral do Aprendiz', 0, true),
     makeGear('boots-eq', 'boots', 'Botas do Peregrino', 0, true),
@@ -80,10 +86,16 @@ function mockSupabase(capture: Capture) {
   from.mockImplementation((table: string) => {
     if (table === 'profiles') {
       return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: { gold: goldValue }, error: null }),
-          }),
+        select: vi.fn((columns: string) => {
+          const data =
+            columns.includes('level') && !columns.includes('gold')
+              ? { level: characterLevelValue }
+              : { gold: goldValue }
+          return {
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+            }),
+          }
         }),
         update: vi.fn((patch: unknown) => {
           capture.profileUpdatePatches.push(patch)
@@ -109,8 +121,37 @@ function mockSupabase(capture: Capture) {
   })
 }
 
+function setupRpc() {
+  rpc.mockImplementation((fn: string, args: Record<string, unknown>) => {
+    if (rpcError) {
+      return Promise.resolve({ data: null, error: rpcError })
+    }
+    if (fn === 'refine_item') {
+      const id = args.p_inventory_id as string
+      const success = args.p_success as boolean
+      const current = args.p_enhancement_level as number
+      const next = success
+        ? Math.min(current + 1, MAX_REFINE_LEVEL)
+        : Math.max(current - 1, 0)
+      const row = inventoryRows.find((r) => r.id === id)
+      if (!row || row.item_category === 'supply_chest') {
+        return Promise.resolve({ data: [], error: null })
+      }
+      return Promise.resolve({
+        data: [{ ...row, enhancement_level: next }],
+        error: null,
+      })
+    }
+    if (fn === 'open_inventory_chest') {
+      return Promise.resolve({ data: openChestResult, error: null })
+    }
+    return Promise.resolve({ data: null, error: null })
+  })
+}
+
 function setupSut(capture: Capture) {
   mockSupabase(capture)
+  setupRpc()
   getSession.mockResolvedValue({
     data: { session: { user: { id: USER_ID } } },
     error: null,
@@ -178,9 +219,12 @@ describe('ForgePage', () => {
     vi.clearAllMocks()
     window.localStorage.clear()
     goldValue = 10_000
+    characterLevelValue = 100
     inventoryRows = []
     insertResultRows = []
     updateError = null
+    rpcError = null
+    openChestResult = []
   })
 
   afterEach(() => {
@@ -200,15 +244,25 @@ describe('ForgePage', () => {
     await renderReadyForge()
 
     expect(screen.getByTestId('forge-gold')).toHaveTextContent('10000 Gold')
+    expect(screen.getByTestId('forge-character-level')).toHaveTextContent('100')
 
     for (const slot of SLOTS) {
-      expect(screen.getByTestId(`equipment-slot-${slot}`)).toBeInTheDocument()
-      expect(screen.getByTestId(`equipment-slot-${slot}`)).toHaveTextContent('+0')
+      const slotCard = screen.getByTestId(`equipment-slot-${slot}`)
+      expect(slotCard).toBeInTheDocument()
+      expect(
+        slotCard.querySelector('[data-testid="item-enhancement"]'),
+      ).not.toBeInTheDocument()
     }
-    expect(screen.getByText('Espada do Aprendiz')).toBeInTheDocument()
-    expect(screen.getByText('Elmo do Estudante')).toBeInTheDocument()
+    expect(
+      screen.getByTestId('equipment-slot-weapon'),
+    ).toHaveTextContent('Espada do Aprendiz')
+    expect(
+      screen.getByTestId('equipment-slot-helmet'),
+    ).toHaveTextContent('Elmo do Estudante')
 
-    expect(screen.getByText('Coifa de Saber')).toBeInTheDocument()
+    expect(
+      screen.getByTestId('inventory-item-spare-helmet-0'),
+    ).toHaveTextContent('Coifa de Saber')
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
   })
 
@@ -263,8 +317,11 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+6')
     expect(screen.getByTestId('forge-gold')).toHaveTextContent('9840 Gold')
 
-    expect(capture.profileUpdatePatches).toContainEqual({ gold: 9840 })
-    expect(capture.inventoryUpdatePatches).toContainEqual({ level: 6 })
+    expect(rpc).toHaveBeenCalledWith('refine_item', {
+      p_inventory_id: 'weapon-eq',
+      p_success: true,
+      p_enhancement_level: 5,
+    })
     expect(random).toHaveBeenCalledTimes(1)
   })
 
@@ -283,8 +340,11 @@ describe('ForgePage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Falha! Arma +5 → +4')
     expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+4')
     expect(screen.getByTestId('forge-gold')).toHaveTextContent('9840 Gold')
-    expect(capture.profileUpdatePatches).toContainEqual({ gold: 9840 })
-    expect(capture.inventoryUpdatePatches).toContainEqual({ level: 4 })
+    expect(rpc).toHaveBeenCalledWith('refine_item', {
+      p_inventory_id: 'weapon-eq',
+      p_success: false,
+      p_enhancement_level: 5,
+    })
   })
 
   it('não bloqueia +0 para +1 mesmo com rand altíssimo (zona segura 100%)', async () => {
@@ -326,8 +386,7 @@ describe('ForgePage', () => {
     })
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(capture.profileUpdatePatches).toHaveLength(0)
-    expect(capture.inventoryUpdatePatches).toHaveLength(0)
+    expect(rpc).not.toHaveBeenCalledWith('refine_item', expect.anything())
   })
 
   it('desabilita o botão no refino máximo (+12)', async () => {
@@ -342,9 +401,9 @@ describe('ForgePage', () => {
     expect(maxButton).toHaveTextContent(`Máximo (+${MAX_REFINE_LEVEL})`)
   })
 
-  it('falha ao persistir o gold reverte o nível e restaura o saldo', async () => {
+  it('falha ao persistir o refino na RPC reverte o nível e restaura o saldo', async () => {
     inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
-    updateError = { message: 'update falhou' }
+    rpcError = { message: 'update falhou' }
     vi.spyOn(Math, 'random').mockReturnValue(0.5)
     setupSut(emptyCapture())
     await renderReadyForge()
@@ -408,29 +467,68 @@ describe('ForgePage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('Lâmina de Estudo'),
     )
-    expect(screen.getByText('Espada do Aprendiz')).toBeInTheDocument()
+    expect(
+      screen.getByTestId('inventory-item-weapon-eq'),
+    ).toHaveTextContent('Espada do Aprendiz')
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
     expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: false })
     expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true })
   })
 
+  it('bloqueia equipar item acima do nível do personagem mesmo com drop forçado', async () => {
+    characterLevelValue = 23
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('spare-high-0', 'weapon', 'Lâmina de Estudo', 0, false, 30),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    const dataTransfer = makeDataTransfer()
+    dataTransfer.setData('text/plain', 'spare-high-0')
+    fireEvent.drop(screen.getByTestId('equipment-slot-weapon'), { dataTransfer })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Item Nível 30 requer personagem Nível 30.',
+    )
+    expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('Espada do Aprendiz')
+    expect(screen.getByTestId('inventory-item-spare-high-0')).toHaveTextContent('Requer Nível 30')
+  })
+
+  it('item acima do nível fica bloqueado no inventário (sem selecionar ou refinar)', async () => {
+    characterLevelValue = 15
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('spare-high-0', 'helmet', 'Coifa de Saber', 0, false, 20),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    const cell = screen.getByTestId('inventory-item-spare-high-0')
+    expect(cell).toHaveTextContent('Requer Nível 20')
+    expect(cell.getAttribute('aria-label')).toContain('bloqueado')
+
+    fireEvent.click(cell)
+
+    expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
+    expect(screen.queryByTestId('anvil-selected-item')).not.toBeInTheDocument()
+  })
+
   it('abre um baú, consome a quantidade e adiciona o equipamento ao inventário', async () => {
     inventoryRows = [...forgeRows(), makeChest('chest-rare-1', 'rare', 2)]
-    rpc.mockResolvedValue({
-      data: [
-        {
-          id: 'loot-1',
-          user_id: USER_ID,
-          item_category: 'weapon',
-          rarity: 'rare',
-          name: 'Cimitarra do Foco',
-          level: 0,
-          quantity: 1,
-          equipped: false,
-        },
-      ],
-      error: null,
-    })
+    openChestResult = [
+      {
+        id: 'loot-1',
+        user_id: USER_ID,
+        item_category: 'weapon',
+        rarity: 'rare',
+        name: 'Cimitarra do Foco',
+        item_level: 70,
+        enhancement_level: 0,
+        quantity: 1,
+        equipped: false,
+      },
+    ]
     setupSut(emptyCapture())
     await renderReadyForge()
 
@@ -440,9 +538,14 @@ describe('ForgePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir baú Raro' }))
 
-    expect(rpc).toHaveBeenCalledWith('open_inventory_chest', { p_inventory_id: 'chest-rare-1' })
+    expect(rpc).toHaveBeenCalledWith('open_inventory_chest', {
+      p_inventory_id: 'chest-rare-1',
+      p_character_level: 100,
+    })
     expect(
-      await screen.findByText('Você abriu um Baú Raro e recebeu Cimitarra do Foco!'),
+      await screen.findByText(
+        'Você abriu um Baú Raro e recebeu Cimitarra do Foco (Nível 70)!',
+      ),
     ).toBeInTheDocument()
     expect(screen.getByTestId('supply-chest-rare')).toHaveTextContent('Quantidade: 1')
     expect(screen.getByTestId('inventory-item-loot-1')).toBeInTheDocument()
@@ -451,21 +554,19 @@ describe('ForgePage', () => {
 
   it('remove o baú da tela quando o último é aberto', async () => {
     inventoryRows = [...forgeRows(), makeChest('chest-rare-1', 'rare', 1)]
-    rpc.mockResolvedValue({
-      data: [
-        {
-          id: 'loot-1',
-          user_id: USER_ID,
-          item_category: 'helmet',
-          rarity: 'rare',
-          name: 'Coroa do Foco',
-          level: 0,
-          quantity: 1,
-          equipped: false,
-        },
-      ],
-      error: null,
-    })
+    openChestResult = [
+      {
+        id: 'loot-1',
+        user_id: USER_ID,
+        item_category: 'helmet',
+        rarity: 'rare',
+        name: 'Coroa do Foco',
+        item_level: 70,
+        enhancement_level: 0,
+        quantity: 1,
+        equipped: false,
+      },
+    ]
     setupSut(emptyCapture())
     await renderReadyForge()
 
@@ -500,14 +601,17 @@ describe('ForgePage', () => {
     expect(inserted[0]).toMatchObject({
       item_category: 'weapon',
       name: 'Espada do Aprendiz',
-      level: 5,
+      enhancement_level: 5,
       equipped: true,
       rarity: 'common',
+      item_level: 10,
     })
     expect(inserted[1]).toMatchObject({ item_category: 'helmet', equipped: false })
 
     expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+5')
-    expect(screen.getByText('Coifa de Saber')).toBeInTheDocument()
+    expect(
+      screen.getByTestId('inventory-item-inserted-spare'),
+    ).toHaveTextContent('Coifa de Saber')
   })
 
   it('usuário novo parte com slots vazios e inventário zerado', async () => {

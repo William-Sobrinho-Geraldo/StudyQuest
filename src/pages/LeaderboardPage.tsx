@@ -19,10 +19,10 @@ export function LeaderboardPage() {
         {LEADERBOARD.map(({ position, name, score }) => (
           <div
             key={position}
-            className="flex items-center justify-between border-b border-slate-800 px-5 py-4 last:border-b-0"
+            className="flex min-h-[60px] items-center justify-between border-b border-slate-800 px-4 py-3 last:border-b-0"
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-indigo-300">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-indigo-300">
                 {position}
               </span>
               <span className="font-medium">{name}</span>

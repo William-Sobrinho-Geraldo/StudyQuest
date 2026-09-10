@@ -29,7 +29,7 @@ export function DashboardPage() {
           <HeroProfile key={profileEpoch} />
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4">
           <RewardChestCard onClaimed={handleChestClaimed} />
           <StreakCard />
           <DailyGoalCard />

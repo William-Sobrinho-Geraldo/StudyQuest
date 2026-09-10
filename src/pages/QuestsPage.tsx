@@ -142,18 +142,18 @@ export function QuestsPage() {
         Complete objetivos e acumule XP e Gold na sua jornada.
       </p>
 
-      <div className="mt-8 flex flex-col gap-6 md:flex-row">
-        <nav aria-label="Categorias de quests" className="flex shrink-0 flex-col gap-1 md:w-60">
+      <div className="mt-6 flex flex-col gap-6">
+        <nav aria-label="Categorias de quests" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {CATEGORIES.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               aria-pressed={id === selectedCategory.id}
               onClick={() => setSelectedId(id)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+              className={`flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition ${
                 id === selectedCategory.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'border-indigo-500 bg-indigo-600 text-white'
+                  : 'border-slate-700 text-slate-300 hover:border-indigo-500 hover:text-white'
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
@@ -257,7 +257,7 @@ export function QuestsPage() {
                                   !quest.completed || quest.claimed || claimingId === quest.id
                                 }
                                 onClick={() => void handleClaim(quest)}
-                                className="ms-auto rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="ms-auto flex min-h-[44px] items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
                               >
                                 {quest.claimed
                                   ? 'Reivindicado'

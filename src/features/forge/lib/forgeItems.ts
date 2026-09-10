@@ -1,4 +1,5 @@
 import { MAX_REFINE_LEVEL, SLOTS, type EquipmentSlot } from './forgeRules'
+import type { Json } from '../../../lib/database.types'
 
 export type ForgeRarity = 'common' | 'rare' | 'epic'
 
@@ -6,7 +7,10 @@ export interface ForgeItem {
   id: string
   slot: EquipmentSlot
   name: string
-  level: number
+  // Nível base do item (múltiplo de 10: 10, 20, 30...).
+  itemLevel: number
+  // Nível de encantamento/refino atual (+0 até +12).
+  enhancementLevel: number
   rarity?: ForgeRarity
 }
 
@@ -31,9 +35,12 @@ export interface GearInventoryRow {
   item_category: EquipmentSlot
   rarity: ForgeRarity
   name: string
-  level: number
+  item_level: number
+  enhancement_level: number
   quantity: 1
   equipped: boolean
+  // Stats próprias da instância (multiplicadores futuros por rarity/item_level).
+  stats?: Json | null
 }
 
 // Baú de suprimentos: empilhável, mesmas colunas, forma especial.
@@ -43,9 +50,11 @@ export interface SupplyChestRow {
   item_category: 'supply_chest'
   rarity: ForgeRarity
   name: null
-  level: 0
+  item_level: 0
+  enhancement_level: 0
   quantity: number
   equipped: false
+  stats?: Json | null
 }
 
 export type InventoryRow = GearInventoryRow | SupplyChestRow
@@ -63,7 +72,8 @@ export function gearRowToForgeItem(row: GearInventoryRow): ForgeItem {
     id: row.id,
     slot: row.item_category,
     name: row.name,
-    level: row.level,
+    itemLevel: row.item_level,
+    enhancementLevel: row.enhancement_level,
     rarity: row.rarity,
   }
 }
@@ -74,12 +84,18 @@ function sanitizeLevel(value: unknown): number {
     : 0
 }
 
+function sanitizeItemLevel(value: unknown): number {
+  return typeof value === 'number' && value > 0 ? value : 10
+}
+
 function sanitizeSlot(value: unknown, fallback?: EquipmentSlot): EquipmentSlot {
   return SLOTS.includes(value as EquipmentSlot)
     ? (value as EquipmentSlot)
     : (fallback ?? 'weapon')
 }
 
+// Itens legados do localStorage só tinham `level` (refino). Aqui este valor vira
+// enhancementLevel e o item_level assume o padrão 10.
 function sanitizeItem(raw: unknown, fallbackSlot?: EquipmentSlot): ForgeItem | null {
   if (typeof raw !== 'object' || raw === null) return null
   const record = raw as Record<string, unknown>
@@ -92,7 +108,8 @@ function sanitizeItem(raw: unknown, fallbackSlot?: EquipmentSlot): ForgeItem | n
       typeof record.name === 'string' && record.name.length > 0
         ? record.name
         : `Item ${sanitizeSlot(record.slot, fallbackSlot)}`,
-    level: sanitizeLevel(record.level),
+    itemLevel: sanitizeItemLevel(record.itemLevel ?? record.item_level),
+    enhancementLevel: sanitizeLevel(record.enhancementLevel ?? record.level),
   }
 }
 

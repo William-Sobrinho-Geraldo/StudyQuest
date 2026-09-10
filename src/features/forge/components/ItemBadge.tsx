@@ -1,15 +1,17 @@
-import { CHEST_TIER_META } from '../../quests/lib/chestTiers'
+import { Lock } from 'lucide-react'
 import type { ForgeItem } from '../lib/forgeItems'
+import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
 import { SLOT_ICONS } from './slotIcons'
 
 interface ItemBadgeProps {
   item: ForgeItem
   vertical?: boolean
+  blocked?: boolean
 }
 
-export function ItemBadge({ item, vertical = false }: ItemBadgeProps) {
+export function ItemBadge({ item, vertical = false, blocked = false }: ItemBadgeProps) {
   const Icon = SLOT_ICONS[item.slot]
-  const rarityMeta = item.rarity ? CHEST_TIER_META[item.rarity] : null
+  const style = rarityStyle(item.rarity)
 
   return (
     <div
@@ -19,8 +21,16 @@ export function ItemBadge({ item, vertical = false }: ItemBadgeProps) {
           : 'flex min-w-0 items-center gap-2.5'
       }
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800">
-        <Icon className="h-4 w-4 text-orange-400" aria-hidden="true" />
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 ${
+          blocked ? 'opacity-50' : ''
+        }`}
+      >
+        {blocked ? (
+          <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
+        ) : (
+          <Icon className={`h-4 w-4 ${style.icon}`} aria-hidden="true" />
+        )}
       </span>
       <span className="min-w-0">
         <span
@@ -29,14 +39,31 @@ export function ItemBadge({ item, vertical = false }: ItemBadgeProps) {
         >
           {item.name}
         </span>
-        {rarityMeta && (
+        <span className="block text-[10px] font-semibold uppercase leading-tight text-slate-500">
+          Nível {item.itemLevel}
+          {item.rarity && (
+            <span
+              className={`ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 font-bold normal-case ${style.chip}`}
+            >
+              {RARITY_LABELS[item.rarity]}
+            </span>
+          )}
+        </span>
+        {item.enhancementLevel > 0 && (
           <span
-            className={`block text-[10px] font-semibold uppercase leading-tight ${rarityMeta.textColor}`}
+            data-testid="item-enhancement"
+            className={`block text-xs font-bold leading-tight ${
+              blocked ? 'text-slate-500' : style.text
+            }`}
           >
-            {rarityMeta.label}
+            +{item.enhancementLevel}
           </span>
         )}
-        <span className="block text-xs font-bold leading-tight text-indigo-300">+{item.level}</span>
+        {blocked && (
+          <span className="block text-[10px] font-semibold uppercase leading-tight text-red-400">
+            Requer Nível {item.itemLevel}
+          </span>
+        )}
       </span>
     </div>
   )

@@ -200,7 +200,7 @@ export function StudyHistory() {
               type="button"
               aria-pressed={period === option.value}
               onClick={() => setPeriod(option.value)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex min-h-[44px] items-center rounded-md px-4 text-sm font-medium transition-colors ${
                 period === option.value
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-400 hover:text-white'
@@ -216,7 +216,7 @@ export function StudyHistory() {
             type="button"
             onClick={() => goDelta(-1)}
             aria-label="Período anterior"
-            className="rounded-lg border border-slate-800 bg-slate-900 p-1.5 text-slate-400 transition-colors hover:text-white"
+            className="grid h-11 w-11 place-items-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 transition-colors hover:text-white"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -227,7 +227,7 @@ export function StudyHistory() {
             type="button"
             onClick={() => goDelta(1)}
             aria-label="Próximo período"
-            className="rounded-lg border border-slate-800 bg-slate-900 p-1.5 text-slate-400 transition-colors hover:text-white"
+            className="grid h-11 w-11 place-items-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 transition-colors hover:text-white"
           >
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>

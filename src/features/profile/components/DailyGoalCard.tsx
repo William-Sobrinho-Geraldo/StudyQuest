@@ -103,7 +103,7 @@ export function DailyGoalCard() {
             type="button"
             onClick={startEditing}
             aria-label="Editar meta diária"
-            className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            className="grid h-11 w-11 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
           >
             <Pencil className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -131,14 +131,14 @@ export function DailyGoalCard() {
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               aria-label="Meta diária em minutos"
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+              className="h-11 w-28 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-white focus:border-indigo-500 focus:outline-none"
             />
             <button
               type="button"
               onClick={() => void handleSave()}
               disabled={saving}
               aria-label="Salvar meta diária"
-              className="rounded-lg bg-indigo-600 p-2 text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
+              className="grid h-11 w-11 place-items-center rounded-lg bg-indigo-600 text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
             >
               <Check className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -147,7 +147,7 @@ export function DailyGoalCard() {
               onClick={cancelEditing}
               disabled={saving}
               aria-label="Cancelar edição da meta diária"
-              className="rounded-lg border border-slate-700 p-2 text-slate-300 transition-colors hover:bg-slate-800 disabled:opacity-60"
+              className="grid h-11 w-11 place-items-center rounded-lg border border-slate-700 text-slate-300 transition-colors hover:bg-slate-800 disabled:opacity-60"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>

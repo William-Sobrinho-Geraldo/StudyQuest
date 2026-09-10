@@ -20,7 +20,7 @@ export function ForgePage() {
     const item = await forge.openChest(chestId)
     if (item && item.rarity) {
       showToast(
-        `Você abriu um Baú ${CHEST_TIER_META[item.rarity].label} e recebeu ${item.name}!`,
+        `Você abriu um Baú ${CHEST_TIER_META[item.rarity].label} e recebeu ${item.name} (Nível ${item.itemLevel})!`,
       )
     }
   }
@@ -29,15 +29,16 @@ export function ForgePage() {
     <AppShell>
       <h1 className="text-2xl font-bold">Forge</h1>
       <p className="mt-1 text-sm text-slate-400">
-        Equipe seus itens, guarde sobressalentes no inventário e refine na Bigorna. Do +5 em
-        diante o refino tem risco.
+        Equipe seus itens (do seu nível ou abaixo), guarde sobressalentes no inventário e refine
+        na Bigorna. Do +5 em diante o refino tem risco.
       </p>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[3fr_minmax(0,2fr)]">
+      <div className="mt-6 flex flex-col gap-4">
         <Paperdoll
           equipped={forge.equipped}
           selectedItemId={forge.selectedItemId}
           dragOverSlot={dragOverSlot}
+          characterLevel={forge.characterLevel}
           onSelectItem={forge.selectItem}
           onDragOverSlot={setDragOverSlot}
           onDropOnSlot={(itemId, slot) => void forge.equipFromInventory(itemId, slot)}
@@ -62,6 +63,7 @@ export function ForgePage() {
         <SupplyChests
           chests={forge.chests}
           busy={forge.busy}
+          characterLevel={forge.characterLevel}
           onOpen={(chestId) => void handleOpenChest(chestId)}
         />
       </div>
@@ -71,6 +73,7 @@ export function ForgePage() {
           items={forge.inventory}
           capacity={INVENTORY_CAPACITY}
           selectedItemId={forge.selectedItemId}
+          characterLevel={forge.characterLevel}
           onSelectItem={forge.selectItem}
         />
       </div>
@@ -78,6 +81,11 @@ export function ForgePage() {
       <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-5 text-sm text-slate-400">
         <p className="font-semibold text-slate-200">Regras da Bigorna</p>
         <ul className="mt-2 list-inside list-disc space-y-1">
+          <li>
+            Você só pode <span className="text-slate-300">equipar ou refinar</span> itens com
+            nível menor ou igual ao seu (o item nível máximo é o seu nível arredondado para
+            baixo, de 10 em 10).
+          </li>
           <li>
             <span className="text-slate-300">+0 até +5</span> é sempre seguro (100% de sucesso).
           </li>
@@ -89,7 +97,7 @@ export function ForgePage() {
             Em caso de falha, o item <span className="text-slate-300">perde 1 nível</span>. O item{' '}
             <span className="text-slate-300">nunca quebra</span>.
           </li>
-          <li>O Gold da tentativa é consumido no sucesso e na falha.</li>
+          <li>O Gold da tentativa é consumido no sucesso e na falha (custo maior para itens de nível mais alto).</li>
           <li>
             Arraste itens do <span className="text-slate-300">inventário</span> sobre os slots de{' '}
             <span className="text-slate-300">equipamento</span> para equipá-los, ou sobre a{' '}

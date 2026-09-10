@@ -4,6 +4,7 @@ import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import type { EquippedItems, ForgeItem } from '../lib/forgeItems'
 import { beginItemDrag, readItemDrag } from '../lib/dragAndDrop'
 import { ItemBadge } from './ItemBadge'
+import { ItemCard } from './ItemCard'
 
 const SLOT_POSITIONS: Record<EquipmentSlot, string> = {
   helmet: 'left-1/2 top-0 -translate-x-1/2',
@@ -39,63 +40,72 @@ function EquipmentSlotCard({
     }
   }
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      draggable={item !== undefined}
-      data-testid={`equipment-slot-${slot}`}
-      aria-label={
-        item ? `Refinar ${item.name} de +${item.level}` : `Equipar ${SLOT_LABELS[slot]}`
-      }
-      onClick={() => {
-        if (item) onSelect(item.id)
-      }}
-      onKeyDown={handleKeyDown}
-      onDragStart={(event: DragEvent<HTMLDivElement>) => {
-        if (item) beginItemDrag(event, item.id)
-      }}
-      onDragOver={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        onDragOverSlot(slot)
-      }}
-      onDragLeave={(event) => {
-        const related = event.relatedTarget
-        if (!(related instanceof Node) || !event.currentTarget.contains(related)) {
-          onDragOverSlot(null)
-        }
-      }}
-      onDrop={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
+  const dropTargetProps = {
+    onDragOver: (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      onDragOverSlot(slot)
+    },
+    onDragLeave: (event: DragEvent<HTMLDivElement>) => {
+      const related = event.relatedTarget
+      if (!(related instanceof Node) || !event.currentTarget.contains(related)) {
         onDragOverSlot(null)
-        const itemId = readItemDrag(event)
-        if (itemId) onDropOnSlot(itemId, slot)
-      }}
-      className={`absolute ${SLOT_POSITIONS[slot]} flex h-24 w-24 flex-col items-center gap-1 rounded-xl border p-2 transition ${
-        item
-          ? `cursor-grab ${
-              selected
-                ? 'border-indigo-500 bg-slate-800/80 ring-2 ring-indigo-500/40'
-                : draggedOver
-                  ? 'border-orange-400 ring-2 ring-orange-400/40'
-                  : 'border-slate-700 bg-slate-800/80 hover:border-slate-600'
-            }`
-          : draggedOver
-            ? 'border-orange-400 border-dashed bg-orange-500/10 ring-2 ring-orange-400/30'
-            : 'border-dashed border-slate-800 bg-slate-950/40 hover:border-slate-600'
-      }`}
-    >
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-        {SLOT_LABELS[slot]}
-      </span>
+      }
+    },
+    onDrop: (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      onDragOverSlot(null)
+      const itemId = readItemDrag(event)
+      if (itemId) onDropOnSlot(itemId, slot)
+    },
+  }
+
+  const slotLabel = (
+    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      {SLOT_LABELS[slot]}
+    </span>
+  )
+
+  return (
+    <div className={`absolute ${SLOT_POSITIONS[slot]}`}>
       {item ? (
-        <ItemBadge item={item} vertical />
+        <ItemCard
+          item={item}
+          selected={selected}
+          accent={draggedOver}
+          role="button"
+          tabIndex={0}
+          draggable
+          data-testid={`equipment-slot-${slot}`}
+          aria-label={`Refinar ${item.name} de +${item.enhancementLevel}`}
+          onClick={() => onSelect(item.id)}
+          onKeyDown={handleKeyDown}
+          onDragStart={(event: DragEvent<HTMLDivElement>) => beginItemDrag(event, item.id)}
+          {...dropTargetProps}
+          className="flex h-24 w-24 cursor-grab flex-col items-center gap-1 p-2"
+        >
+          {slotLabel}
+          <ItemBadge item={item} vertical />
+        </ItemCard>
       ) : (
-        <span className="flex flex-1 items-center justify-center text-slate-700">
-          <Plus className="h-5 w-5" aria-hidden="true" />
-        </span>
+        <div
+          role="button"
+          tabIndex={0}
+          data-testid={`equipment-slot-${slot}`}
+          aria-label={`Equipar ${SLOT_LABELS[slot]}`}
+          {...dropTargetProps}
+          className={`flex h-24 w-24 flex-col items-center gap-1 rounded-xl border-2 border-dashed p-2 transition ${
+            draggedOver
+              ? 'border-orange-400 bg-orange-500/10 ring-2 ring-orange-400/30'
+              : 'border-slate-800 bg-slate-950/40 hover:border-slate-600'
+          }`}
+        >
+          {slotLabel}
+          <span className="flex flex-1 items-center justify-center text-slate-700">
+            <Plus className="h-5 w-5" aria-hidden="true" />
+          </span>
+        </div>
       )}
     </div>
   )
@@ -105,6 +115,7 @@ interface PaperdollProps {
   equipped: EquippedItems
   selectedItemId: string | null
   dragOverSlot: EquipmentSlot | null
+  characterLevel: number | null
   onSelectItem: (id: string) => void
   onDragOverSlot: (slot: EquipmentSlot | null) => void
   onDropOnSlot: (itemId: string, slot: EquipmentSlot) => void
@@ -114,6 +125,7 @@ export function Paperdoll({
   equipped,
   selectedItemId,
   dragOverSlot,
+  characterLevel,
   onSelectItem,
   onDragOverSlot,
   onDropOnSlot,
@@ -123,9 +135,14 @@ export function Paperdoll({
       aria-label="Equipamentos equipados"
       className="rounded-xl border border-slate-800 bg-slate-900 p-5"
     >
-      <div className="flex items-center gap-2 text-sm">
-        <PersonStanding className="h-5 w-5 text-indigo-400" aria-hidden="true" />
-        <span className="font-semibold text-white">Equipamentos</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm">
+          <PersonStanding className="h-5 w-5 text-indigo-400" aria-hidden="true" />
+          <span className="font-semibold text-white">Equipamentos</span>
+        </div>
+        <span data-testid="forge-character-level" className="text-xs text-slate-400">
+          Personagem Nível {characterLevel ?? '...'}
+        </span>
       </div>
 
       <div className="relative mt-4 h-[328px]">

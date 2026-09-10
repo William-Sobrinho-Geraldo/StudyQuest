@@ -147,7 +147,7 @@ export function HeroProfile() {
               ? 'Encerra a sessão em andamento e soma XP/Gold ao perfil'
               : 'Inicie o timer de estudo antes de concluir a sessão'
           }
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex min-h-[48px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {granting ? 'Salvando...' : 'Concluir Sessão (Teste Dev)'}
         </button>
