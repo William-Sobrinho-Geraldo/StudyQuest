@@ -95,7 +95,7 @@ export function DailyGoalCard() {
   const loading = goal === null || todayMinutes === null
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={loading}>
+    <div className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={loading}>
       <div className="flex items-start justify-between">
         <Target className="h-5 w-5 text-indigo-400" aria-hidden="true" />
         {!editing && (

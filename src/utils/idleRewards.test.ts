@@ -78,8 +78,8 @@ describe('getIdleRewards', () => {
     const atTenHours = getIdleRewards(minutesAgo(600))
     const atEightHours = getIdleRewards(minutesAgo(480))
 
-    expect(atTenHours.elapsedMinutes).toBe(600)
-    expect(atTenHours.elapsedSeconds).toBe(36_000)
+    expect(atTenHours.elapsedMinutes).toBe(CHEST_MAX_MINUTES)
+    expect(atTenHours.elapsedSeconds).toBe(CHEST_MAX_MINUTES * 60)
     expect(atTenHours.currentXp).toBe(atEightHours.currentXp)
     expect(atTenHours.currentGold).toBe(atEightHours.currentGold)
     expect(atTenHours.progressPercentage).toBe(atEightHours.progressPercentage)
@@ -94,6 +94,8 @@ describe('getIdleRewards', () => {
     expect(result.currentXp).toBe(1000)
     expect(result.currentGold).toBe(300)
     expect(result.progressPercentage).toBe(100)
+    expect(result.elapsedMinutes).toBe(CHEST_MAX_MINUTES)
+    expect(result.elapsedSeconds).toBe(CHEST_MAX_MINUTES * 60)
   })
 
   it('é estritamente proporcional em pontos intermediários (2 horas)', () => {
@@ -128,6 +130,8 @@ describe('getIdleRewards', () => {
     expect(result.currentXp).toBe(1000)
     expect(result.currentGold).toBe(300)
     expect(result.progressPercentage).toBe(100)
+    expect(result.elapsedMinutes).toBe(CHEST_MAX_MINUTES)
+    expect(result.elapsedSeconds).toBe(CHEST_MAX_MINUTES * 60)
   })
 })
 

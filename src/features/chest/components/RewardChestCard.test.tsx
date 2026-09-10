@@ -116,6 +116,28 @@ describe('RewardChestCard', () => {
     expect(screen.getByText('Baú cheio!')).toBeInTheDocument()
   })
 
+  it('congela o contador em 8h mesmo após muitas horas acumuladas', async () => {
+    mockLastClaim(24 * 60)
+
+    renderCard()
+    await flush()
+
+    expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('8h 0m 0s')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('1.000 / 1.000 XP')
+    expect(screen.getByText('Baú cheio!')).toBeInTheDocument()
+  })
+
+  it('não exibe o rodapé com o teto em texto nem o prefixo "Desde a última reivindicação"', async () => {
+    mockLastClaim(240)
+
+    renderCard()
+    await flush()
+
+    expect(screen.queryByText(/Máximo em 480 min/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Desde a última reivindicação/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('4h 0m 0s')
+  })
+
   it('reivindica via RPC e zera o baú após o claim', async () => {
     mockLastClaim(480)
     rpc.mockResolvedValue({ data: null, error: null })

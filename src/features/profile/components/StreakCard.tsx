@@ -26,7 +26,7 @@ export function StreakCard() {
   }, [sessionCompletedAt, refreshStreak])
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={streak === null}>
+    <div className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={streak === null}>
       <Flame className="h-5 w-5 text-orange-400" aria-hidden="true" />
       <p className="mt-3 text-3xl font-bold" data-testid="streak-value">
         {streak === null ? '...' : streak}

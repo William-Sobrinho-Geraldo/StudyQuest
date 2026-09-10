@@ -31,8 +31,10 @@ export function DashboardPage() {
 
         <div className="mt-6 grid gap-4">
           <RewardChestCard onClaimed={handleChestClaimed} />
-          <StreakCard />
-          <DailyGoalCard />
+          <div className="grid grid-cols-2 gap-4">
+            <StreakCard />
+            <DailyGoalCard />
+          </div>
         </div>
 
         <p className="mt-4 text-sm text-slate-400">

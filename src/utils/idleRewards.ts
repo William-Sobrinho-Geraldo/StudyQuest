@@ -22,11 +22,13 @@ export function getIdleRewards(lastChestClaim: Date | string | null): IdleReward
   }
 
   const last = new Date(lastChestClaim).getTime()
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - last) / 1000))
+  const elapsedSeconds = Math.max(
+    0,
+    Math.min(Math.floor((Date.now() - last) / 1000), CHEST_MAX_MINUTES * 60),
+  )
   const elapsedMinutes = Math.floor(elapsedSeconds / 60)
 
-  const cappedMinutes = Math.min(elapsedMinutes, CHEST_MAX_MINUTES)
-  const fraction = cappedMinutes / CHEST_MAX_MINUTES
+  const fraction = elapsedMinutes / CHEST_MAX_MINUTES
 
   return {
     elapsedMinutes,

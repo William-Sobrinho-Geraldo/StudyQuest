@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import {
   CHEST_MAX_GOLD,
-  CHEST_MAX_MINUTES,
   CHEST_MAX_XP,
   formatElapsedTime,
   getIdleRewards,
@@ -99,7 +98,6 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
               className="flex items-center gap-1.5 text-sm text-slate-400"
             >
               <Clock className={`h-4 w-4 ${REWARD_COLORS.xpIcon}`} aria-hidden="true" />
-              Desde a última reivindicação:{' '}
               <strong className="font-semibold tabular-nums text-white">
                 {formatElapsedTime(rewards.elapsedSeconds)}
               </strong>
@@ -136,10 +134,6 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
               style={{ width: `${rewards.progressPercentage}%` }}
             />
           </div>
-
-          <p className="mt-2 text-xs text-slate-500">
-            Máximo em {formatNumber(CHEST_MAX_MINUTES)} min ({CHEST_MAX_MINUTES / 60}h): 1.000 XP e 300 Gold.
-          </p>
 
           <div className="mt-4 flex items-center gap-3">
             <button
