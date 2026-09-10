@@ -215,6 +215,13 @@ function dragAndDrop(source: HTMLElement, target: HTMLElement) {
   fireEvent.dragEnd(source)
 }
 
+// O ItemCard abre o modal por pointerdown/up (com limiar de 300ms para não
+// conflitar com o drag). fireEvent.click não dispara esses eventos.
+function tapCard(card: HTMLElement) {
+  fireEvent.pointerDown(card)
+  fireEvent.pointerUp(card)
+}
+
 describe('ForgePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -744,6 +751,70 @@ describe('ForgePage', () => {
     expect(
       screen.getByTestId('inventory-item-inserted-spare-tooltip'),
     ).toHaveTextContent('Coifa de Saber')
+  })
+
+  it('abre detalhe do item do inventário com ações Equipar e Enviar para Bigorna', async () => {
+    inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    tapCard(screen.getByTestId('inventory-item-spare-helmet-0'))
+
+    expect(screen.getByRole('heading', { name: 'Coifa de Saber' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Equipar/ }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Enviar para Bigorna/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('abre detalhe de item equipado sem o botão Equipar', async () => {
+    inventoryRows = [...forgeRows()]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    tapCard(screen.getByTestId('equipment-slot-weapon'))
+
+    expect(screen.getByRole('heading', { name: 'Espada do Aprendiz' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Equipar/ })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Enviar para Bigorna/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('Equipar fecha o modal e equipa o item do inventário via clique (sem drag)', async () => {
+    inventoryRows = [...forgeRows(), makeGear('spare-weapon-0', 'weapon', 'Lâmina de Estudo')]
+    const capture = emptyCapture()
+    setupSut(capture)
+    await renderReadyForge()
+
+    tapCard(screen.getByTestId('inventory-item-spare-weapon-0'))
+    fireEvent.click(screen.getByRole('button', { name: /Equipar/ }))
+
+    expect(screen.queryByRole('heading', { name: 'Lâmina de Estudo' })).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true }),
+    )
+    expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: false })
+    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-weapon'))
+    expect(screen.getByTestId('equipment-slot-weapon-tooltip')).toHaveTextContent(
+      'Lâmina de Estudo',
+    )
+  })
+
+  it('Enviar para Bigorna fecha o modal e seleciona o item na bigorna', async () => {
+    inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    tapCard(screen.getByTestId('inventory-item-spare-helmet-0'))
+    fireEvent.click(screen.getByRole('button', { name: /Enviar para Bigorna/ }))
+
+    expect(screen.queryByRole('heading', { name: 'Coifa de Saber' })).not.toBeInTheDocument()
+    const summary = screen.getByTestId('anvil-selected-item')
+    expect(summary).toHaveTextContent('Elmo pronto para refino')
+    expect(summary).toHaveTextContent('Coifa de Saber')
   })
 
   it('usuário novo parte com slots vazios e inventário zerado', async () => {

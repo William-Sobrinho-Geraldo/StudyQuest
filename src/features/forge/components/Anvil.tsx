@@ -50,6 +50,7 @@ export function Anvil({
 
   return (
     <section
+      id="anvil-section"
       aria-label="Bigorna de refino"
       aria-busy={gold === null}
       className="rounded-xl border border-slate-800 bg-slate-900 p-5"

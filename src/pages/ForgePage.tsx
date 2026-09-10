@@ -34,6 +34,15 @@ export function ForgePage() {
     if (inInventory) setDetailItem(inInventory)
   }
 
+  const handleEquip = (itemId: string, slot: EquipmentSlot) => {
+    void forge.equipFromInventory(itemId, slot)
+  }
+
+  const handleSendToAnvil = (itemId: string) => {
+    forge.selectItem(itemId)
+    document.getElementById('anvil-section')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
+
   const handleOpenChest = async (chestId: string) => {
     const item = await forge.openChest(chestId)
     if (item && item.rarity) {
@@ -128,7 +137,13 @@ export function ForgePage() {
       </div>
 
       {detailItem && (
-        <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} />
+        <ItemDetailModal
+          item={detailItem}
+          isEquipped={Object.values(forge.equipped).some((i) => i?.id === detailItem.id)}
+          onClose={() => setDetailItem(null)}
+          onEquip={handleEquip}
+          onSendToAnvil={handleSendToAnvil}
+        />
       )}
     </AppShell>
   )

@@ -1,16 +1,25 @@
-import { X } from 'lucide-react'
+import { Hammer, Swords, X } from 'lucide-react'
 import type { ForgeItem } from '../lib/forgeItems'
-import { SLOT_LABELS } from '../lib/forgeRules'
+import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import { SLOT_ICONS } from './slotIcons'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
 import { calculateItemStats } from '../../../utils/statsCalculator'
 
 interface ItemDetailModalProps {
   item: ForgeItem
+  isEquipped: boolean
   onClose: () => void
+  onEquip: (itemId: string, slot: EquipmentSlot) => void
+  onSendToAnvil: (itemId: string) => void
 }
 
-export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
+export function ItemDetailModal({
+  item,
+  isEquipped,
+  onClose,
+  onEquip,
+  onSendToAnvil,
+}: ItemDetailModalProps) {
   const Icon = SLOT_ICONS[item.slot]
   const { text: textColor } = rarityStyle(item.rarity)
   const stats = calculateItemStats(item)
@@ -74,9 +83,38 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
           </p>
         )}
 
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {!isEquipped && (
+            <button
+              type="button"
+              onClick={() => {
+                onEquip(item.id, item.slot)
+                onClose()
+              }}
+              className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500"
+            >
+              <Swords className="h-4 w-4" aria-hidden="true" />
+              Equipar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              onSendToAnvil(item.id)
+              onClose()
+            }}
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-500 ${
+              isEquipped ? 'col-span-2' : ''
+            }`}
+          >
+            <Hammer className="h-4 w-4" aria-hidden="true" />
+            Enviar para Bigorna
+          </button>
+        </div>
+
         <button
           onClick={onClose}
-          className="mt-4 w-full rounded-lg border border-slate-700 bg-slate-800 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
+          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-800 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
         >
           Fechar
         </button>
