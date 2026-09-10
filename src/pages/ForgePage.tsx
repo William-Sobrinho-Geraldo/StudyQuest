@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
 import { Anvil } from '../features/forge/components/Anvil'
 import { InventoryGrid } from '../features/forge/components/InventoryGrid'
+import { ItemDetailModal } from '../features/forge/components/ItemDetailModal'
 import { Paperdoll } from '../features/forge/components/Paperdoll'
+import { PlayerStatsPanel } from '../features/forge/components/PlayerStatsPanel'
 import { SupplyChests } from '../features/forge/components/SupplyChests'
 import { useForge } from '../features/forge/hooks/useForge'
 import { INVENTORY_CAPACITY } from '../features/forge/lib/forgeItems'
+import { type ForgeItem } from '../features/forge/lib/forgeItems'
 import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
 import { CHEST_TIER_META } from '../features/quests/lib/chestTiers'
+import { calculateTotalStats } from '../utils/statsCalculator'
 
 export function ForgePage() {
   const forge = useForge()
@@ -16,6 +20,19 @@ export function ForgePage() {
   const [dragOverSlot, setDragOverSlot] = useState<EquipmentSlot | null>(null)
   const [anvilDragOver, setAnvilDragOver] = useState(false)
   const [draggedItemType, setDraggedItemType] = useState<EquipmentSlot | null>(null)
+  const [detailItem, setDetailItem] = useState<ForgeItem | null>(null)
+
+  const totalStats = useMemo(() => calculateTotalStats(forge.equipped), [forge.equipped])
+
+  const handleOpenDetail = (itemId: string) => {
+    const equipped = Object.values(forge.equipped).find((i) => i?.id === itemId)
+    if (equipped) {
+      setDetailItem(equipped)
+      return
+    }
+    const inInventory = forge.inventory.find((i) => i.id === itemId)
+    if (inInventory) setDetailItem(inInventory)
+  }
 
   const handleOpenChest = async (chestId: string) => {
     const item = await forge.openChest(chestId)
@@ -41,11 +58,13 @@ export function ForgePage() {
           dragOverSlot={dragOverSlot}
           draggedItemType={draggedItemType}
           characterLevel={forge.characterLevel}
-          onSelectItem={forge.selectItem}
+          onDetailItem={handleOpenDetail}
           onDragOverSlot={setDragOverSlot}
           onDropOnSlot={(itemId, slot) => void forge.equipFromInventory(itemId, slot)}
           onDragTypeChange={setDraggedItemType}
         />
+
+        <PlayerStatsPanel stats={totalStats} />
 
         <Anvil
           gold={forge.gold}
@@ -77,7 +96,7 @@ export function ForgePage() {
           capacity={INVENTORY_CAPACITY}
           selectedItemId={forge.selectedItemId}
           characterLevel={forge.characterLevel}
-          onSelectItem={forge.selectItem}
+          onDetailItem={handleOpenDetail}
           onDragTypeChange={setDraggedItemType}
         />
       </div>
@@ -109,6 +128,10 @@ export function ForgePage() {
           </li>
         </ul>
       </div>
+
+      {detailItem && (
+        <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} />
+      )}
     </AppShell>
   )
 }

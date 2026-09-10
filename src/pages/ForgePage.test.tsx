@@ -270,12 +270,15 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
   })
 
-  it('clique em um item prepara a bigorna com chance, custo e botão habilitado', async () => {
+  it('arrastar item para a bigorna prepara-a com chance, custo e botão habilitado', async () => {
     inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
 
     const summary = screen.getByTestId('anvil-selected-item')
     expect(summary).toHaveTextContent('Arma pronto para refino')
@@ -290,12 +293,15 @@ describe('ForgePage', () => {
     expect(refineButton).toHaveTextContent('Refinar +5 → +6')
   })
 
-  it('clique em item do inventário seleciona-o para refino', async () => {
+  it('arrastar item do inventário para a bigorna seleciona-o para refino', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('inventory-item-spare-helmet-0'))
+    dragAndDrop(
+      screen.getByTestId('inventory-item-spare-helmet-0'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
 
     const summary = screen.getByTestId('anvil-selected-item')
     expect(summary).toHaveTextContent('Elmo pronto para refino')
@@ -312,7 +318,10 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
     )
@@ -336,7 +345,10 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
     )
@@ -357,7 +369,10 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +0 para +1' }),
     )
@@ -375,7 +390,10 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
 
     const refineButton = screen.getByRole('button', {
       name: 'Refinar Espada do Aprendiz de +5 para +6',
@@ -398,7 +416,10 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
 
     const maxButton = screen.getByRole('button', { name: 'Refinar Espada do Aprendiz (máximo)' })
     expect(maxButton).toBeDisabled()
@@ -412,7 +433,10 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('equipment-slot-weapon'))
+    dragAndDrop(
+      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('anvil-drop-zone'),
+    )
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
     )
@@ -600,8 +624,6 @@ describe('ForgePage', () => {
       'Requer Nível 20',
     )
     expect(cell.getAttribute('aria-label')).toContain('bloqueado')
-
-    fireEvent.click(cell)
 
     expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
     expect(screen.queryByTestId('anvil-selected-item')).not.toBeInTheDocument()

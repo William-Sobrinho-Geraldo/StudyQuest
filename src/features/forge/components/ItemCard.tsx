@@ -1,5 +1,5 @@
 import { Lock } from 'lucide-react'
-import { useState, type ComponentPropsWithoutRef, type DragEvent } from 'react'
+import { useRef, useState, type ComponentPropsWithoutRef, type DragEvent } from 'react'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import { setItemDragSlot } from '../lib/dragAndDrop'
@@ -18,6 +18,7 @@ interface ItemCardProps {
   dragTarget?: boolean
   className?: string
   onDragTypeChange?: (type: EquipmentSlot | null) => void
+  onDetailClick?: () => void
 }
 
 // O rest são atributos/props padrão de <div> (role, event handlers, aria-*,
@@ -38,6 +39,7 @@ export function ItemCard({
   dragTarget = false,
   className = '',
   onDragTypeChange,
+  onDetailClick,
   ...rest
 }: ItemCardProps & ItemCardRootProps) {
   const {
@@ -50,10 +52,13 @@ export function ItemCard({
   } = rest
   const [isDragging, setIsDragging] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
+  const pointerDownTime = useRef(0)
+  const didDrag = useRef(false)
   const Icon = SLOT_ICONS[item.slot]
   const { border, glow, icon: iconColor, text } = rarityStyle(item.rarity)
 
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
+    didDrag.current = true
     setIsDragging(true)
     setShowTooltip(false)
     if (typeof event.dataTransfer.setDragImage === 'function') {
@@ -71,6 +76,18 @@ export function ItemCard({
     setShowTooltip(false)
     onDragTypeChange?.(null)
     originalDragEnd?.(event)
+  }
+
+  const handlePointerDown = () => {
+    pointerDownTime.current = performance.now()
+    didDrag.current = false
+  }
+
+  const handlePointerUp = () => {
+    const elapsed = performance.now() - pointerDownTime.current
+    if (!didDrag.current && elapsed < 300) {
+      onDetailClick?.()
+    }
   }
 
   const ringClass = !blocked
@@ -111,6 +128,8 @@ export function ItemCard({
         }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
         className={cardClasses}
       >
         <span

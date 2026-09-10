@@ -18,7 +18,7 @@ interface EquipmentSlotCardProps {
   selected: boolean
   draggedOver: boolean
   draggedItemType: EquipmentSlot | null
-  onSelect: (id: string) => void
+  onDetail: (id: string) => void
   onDragOverSlot: (slot: EquipmentSlot | null) => void
   onDropOnSlot: (itemId: string, slot: EquipmentSlot) => void
   onDragTypeChange: (type: EquipmentSlot | null) => void
@@ -30,7 +30,7 @@ function EquipmentSlotCard({
   selected,
   draggedOver,
   draggedItemType,
-  onSelect,
+  onDetail,
   onDragOverSlot,
   onDropOnSlot,
   onDragTypeChange,
@@ -39,7 +39,7 @@ function EquipmentSlotCard({
     if (!item) return
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      onSelect(item.id)
+      onDetail(item.id)
     }
   }
 
@@ -87,10 +87,11 @@ function EquipmentSlotCard({
           draggable
           data-testid={`equipment-slot-${slot}`}
           aria-label={`Refinar ${item.name} de +${item.enhancementLevel}`}
-          onClick={() => onSelect(item.id)}
+          onClick={() => onDetail(item.id)}
           onKeyDown={handleKeyDown}
           onDragStart={(event: DragEvent<HTMLDivElement>) => beginItemDrag(event, item.id)}
           onDragTypeChange={onDragTypeChange}
+          onDetailClick={() => onDetail(item.id)}
           {...dropTargetProps}
           className="h-24 w-24 cursor-grab"
         />
@@ -125,7 +126,7 @@ interface PaperdollProps {
   dragOverSlot: EquipmentSlot | null
   draggedItemType: EquipmentSlot | null
   characterLevel: number | null
-  onSelectItem: (id: string) => void
+  onDetailItem: (id: string) => void
   onDragOverSlot: (slot: EquipmentSlot | null) => void
   onDropOnSlot: (itemId: string, slot: EquipmentSlot) => void
   onDragTypeChange: (type: EquipmentSlot | null) => void
@@ -137,7 +138,7 @@ export function Paperdoll({
   dragOverSlot,
   draggedItemType,
   characterLevel,
-  onSelectItem,
+  onDetailItem,
   onDragOverSlot,
   onDropOnSlot,
   onDragTypeChange,
@@ -170,7 +171,7 @@ export function Paperdoll({
             selected={equipped[slot]?.id === selectedItemId}
             draggedOver={dragOverSlot === slot}
             draggedItemType={draggedItemType}
-            onSelect={onSelectItem}
+            onDetail={onDetailItem}
             onDragOverSlot={onDragOverSlot}
             onDropOnSlot={onDropOnSlot}
             onDragTypeChange={onDragTypeChange}
