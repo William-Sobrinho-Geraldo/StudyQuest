@@ -66,6 +66,15 @@ export function ForgePage() {
 
         <PlayerStatsPanel stats={totalStats} />
 
+        <InventoryGrid
+          items={forge.inventory}
+          capacity={INVENTORY_CAPACITY}
+          selectedItemId={forge.selectedItemId}
+          characterLevel={forge.characterLevel}
+          onDetailItem={handleOpenDetail}
+          onDragTypeChange={setDraggedItemType}
+        />
+
         <Anvil
           gold={forge.gold}
           selectedMeta={forge.selectedMeta}
@@ -87,17 +96,6 @@ export function ForgePage() {
           busy={forge.busy}
           characterLevel={forge.characterLevel}
           onOpen={(chestId) => void handleOpenChest(chestId)}
-        />
-      </div>
-
-      <div className="mt-4">
-        <InventoryGrid
-          items={forge.inventory}
-          capacity={INVENTORY_CAPACITY}
-          selectedItemId={forge.selectedItemId}
-          characterLevel={forge.characterLevel}
-          onDetailItem={handleOpenDetail}
-          onDragTypeChange={setDraggedItemType}
         />
       </div>
 
