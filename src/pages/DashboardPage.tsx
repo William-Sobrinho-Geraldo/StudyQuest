@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Store } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../features/auth/AuthContext'
 import { RewardChestCard } from '../features/chest/components/RewardChestCard'
@@ -30,6 +32,24 @@ export function DashboardPage() {
         </div>
 
         <div className="mt-6 grid gap-4">
+          <Link
+            to="/shop"
+            className="flex min-h-16 items-center justify-between rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 to-purple-600/15 px-5 transition hover:border-amber-400/50 hover:from-amber-500/20"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20">
+                <Store className="h-5 w-5 text-amber-400" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-sm font-bold text-white">Mercado Rotativo</span>
+                <span className="block text-xs text-slate-400">
+                  Ofertas diárias de equipamentos para seu personagem.
+                </span>
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-amber-400/70" aria-hidden="true" />
+          </Link>
+
           <RewardChestCard onClaimed={handleChestClaimed} />
           <div className="grid grid-cols-2 gap-4">
             <StreakCard />

@@ -92,6 +92,189 @@ export type Database = {
         }
         Relationships: []
       }
+      rotating_shop: {
+        Row: {
+          created_at: string
+          next_refresh_at: string
+          refreshes_today: number
+          slot_1_attack: number | null
+          slot_1_bought: boolean
+          slot_1_category: string | null
+          slot_1_defense: number | null
+          slot_1_hp: number | null
+          slot_1_level: number | null
+          slot_1_name: string | null
+          slot_1_price: number | null
+          slot_1_rarity: string | null
+          slot_2_attack: number | null
+          slot_2_bought: boolean
+          slot_2_category: string | null
+          slot_2_defense: number | null
+          slot_2_hp: number | null
+          slot_2_level: number | null
+          slot_2_name: string | null
+          slot_2_price: number | null
+          slot_2_rarity: string | null
+          slot_3_attack: number | null
+          slot_3_bought: boolean
+          slot_3_category: string | null
+          slot_3_defense: number | null
+          slot_3_hp: number | null
+          slot_3_level: number | null
+          slot_3_name: string | null
+          slot_3_price: number | null
+          slot_3_rarity: string | null
+          slot_4_attack: number | null
+          slot_4_bought: boolean
+          slot_4_category: string | null
+          slot_4_defense: number | null
+          slot_4_hp: number | null
+          slot_4_level: number | null
+          slot_4_name: string | null
+          slot_4_price: number | null
+          slot_4_rarity: string | null
+          slot_5_attack: number | null
+          slot_5_bought: boolean
+          slot_5_category: string | null
+          slot_5_defense: number | null
+          slot_5_hp: number | null
+          slot_5_level: number | null
+          slot_5_name: string | null
+          slot_5_price: number | null
+          slot_5_rarity: string | null
+          slot_6_attack: number | null
+          slot_6_bought: boolean
+          slot_6_category: string | null
+          slot_6_defense: number | null
+          slot_6_hp: number | null
+          slot_6_level: number | null
+          slot_6_name: string | null
+          slot_6_price: number | null
+          slot_6_rarity: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          next_refresh_at?: string
+          refreshes_today?: number
+          slot_1_attack?: number | null
+          slot_1_bought?: boolean
+          slot_1_category?: string | null
+          slot_1_defense?: number | null
+          slot_1_hp?: number | null
+          slot_1_level?: number | null
+          slot_1_name?: string | null
+          slot_1_price?: number | null
+          slot_1_rarity?: string | null
+          slot_2_attack?: number | null
+          slot_2_bought?: boolean
+          slot_2_category?: string | null
+          slot_2_defense?: number | null
+          slot_2_hp?: number | null
+          slot_2_level?: number | null
+          slot_2_name?: string | null
+          slot_2_price?: number | null
+          slot_2_rarity?: string | null
+          slot_3_attack?: number | null
+          slot_3_bought?: boolean
+          slot_3_category?: string | null
+          slot_3_defense?: number | null
+          slot_3_hp?: number | null
+          slot_3_level?: number | null
+          slot_3_name?: string | null
+          slot_3_price?: number | null
+          slot_3_rarity?: string | null
+          slot_4_attack?: number | null
+          slot_4_bought?: boolean
+          slot_4_category?: string | null
+          slot_4_defense?: number | null
+          slot_4_hp?: number | null
+          slot_4_level?: number | null
+          slot_4_name?: string | null
+          slot_4_price?: number | null
+          slot_4_rarity?: string | null
+          slot_5_attack?: number | null
+          slot_5_bought?: boolean
+          slot_5_category?: string | null
+          slot_5_defense?: number | null
+          slot_5_hp?: number | null
+          slot_5_level?: number | null
+          slot_5_name?: string | null
+          slot_5_price?: number | null
+          slot_5_rarity?: string | null
+          slot_6_attack?: number | null
+          slot_6_bought?: boolean
+          slot_6_category?: string | null
+          slot_6_defense?: number | null
+          slot_6_hp?: number | null
+          slot_6_level?: number | null
+          slot_6_name?: string | null
+          slot_6_price?: number | null
+          slot_6_rarity?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          next_refresh_at?: string
+          refreshes_today?: number
+          slot_1_attack?: number | null
+          slot_1_bought?: boolean
+          slot_1_category?: string | null
+          slot_1_defense?: number | null
+          slot_1_hp?: number | null
+          slot_1_level?: number | null
+          slot_1_name?: string | null
+          slot_1_price?: number | null
+          slot_1_rarity?: string | null
+          slot_2_attack?: number | null
+          slot_2_bought?: boolean
+          slot_2_category?: string | null
+          slot_2_defense?: number | null
+          slot_2_hp?: number | null
+          slot_2_level?: number | null
+          slot_2_name?: string | null
+          slot_2_price?: number | null
+          slot_2_rarity?: string | null
+          slot_3_attack?: number | null
+          slot_3_bought?: boolean
+          slot_3_category?: string | null
+          slot_3_defense?: number | null
+          slot_3_hp?: number | null
+          slot_3_level?: number | null
+          slot_3_name?: string | null
+          slot_3_price?: number | null
+          slot_3_rarity?: string | null
+          slot_4_attack?: number | null
+          slot_4_bought?: boolean
+          slot_4_category?: string | null
+          slot_4_defense?: number | null
+          slot_4_hp?: number | null
+          slot_4_level?: number | null
+          slot_4_name?: string | null
+          slot_4_price?: number | null
+          slot_4_rarity?: string | null
+          slot_5_attack?: number | null
+          slot_5_bought?: boolean
+          slot_5_category?: string | null
+          slot_5_defense?: number | null
+          slot_5_hp?: number | null
+          slot_5_level?: number | null
+          slot_5_name?: string | null
+          slot_5_price?: number | null
+          slot_5_rarity?: string | null
+          slot_6_attack?: number | null
+          slot_6_bought?: boolean
+          slot_6_category?: string | null
+          slot_6_defense?: number | null
+          slot_6_hp?: number | null
+          slot_6_level?: number | null
+          slot_6_name?: string | null
+          slot_6_price?: number | null
+          slot_6_rarity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quest_claims: {
         Row: {
           claimed_at: string
@@ -366,6 +549,48 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "study_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      refresh_shop: {
+        Args: { p_player_level: number }
+        Returns: {
+          slot: number
+          rarity: string
+          item_category: string
+          item_level: number
+          name: string
+          attack: number
+          defense: number
+          hp: number
+          price: number
+          bought: boolean
+          next_refresh_at: string
+          refreshes_today: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "refresh_shop"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      buy_shop_item: {
+        Args: { p_slot_number: number }
+        Returns: {
+          shop_slot: number
+          shop_bought: boolean
+          inventory_id: string
+          inventory_name: string
+          inventory_item_category: string
+          inventory_rarity: string
+          inventory_item_level: number
+          profile_gold: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "buy_shop_item"
           isOneToOne: false
           isSetofReturn: true
         }

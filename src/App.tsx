@@ -7,6 +7,7 @@ import { ForgePage } from './pages/ForgePage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { QuestsPage } from './pages/QuestsPage'
+import { ShopPage } from './pages/ShopPage'
 
 export function App() {
   return (
@@ -43,6 +44,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <QuestsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shop"
+            element={
+              <ProtectedRoute>
+                <ShopPage />
               </ProtectedRoute>
             }
           />
