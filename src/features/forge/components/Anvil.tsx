@@ -5,7 +5,6 @@ import { MAX_REFINE_LEVEL, SLOT_LABELS, type RefineResult } from '../lib/forgeRu
 import { readItemDrag } from '../lib/dragAndDrop'
 import type { SelectedMeta } from '../hooks/useForge'
 import { ItemBadge } from './ItemBadge'
-import { ItemCard } from './ItemCard'
 
 function refineButtonLabel(meta: SelectedMeta): string {
   if (meta.isMax) return `Refinar ${meta.item.name} (máximo)`
@@ -102,16 +101,18 @@ export function Anvil({
             className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
           >
             <div className="flex items-start gap-2">
-              <ItemCard
-                item={selectedMeta.item}
-                blocked={selectedMeta.blockedByLevel}
-                className="flex min-w-0 flex-1 flex-col gap-2 p-3"
+              <div
+                className={`flex min-w-0 flex-1 flex-col gap-2 rounded-xl border-2 p-3 ${
+                  selectedMeta.blockedByLevel
+                    ? 'border-red-500/40 bg-slate-800/90'
+                    : 'border-orange-500/40 bg-slate-800/90'
+                }`}
               >
                 <p className="text-xs font-semibold uppercase tracking-wide text-orange-400">
                   {SLOT_LABELS[selectedMeta.item.slot]} pronto para refino
                 </p>
                 <ItemBadge item={selectedMeta.item} blocked={selectedMeta.blockedByLevel} />
-              </ItemCard>
+              </div>
 
               <button
                 type="button"

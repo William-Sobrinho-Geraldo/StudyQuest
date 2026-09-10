@@ -5,6 +5,7 @@ import { ToastProvider } from '../components/Toast'
 import { AuthProvider } from '../features/auth/AuthContext'
 import { EQUIPMENT_STORAGE_KEY, type GearInventoryRow, type InventoryRow } from '../features/forge/lib/forgeItems'
 import { MAX_REFINE_LEVEL, SLOTS, type EquipmentSlot } from '../features/forge/lib/forgeRules'
+import { ITEM_DRAG_SLOT_TYPE } from '../features/forge/lib/dragAndDrop'
 import { ForgePage } from './ForgePage'
 
 const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
@@ -253,15 +254,18 @@ describe('ForgePage', () => {
         slotCard.querySelector('[data-testid="item-enhancement"]'),
       ).not.toBeInTheDocument()
     }
+    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-weapon'))
     expect(
-      screen.getByTestId('equipment-slot-weapon'),
+      screen.getByTestId('equipment-slot-weapon-tooltip'),
     ).toHaveTextContent('Espada do Aprendiz')
+    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-helmet'))
     expect(
-      screen.getByTestId('equipment-slot-helmet'),
+      screen.getByTestId('equipment-slot-helmet-tooltip'),
     ).toHaveTextContent('Elmo do Estudante')
 
+    fireEvent.mouseEnter(screen.getByTestId('inventory-item-spare-helmet-0'))
     expect(
-      screen.getByTestId('inventory-item-spare-helmet-0'),
+      screen.getByTestId('inventory-item-spare-helmet-0-tooltip'),
     ).toHaveTextContent('Coifa de Saber')
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
   })
@@ -464,35 +468,121 @@ describe('ForgePage', () => {
       screen.getByTestId('equipment-slot-weapon'),
     )
 
-    await waitFor(() =>
-      expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('Lâmina de Estudo'),
-    )
+    await waitFor(() => {
+      fireEvent.mouseEnter(screen.getByTestId('equipment-slot-weapon'))
+      expect(
+        screen.getByTestId('equipment-slot-weapon-tooltip'),
+      ).toHaveTextContent('Lâmina de Estudo')
+    })
+    fireEvent.mouseEnter(screen.getByTestId('inventory-item-weapon-eq'))
     expect(
-      screen.getByTestId('inventory-item-weapon-eq'),
+      screen.getByTestId('inventory-item-weapon-eq-tooltip'),
     ).toHaveTextContent('Espada do Aprendiz')
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
     expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: false })
     expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true })
   })
 
-  it('bloqueia equipar item acima do nível do personagem mesmo com drop forçado', async () => {
+  it('rejeita soltar item em slot de tipo diferente sem chamar o banco', async () => {
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('spare-chest-0', 'chest', 'Peitoral de Ferro', 0, false),
+    ]
+    const capture = emptyCapture()
+    setupSut(capture)
+    await renderReadyForge()
+
+    dragAndDrop(
+      screen.getByTestId('inventory-item-spare-chest-0'),
+      screen.getByTestId('equipment-slot-boots'),
+    )
+
+    expect(screen.getByTestId('inventory-item-spare-chest-0')).toBeInTheDocument()
+    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-boots'))
+    expect(screen.getByTestId('equipment-slot-boots-tooltip')).toHaveTextContent(
+      'Botas do Peregrino',
+    )
+    expect(capture.inventoryUpdatePatches).toHaveLength(0)
+  })
+
+  it('aceita soltar item no slot do tipo correspondente (mesma categoria)', async () => {
+    inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Elmo de Ferro', 0, false)]
+    const capture = emptyCapture()
+    setupSut(capture)
+    await renderReadyForge()
+
+    dragAndDrop(
+      screen.getByTestId('inventory-item-spare-helmet-0'),
+      screen.getByTestId('equipment-slot-helmet'),
+    )
+
+    await waitFor(() =>
+      expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true }),
+    )
+    expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: false })
+    expect(screen.queryByTestId('inventory-item-spare-helmet-0')).not.toBeInTheDocument()
+    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-helmet'))
+    expect(screen.getByTestId('equipment-slot-helmet-tooltip')).toHaveTextContent('Elmo de Ferro')
+  })
+
+  it('troca a bota equipada ao soltar uma nova bota no slot (desequipa antes de equipar)', async () => {
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('spare-boots-0', 'boots', 'Botas do Andarilho', 0, false),
+    ]
+    const capture = emptyCapture()
+    setupSut(capture)
+    await renderReadyForge()
+
+    dragAndDrop(
+      screen.getByTestId('inventory-item-spare-boots-0'),
+      screen.getByTestId('equipment-slot-boots'),
+    )
+
+    await waitFor(() =>
+      expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true }),
+    )
+    expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: false })
+
+    const unequipIndex = capture.inventoryUpdatePatches.findIndex(
+      (patch) => (patch as { equipped?: boolean }).equipped === false,
+    )
+    const equipIndex = capture.inventoryUpdatePatches.findIndex(
+      (patch) => (patch as { equipped?: boolean }).equipped === true,
+    )
+    expect(unequipIndex).toBeGreaterThanOrEqual(0)
+    expect(equipIndex).toBeGreaterThanOrEqual(0)
+    expect(unequipIndex).toBeLessThan(equipIndex)
+
+    expect(screen.queryByTestId('inventory-item-spare-boots-0')).not.toBeInTheDocument()
+    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-boots'))
+    expect(screen.getByTestId('equipment-slot-boots-tooltip')).toHaveTextContent(
+      'Botas do Andarilho',
+    )
+    fireEvent.mouseEnter(screen.getByTestId('inventory-item-boots-eq'))
+    expect(screen.getByTestId('inventory-item-boots-eq-tooltip')).toHaveTextContent(
+      'Botas do Peregrino',
+    )
+  })
+
+  it('ignora drop forçado em slot sem drag real do item (defesa contra payload simulado)', async () => {
     characterLevelValue = 23
     inventoryRows = [
       ...forgeRows(),
       makeGear('spare-high-0', 'weapon', 'Lâmina de Estudo', 0, false, 30),
     ]
-    setupSut(emptyCapture())
+    const capture = emptyCapture()
+    setupSut(capture)
     await renderReadyForge()
 
     const dataTransfer = makeDataTransfer()
     dataTransfer.setData('text/plain', 'spare-high-0')
+    dataTransfer.setData(ITEM_DRAG_SLOT_TYPE, 'weapon')
     fireEvent.drop(screen.getByTestId('equipment-slot-weapon'), { dataTransfer })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Item Nível 30 requer personagem Nível 30.',
-    )
-    expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('Espada do Aprendiz')
-    expect(screen.getByTestId('inventory-item-spare-high-0')).toHaveTextContent('Requer Nível 30')
+    expect(capture.inventoryUpdatePatches).toHaveLength(0)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByTestId('inventory-item-spare-high-0')).toBeInTheDocument()
   })
 
   it('item acima do nível fica bloqueado no inventário (sem selecionar ou refinar)', async () => {
@@ -505,13 +595,32 @@ describe('ForgePage', () => {
     await renderReadyForge()
 
     const cell = screen.getByTestId('inventory-item-spare-high-0')
-    expect(cell).toHaveTextContent('Requer Nível 20')
+    fireEvent.mouseEnter(cell)
+    expect(screen.getByTestId('inventory-item-spare-high-0-tooltip')).toHaveTextContent(
+      'Requer Nível 20',
+    )
     expect(cell.getAttribute('aria-label')).toContain('bloqueado')
 
     fireEvent.click(cell)
 
     expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
     expect(screen.queryByTestId('anvil-selected-item')).not.toBeInTheDocument()
+  })
+
+  it('some o tooltip ao iniciar o arrasto e não o deixa preso após o drop', async () => {
+    inventoryRows = [...forgeRows(), makeGear('spare-weapon-0', 'weapon', 'Lâmina de Estudo')]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    const card = screen.getByTestId('inventory-item-spare-weapon-0')
+    fireEvent.mouseEnter(card)
+    expect(screen.getByTestId('inventory-item-spare-weapon-0-tooltip')).toBeInTheDocument()
+
+    fireEvent.dragStart(card, { dataTransfer: makeDataTransfer() })
+    expect(screen.queryByTestId('inventory-item-spare-weapon-0-tooltip')).not.toBeInTheDocument()
+
+    fireEvent.dragEnd(card)
+    expect(screen.queryByTestId('inventory-item-spare-weapon-0-tooltip')).not.toBeInTheDocument()
   })
 
   it('abre um baú, consome a quantidade e adiciona o equipamento ao inventário', async () => {
@@ -609,8 +718,9 @@ describe('ForgePage', () => {
     expect(inserted[1]).toMatchObject({ item_category: 'helmet', equipped: false })
 
     expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+5')
+    fireEvent.mouseEnter(screen.getByTestId('inventory-item-inserted-spare'))
     expect(
-      screen.getByTestId('inventory-item-inserted-spare'),
+      screen.getByTestId('inventory-item-inserted-spare-tooltip'),
     ).toHaveTextContent('Coifa de Saber')
   })
 

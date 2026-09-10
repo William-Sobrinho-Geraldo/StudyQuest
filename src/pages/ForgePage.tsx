@@ -15,6 +15,7 @@ export function ForgePage() {
   const { showToast } = useToast()
   const [dragOverSlot, setDragOverSlot] = useState<EquipmentSlot | null>(null)
   const [anvilDragOver, setAnvilDragOver] = useState(false)
+  const [draggedItemType, setDraggedItemType] = useState<EquipmentSlot | null>(null)
 
   const handleOpenChest = async (chestId: string) => {
     const item = await forge.openChest(chestId)
@@ -38,10 +39,12 @@ export function ForgePage() {
           equipped={forge.equipped}
           selectedItemId={forge.selectedItemId}
           dragOverSlot={dragOverSlot}
+          draggedItemType={draggedItemType}
           characterLevel={forge.characterLevel}
           onSelectItem={forge.selectItem}
           onDragOverSlot={setDragOverSlot}
           onDropOnSlot={(itemId, slot) => void forge.equipFromInventory(itemId, slot)}
+          onDragTypeChange={setDraggedItemType}
         />
 
         <Anvil
@@ -75,6 +78,7 @@ export function ForgePage() {
           selectedItemId={forge.selectedItemId}
           characterLevel={forge.characterLevel}
           onSelectItem={forge.selectItem}
+          onDragTypeChange={setDraggedItemType}
         />
       </div>
 

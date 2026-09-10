@@ -3,7 +3,6 @@ import { PersonStanding, Plus } from 'lucide-react'
 import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import type { EquippedItems, ForgeItem } from '../lib/forgeItems'
 import { beginItemDrag, readItemDrag } from '../lib/dragAndDrop'
-import { ItemBadge } from './ItemBadge'
 import { ItemCard } from './ItemCard'
 
 const SLOT_POSITIONS: Record<EquipmentSlot, string> = {
@@ -18,9 +17,11 @@ interface EquipmentSlotCardProps {
   item: ForgeItem | undefined
   selected: boolean
   draggedOver: boolean
+  draggedItemType: EquipmentSlot | null
   onSelect: (id: string) => void
   onDragOverSlot: (slot: EquipmentSlot | null) => void
   onDropOnSlot: (itemId: string, slot: EquipmentSlot) => void
+  onDragTypeChange: (type: EquipmentSlot | null) => void
 }
 
 function EquipmentSlotCard({
@@ -28,9 +29,11 @@ function EquipmentSlotCard({
   item,
   selected,
   draggedOver,
+  draggedItemType,
   onSelect,
   onDragOverSlot,
   onDropOnSlot,
+  onDragTypeChange,
 }: EquipmentSlotCardProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!item) return
@@ -42,6 +45,7 @@ function EquipmentSlotCard({
 
   const dropTargetProps = {
     onDragOver: (event: DragEvent<HTMLDivElement>) => {
+      if (draggedItemType !== slot) return
       event.preventDefault()
       event.stopPropagation()
       onDragOverSlot(slot)
@@ -53,6 +57,7 @@ function EquipmentSlotCard({
       }
     },
     onDrop: (event: DragEvent<HTMLDivElement>) => {
+      if (draggedItemType !== slot) return
       event.preventDefault()
       event.stopPropagation()
       onDragOverSlot(null)
@@ -60,6 +65,8 @@ function EquipmentSlotCard({
       if (itemId) onDropOnSlot(itemId, slot)
     },
   }
+
+  const dropHintVisible = draggedItemType === slot
 
   const slotLabel = (
     <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
@@ -74,6 +81,7 @@ function EquipmentSlotCard({
           item={item}
           selected={selected}
           accent={draggedOver}
+          dragTarget={dropHintVisible}
           role="button"
           tabIndex={0}
           draggable
@@ -82,12 +90,10 @@ function EquipmentSlotCard({
           onClick={() => onSelect(item.id)}
           onKeyDown={handleKeyDown}
           onDragStart={(event: DragEvent<HTMLDivElement>) => beginItemDrag(event, item.id)}
+          onDragTypeChange={onDragTypeChange}
           {...dropTargetProps}
-          className="flex h-24 w-24 cursor-grab flex-col items-center gap-1 p-2"
-        >
-          {slotLabel}
-          <ItemBadge item={item} vertical />
-        </ItemCard>
+          className="h-24 w-24 cursor-grab"
+        />
       ) : (
         <div
           role="button"
@@ -98,7 +104,9 @@ function EquipmentSlotCard({
           className={`flex h-24 w-24 flex-col items-center gap-1 rounded-xl border-2 border-dashed p-2 transition ${
             draggedOver
               ? 'border-orange-400 bg-orange-500/10 ring-2 ring-orange-400/30'
-              : 'border-slate-800 bg-slate-950/40 hover:border-slate-600'
+              : dropHintVisible
+                ? 'border-slate-500 bg-slate-800/70 ring-2 ring-white/40'
+                : 'border-slate-800 bg-slate-950/40 hover:border-slate-600'
           }`}
         >
           {slotLabel}
@@ -115,20 +123,24 @@ interface PaperdollProps {
   equipped: EquippedItems
   selectedItemId: string | null
   dragOverSlot: EquipmentSlot | null
+  draggedItemType: EquipmentSlot | null
   characterLevel: number | null
   onSelectItem: (id: string) => void
   onDragOverSlot: (slot: EquipmentSlot | null) => void
   onDropOnSlot: (itemId: string, slot: EquipmentSlot) => void
+  onDragTypeChange: (type: EquipmentSlot | null) => void
 }
 
 export function Paperdoll({
   equipped,
   selectedItemId,
   dragOverSlot,
+  draggedItemType,
   characterLevel,
   onSelectItem,
   onDragOverSlot,
   onDropOnSlot,
+  onDragTypeChange,
 }: PaperdollProps) {
   return (
     <section
@@ -157,9 +169,11 @@ export function Paperdoll({
             item={equipped[slot]}
             selected={equipped[slot]?.id === selectedItemId}
             draggedOver={dragOverSlot === slot}
+            draggedItemType={draggedItemType}
             onSelect={onSelectItem}
             onDragOverSlot={onDragOverSlot}
             onDropOnSlot={onDropOnSlot}
+            onDragTypeChange={onDragTypeChange}
           />
         ))}
       </div>

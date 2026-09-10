@@ -299,22 +299,38 @@ export function useForge() {
         ...(current ? [{ ...current, slot }] : []),
       ])
 
-      // Primeiro desequipa a peça atual (índice único por slot), depois equipa a nova.
-      const unequipPromise = current
-        ? supabase.from('inventory').update({ equipped: false }).eq('id', current.id)
-        : Promise.resolve({ data: null, error: null })
-      const equipPromise = supabase
+      const fail = (message: string) => {
+        setEquipped(previousEquipped)
+        setInventory(previousInventory)
+        setError(message)
+      }
+
+      // Swap sequencial: primeiro desequipa a peça atual e aguarda a constraint
+      // inventory_equipped_slot_uidx (user_id, slot) where equipped liberar o
+      // único "equipped" do slot, só então equipa a nova. Executar as duas em
+      // paralelo causava 23505 (duplicate key) quando o equip rodava primeiro.
+      if (current) {
+        const unequipResult = await supabase
+          .from('inventory')
+          .update({ equipped: false })
+          .eq('id', current.id)
+        if (unequipResult.error) {
+          setBusy(false)
+          fail(unequipResult.error.message)
+          return
+        }
+      }
+
+      const equipResult = await supabase
         .from('inventory')
         .update({ equipped: true })
         .eq('id', incoming.id)
-
-      const [unequipResult, equipResult] = await Promise.all([unequipPromise, equipPromise])
-      const failed = unequipResult.error ?? equipResult.error
-      if (failed) {
-        setEquipped(previousEquipped)
-        setInventory(previousInventory)
-        setError(failed.message)
+      if (equipResult.error) {
+        setBusy(false)
+        fail(equipResult.error.message)
+        return
       }
+
       setBusy(false)
     },
     [busy, characterLevel, equipped, inventory, user],
