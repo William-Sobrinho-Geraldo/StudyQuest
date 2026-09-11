@@ -11,7 +11,7 @@ import { useForge } from '../features/forge/hooks/useForge'
 import { INVENTORY_CAPACITY } from '../features/forge/lib/forgeItems'
 import { type ForgeItem } from '../features/forge/lib/forgeItems'
 import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
-import { CHEST_TIER_META } from '../features/quests/lib/chestTiers'
+import { CHEST_TIER_META, isQuestChestTier } from '../features/quests/lib/chestTiers'
 import { calculateTotalStats } from '../utils/statsCalculator'
 
 export function ForgePage() {
@@ -45,7 +45,7 @@ export function ForgePage() {
 
   const handleOpenChest = async (chestId: string) => {
     const item = await forge.openChest(chestId)
-    if (item && item.rarity) {
+    if (item && item.rarity && isQuestChestTier(item.rarity)) {
       showToast(
         `Você abriu um Baú ${CHEST_TIER_META[item.rarity].label} e recebeu ${item.name} (Nível ${item.itemLevel})!`,
       )

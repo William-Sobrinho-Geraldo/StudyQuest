@@ -1,11 +1,11 @@
 import type { EquipmentSlot } from '../../forge/lib/forgeRules'
 import type { ForgeRarity } from '../../forge/lib/forgeItems'
 
-// Raridades suportadas pelo mercado. Máximo é Épico — tiers lendários
-// ainda não existem no metadado do jogo.
+// Raridades dos slots regulares (1-5) do mercado. Máximo é Épico.
 export const SHOP_RARITIES: ForgeRarity[] = ['common', 'rare', 'epic']
 
-// Slot 6 (Vitrine Especial) tem raridade fixa épica.
+// Slot 6 (Vitrine Especial): categoria aleatória e raridade Épico ou
+// Lendário — o sorteio acontece em refresh_shop (banco).
 export const SHOWCASE_SLOT_INDEX = 6
 
 export interface ShopSlot {

@@ -12,6 +12,7 @@ export const RARITY_LABELS: Record<ForgeRarity, string> = {
   common: 'Comum',
   rare: 'Raro',
   epic: 'Épico',
+  legendary: 'Lendário',
 }
 
 export const RARITY_CARD_STYLES: Record<ForgeRarity, RarityCardStyle> = {
@@ -35,6 +36,13 @@ export const RARITY_CARD_STYLES: Record<ForgeRarity, RarityCardStyle> = {
     text: 'text-purple-300',
     icon: 'text-purple-300',
     chip: 'border border-purple-500/40 bg-purple-500/15 text-purple-200',
+  },
+  legendary: {
+    border: 'border-amber-400/70',
+    glow: 'shadow-lg shadow-amber-500/20',
+    text: 'text-amber-300',
+    icon: 'text-amber-300',
+    chip: 'border border-amber-400/40 bg-amber-500/15 text-amber-200',
   },
 }
 

@@ -1,7 +1,8 @@
 import { MAX_REFINE_LEVEL, SLOTS, type EquipmentSlot } from './forgeRules'
 import type { Json } from '../../../lib/database.types'
+import type { QuestChestTier } from '../../quests/lib/chestTiers'
 
-export type ForgeRarity = 'common' | 'rare' | 'epic'
+export type ForgeRarity = 'common' | 'rare' | 'epic' | 'legendary'
 
 export interface ForgeItem {
   id: string
@@ -22,7 +23,7 @@ export const LEGACY_LEVELS_STORAGE_KEY = 'studyquest.forge.levels'
 
 export const INVENTORY_CAPACITY = 24
 
-const FORGE_RARITIES: ForgeRarity[] = ['common', 'rare', 'epic']
+const FORGE_RARITIES: ForgeRarity[] = ['common', 'rare', 'epic', 'legendary']
 
 export function isForgeRarity(value: unknown): value is ForgeRarity {
   return FORGE_RARITIES.includes(value as ForgeRarity)
@@ -44,11 +45,12 @@ export interface GearInventoryRow {
 }
 
 // Baú de suprimentos: empilhável, mesmas colunas, forma especial.
+// Raridades vindas de recompensa de quest — nunca lendário.
 export interface SupplyChestRow {
   id: string
   user_id: string
   item_category: 'supply_chest'
-  rarity: ForgeRarity
+  rarity: QuestChestTier
   name: null
   item_level: 0
   enhancement_level: 0

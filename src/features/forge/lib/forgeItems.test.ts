@@ -46,7 +46,7 @@ describe('type guards e raridade', () => {
   it('reconhece raridades de baú/equipamento', () => {
     expect(isForgeRarity('common')).toBe(true)
     expect(isForgeRarity('epic')).toBe(true)
-    expect(isForgeRarity('legendary')).toBe(false)
+    expect(isForgeRarity('legendary')).toBe(true)
     expect(isForgeRarity(undefined)).toBe(false)
   })
 
