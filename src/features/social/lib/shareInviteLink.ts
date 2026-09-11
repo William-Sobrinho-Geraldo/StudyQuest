@@ -2,6 +2,8 @@ import { Capacitor } from '@capacitor/core'
 
 export const INVITE_PATH = '/invite'
 
+export const PRODUCTION_URL = 'https://study-quest-wine.vercel.app'
+
 export type ShareOutcome = 'native' | 'web' | 'whatsapp'
 
 export interface ShareInviteResult {
@@ -9,18 +11,18 @@ export interface ShareInviteResult {
   url: string
 }
 
-const SHARE_TEXT = 'Vem farmar XP comigo no StudyQuest!'
+export const SHARE_TEXT =
+  'Sua rotina de estudos acaba de virar um RPG. Entre na minha party, venha farmar XP e evoluir no StudyQuest! 🗡️📚'
 
 export function buildInviteLink(playerTag: string): string {
   const encodedTag = encodeURIComponent(playerTag)
-  const origin =
-    typeof window !== 'undefined' ? window.location.origin : 'https://studyquest.app'
-  return `${origin}${INVITE_PATH}?ref=${encodedTag}`
+  return `${PRODUCTION_URL}${INVITE_PATH}?ref=${encodedTag}`
 }
 
 export function buildWhatsAppLink(playerTag: string): string {
-  const message = `${SHARE_TEXT} ${buildInviteLink(playerTag)}`
-  return `https://wa.me/?text=${encodeURIComponent(message)}`
+  const inviteUrl = buildInviteLink(playerTag)
+  const textToShare = encodeURIComponent(`${SHARE_TEXT} ${inviteUrl}`)
+  return `https://wa.me/?text=${textToShare}`
 }
 
 export function isMobileUserAgent(userAgent: string): boolean {
@@ -42,17 +44,23 @@ function isCapacitorCancelled(error: unknown): boolean {
   return error instanceof Error && error.message === 'Share canceled'
 }
 
-export async function shareInviteLink(playerTag: string): Promise<ShareInviteResult> {
+export async function copyInviteLink(playerTag: string): Promise<string> {
+  const url = buildInviteLink(playerTag)
+  await navigator.clipboard.writeText(url)
+  return url
+}
+
+export async function shareViaWhatsApp(playerTag: string): Promise<ShareInviteResult> {
   const url = buildInviteLink(playerTag)
   const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : ''
   const isMobile = isMobileUserAgent(userAgent)
 
-  // 1. Capacitor nativo (build Android/iOS)
+  // 1. Capacitor nativo (build Android/iOS): gaveta nativa do SO.
   if (Capacitor.isNativePlatform()) {
     try {
       const { Share } = await import('@capacitor/share')
       await Share.share({
-        title: 'StudyQuest',
+        title: 'Convite para a Party',
         text: SHARE_TEXT,
         url,
         dialogTitle: 'Convidar para o StudyQuest',
@@ -62,16 +70,13 @@ export async function shareInviteLink(playerTag: string): Promise<ShareInviteRes
       if (isCapacitorCancelled(error)) {
         throw new ShareAbortedError()
       }
-      // Falha nativa: cai para a próxima tentativa.
+      // Falha nativa: cai para a abertura direta do WhatsApp.
     }
-  }
-
-  // 2. Web Share API — SOMENTE mobile (Android/iOS/iPad PWA).
-  //    No desktop, a gaveta nativa do Windows falha ao resolver o WhatsApp.
-  if (isMobile && typeof navigator.share === 'function') {
+  } else if (isMobile && typeof navigator.share === 'function') {
+    // 2. Web Share API — SOMENTE mobile (Android/iOS/iPad PWA).
     try {
       await navigator.share({
-        title: 'StudyQuest',
+        title: 'Convite para a Party',
         text: SHARE_TEXT,
         url,
       })
@@ -80,12 +85,11 @@ export async function shareInviteLink(playerTag: string): Promise<ShareInviteRes
       if (isShareAborted(error)) {
         throw new ShareAbortedError()
       }
-      // Falha mobile: cai para o fallback do WhatsApp.
+      // Falha mobile: cai para a abertura direta do WhatsApp.
     }
   }
 
-  // 3. Fallback final (Desktop e falhas anteriores): link universal wa.me.
-  //    Abre o WhatsApp Web em nova aba e copia o link em paralelo.
+  // 3. Desktop (e falhas mobile): abre o WhatsApp direto em nova aba e copia o link.
   window.open(buildWhatsAppLink(playerTag), '_blank', 'noopener,noreferrer')
   try {
     await navigator.clipboard.writeText(url)

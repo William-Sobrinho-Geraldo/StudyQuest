@@ -11,8 +11,9 @@ import {
 } from '../features/social/services/socialService'
 import { RemoveFriendModal } from '../features/social/components/RemoveFriendModal'
 import {
+  copyInviteLink,
   ShareAbortedError,
-  shareInviteLink,
+  shareViaWhatsApp,
 } from '../features/social/lib/shareInviteLink'
 
 export type SocialTab = 'friends' | 'pending'
@@ -202,14 +203,14 @@ export function SocialPage() {
     [dismissPending, showToast],
   )
 
-  const handleShare = useCallback(async () => {
+  const handleWhatsApp = useCallback(async () => {
     if (!playerTag) {
       showToast('Carregue a tag antes de convidar.', 'info')
       return
     }
     setSharing(true)
     try {
-      const result = await shareInviteLink(playerTag)
+      const result = await shareViaWhatsApp(playerTag)
       if (result.outcome === 'whatsapp') {
         showToast('Link copiado! Abrindo WhatsApp...', 'success')
       } else {
@@ -222,6 +223,19 @@ export function SocialPage() {
       showToast('Não foi possível compartilhar. Tente novamente.', 'error')
     } finally {
       setSharing(false)
+    }
+  }, [playerTag, showToast])
+
+  const handleCopyLink = useCallback(async () => {
+    if (!playerTag) {
+      showToast('Carregue a tag antes de convidar.', 'info')
+      return
+    }
+    try {
+      await copyInviteLink(playerTag)
+      showToast('Link de convite copiado!', 'success')
+    } catch {
+      showToast('Não foi possível copiar o link.', 'error')
     }
   }, [playerTag, showToast])
 
@@ -256,19 +270,30 @@ export function SocialPage() {
       <div className="mt-6 space-y-4">
         <TagDisplay playerTag={playerTag} />
 
-        <button
-          type="button"
-          onClick={() => void handleShare()}
-          disabled={sharing || !playerTag}
-          className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-base font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:from-indigo-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {sharing ? (
-            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-          ) : (
-            <Share2 className="h-5 w-5" aria-hidden="true" />
-          )}
-          {sharing ? 'Abrindo compartilhamento...' : 'Convidar Amigos'}
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => void handleWhatsApp()}
+            disabled={sharing || !playerTag}
+            className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-base font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:from-indigo-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sharing ? (
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Share2 className="h-5 w-5" aria-hidden="true" />
+            )}
+            {sharing ? 'Abrindo WhatsApp...' : 'Convidar via WhatsApp'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleCopyLink()}
+            disabled={!playerTag}
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Copy className="h-4 w-4" aria-hidden="true" />
+            Copiar Link
+          </button>
+        </div>
 
         <div className="flex gap-2" role="tablist" aria-label="Seções sociais">
           {TAB_ITEMS.map(({ id, label, icon: Icon }) => {

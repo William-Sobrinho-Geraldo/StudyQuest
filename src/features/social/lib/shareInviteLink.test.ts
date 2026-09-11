@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  SHARE_TEXT,
   ShareAbortedError,
   buildInviteLink,
   buildWhatsAppLink,
+  copyInviteLink,
   isMobileUserAgent,
-  shareInviteLink,
+  shareViaWhatsApp,
 } from './shareInviteLink'
 
 const mocks = vi.hoisted(() => ({
@@ -87,17 +89,35 @@ describe('buildWhatsAppLink', () => {
     const link = buildWhatsAppLink('william#8492')
     expect(link).toContain('https://wa.me/?text=')
     const decoded = decodeURIComponent(link.split('text=')[1])
-    expect(decoded).toContain('Vem farmar XP comigo no StudyQuest!')
+    expect(decoded).toContain(SHARE_TEXT)
     expect(decoded).toContain(buildInviteLink('william#8492'))
   })
 })
 
-describe('shareInviteLink — cascata de fallback', () => {
+describe('copyInviteLink', () => {
+  it('copia o link de convite e retorna a URL', async () => {
+    setupNavigator({ ua: DESKTOP_UA })
+
+    const url = await copyInviteLink('william#8492')
+
+    expect(clipboardWrite).toHaveBeenCalledWith(buildInviteLink('william#8492'))
+    expect(url).toBe(buildInviteLink('william#8492'))
+  })
+
+  it('propaga erro quando o clipboard não está disponível', async () => {
+    clipboardWrite.mockRejectedValueOnce(new Error('not allowed'))
+    setupNavigator({ ua: DESKTOP_UA })
+
+    await expect(copyInviteLink('william#8492')).rejects.toThrow('not allowed')
+  })
+})
+
+describe('shareViaWhatsApp — cascata de fallback', () => {
   it('usa @capacitor/share quando rodando em plataforma nativa', async () => {
     mocks.nativePlatform = true
     setupNavigator({ ua: MOBILE_UA })
 
-    const result = await shareInviteLink('william#8492')
+    const result = await shareViaWhatsApp('william#8492')
 
     expect(mocks.shareNative).toHaveBeenCalledWith(
       expect.objectContaining({ url: buildInviteLink('william#8492') }),
@@ -109,7 +129,7 @@ describe('shareInviteLink — cascata de fallback', () => {
   it('usa navigator.share em dispositivo móvel PWA', async () => {
     setupNavigator({ ua: MOBILE_UA })
 
-    const result = await shareInviteLink('william#8492')
+    const result = await shareViaWhatsApp('william#8492')
 
     expect(webShare).toHaveBeenCalledTimes(1)
     expect(result.outcome).toBe('web')
@@ -119,7 +139,7 @@ describe('shareInviteLink — cascata de fallback', () => {
   it('NUNCA aciona navigator.share no desktop — cai direto para wa.me + clipboard', async () => {
     setupNavigator({ ua: DESKTOP_UA, share: webShare })
 
-    const result = await shareInviteLink('william#8492')
+    const result = await shareViaWhatsApp('william#8492')
 
     expect(webShare).not.toHaveBeenCalled()
     expect(windowOpen).toHaveBeenCalledWith(
@@ -135,7 +155,7 @@ describe('shareInviteLink — cascata de fallback', () => {
     webShare.mockRejectedValue(new Error('share failed'))
     setupNavigator({ ua: MOBILE_UA })
 
-    const result = await shareInviteLink('william#8492')
+    const result = await shareViaWhatsApp('william#8492')
 
     expect(windowOpen).toHaveBeenCalled()
     expect(clipboardWrite).toHaveBeenCalled()
@@ -148,7 +168,7 @@ describe('shareInviteLink — cascata de fallback', () => {
     webShare.mockRejectedValue(abort)
     setupNavigator({ ua: MOBILE_UA })
 
-    await expect(shareInviteLink('william#8492')).rejects.toBeInstanceOf(ShareAbortedError)
+    await expect(shareViaWhatsApp('william#8492')).rejects.toBeInstanceOf(ShareAbortedError)
     expect(windowOpen).not.toHaveBeenCalled()
     expect(clipboardWrite).not.toHaveBeenCalled()
   })
