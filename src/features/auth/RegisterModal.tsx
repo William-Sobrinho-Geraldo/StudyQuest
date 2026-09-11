@@ -8,7 +8,7 @@ interface RegisterModalProps {
 }
 
 export function RegisterModal({ onClose }: RegisterModalProps) {
-  const { signUp } = useAuth()
+  const { signUp, processPendingInvite } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -46,6 +46,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
         setInfo('Cadastro criado! Confirme seu email para ativar a conta.')
         return
       }
+      processPendingInvite()
       onClose()
     } catch {
       setError('Não foi possível concluir o cadastro. Tente novamente.')

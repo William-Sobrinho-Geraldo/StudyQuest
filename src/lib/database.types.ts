@@ -25,6 +25,7 @@ export type Database = {
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          player_tag: string | null
         }
         Insert: {
           created_at?: string
@@ -36,6 +37,7 @@ export type Database = {
           last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
+          player_tag?: string | null
         }
         Update: {
           created_at?: string
@@ -47,6 +49,34 @@ export type Database = {
           last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
+          player_tag?: string | null
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          id: string
+          user_id: string
+          friend_id: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          friend_id: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          friend_id?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -596,6 +626,64 @@ export type Database = {
         }
       }
       today_study_minutes: {
+        Args: Record<string, never>
+        Returns: number
+      }
+      send_invite_by_tag: {
+        Args: { p_target_tag: string }
+        Returns: Json
+      }
+      accept_link_invite: {
+        Args: { p_sender_tag: string; p_receiver_id: string }
+        Returns: Json
+      }
+      accept_invite: {
+        Args: { p_friendship_id: string }
+        Returns: Json
+      }
+      reject_invite: {
+        Args: { p_friendship_id: string }
+        Returns: Json
+      }
+      remove_friend: {
+        Args: { p_friendship_id: string }
+        Returns: Json
+      }
+      get_friends: {
+        Args: Record<string, never>
+        Returns: {
+          friendship_id: string
+          peer_id: string
+          peer_tag: string | null
+          peer_level: number
+          peer_xp: number
+          created_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "get_friends"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_pending_invites: {
+        Args: Record<string, never>
+        Returns: {
+          friendship_id: string
+          sender_id: string
+          sender_tag: string | null
+          sender_level: number
+          sender_xp: number
+          created_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "get_pending_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      count_pending_invites: {
         Args: Record<string, never>
         Returns: number
       }

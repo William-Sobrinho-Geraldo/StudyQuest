@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -25,6 +26,8 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<SignInResult>
   signUp: (email: string, password: string) => Promise<SignInResult>
   signOut: () => Promise<void>
+  setProcessPendingInvite: (fn: () => void) => void
+  processPendingInvite: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -32,6 +35,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
+  const pendingInviteHandlerRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     let active = true
@@ -93,6 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const setProcessPendingInvite = useCallback((fn: () => void) => {
+    pendingInviteHandlerRef.current = fn
+  }, [])
+
+  const processPendingInvite = useCallback(() => {
+    pendingInviteHandlerRef.current?.()
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -102,8 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      setProcessPendingInvite,
+      processPendingInvite,
     }),
-    [user, status, signIn, signUp, signOut],
+    [user, status, signIn, signUp, signOut, setProcessPendingInvite, processPendingInvite],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

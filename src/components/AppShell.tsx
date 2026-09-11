@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Hammer, LayoutDashboard, LogOut, Sparkles, Swords, Trophy } from 'lucide-react'
+import { Hammer, LayoutDashboard, LogOut, Sparkles, Swords, Trophy, Users } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
+import { useSocialBadge } from '../features/social/context/SocialContext'
 
 const NAV_LINKS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -11,12 +12,17 @@ const NAV_LINKS = [
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, signOut } = useAuth()
+  const { signOut } = useAuth()
+  const { pendingInviteCount } = useSocialBadge()
   const navigate = useNavigate()
 
   async function handleSignOut() {
     await signOut()
     navigate('/login', { replace: true })
+  }
+
+  function handleOpenSocial() {
+    navigate('/social')
   }
 
   return (
@@ -30,9 +36,23 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="text-lg font-bold">StudyQuest</span>
           </div>
           <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
-            <span className="hidden max-w-[10rem] truncate text-xs text-slate-400 md:block">
-              {user?.email ?? 'Usuário'}
-            </span>
+            <button
+              type="button"
+              onClick={handleOpenSocial}
+              aria-label="Amigos"
+              className="relative flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-800 hover:text-white"
+            >
+              <Users className="h-4 w-4" aria-hidden="true" />
+              Amigos
+              {pendingInviteCount > 0 && (
+                <span
+                  aria-label={`${pendingInviteCount} convites pendentes`}
+                  className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-slate-900 bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                >
+                  {pendingInviteCount > 9 ? '9+' : pendingInviteCount}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               onClick={handleSignOut}

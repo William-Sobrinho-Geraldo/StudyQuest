@@ -10,7 +10,7 @@ interface LoginLocationState {
 }
 
 export function LoginPage() {
-  const { signIn, isAuthenticated } = useAuth()
+  const { signIn, isAuthenticated, processPendingInvite } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -47,6 +47,7 @@ export function LoginPage() {
         setError(translateAuthEmailError(result.error) ?? result.error)
         return
       }
+      processPendingInvite()
       navigate(from, { replace: true })
     } catch {
       setError('Não foi possível entrar. Tente novamente.')
