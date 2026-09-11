@@ -8,6 +8,7 @@ import {
   fetchPendingInvites,
 } from '../services/socialService'
 import { useSocialBadge } from '../context/SocialContext'
+import { onFriendsChanged } from '../lib/socialEvents'
 
 export interface SocialState {
   playerTag: string | null
@@ -73,6 +74,14 @@ export function useSocial(): SocialState {
   const loadRef = useRef(load)
   loadRef.current = load
   selfIdRef.current = user?.id ?? null
+
+  // Aceites de convite por link (ex.: convite de /invite?ref=...) podem
+  // acontecer fora da SocialPage; recarrega a lista quando isso ocorrer.
+  useEffect(() => {
+    return onFriendsChanged(() => {
+      void loadRef.current(true)
+    })
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) return

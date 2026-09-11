@@ -1,16 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { Loader2, Lock, Mail, Sparkles, X } from 'lucide-react'
-import { useAuth } from './AuthContext'
-import { useToast } from '../../components/Toast'
-import { completeSignupWithInvite } from '../social/lib/inviteFlow'
-import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../../lib/validation'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Loader2, Lock, Mail, Sparkles } from 'lucide-react'
+import { useAuth } from '../features/auth/AuthContext'
+import { useToast } from '../components/Toast'
+import { completeSignupWithInvite } from '../features/social/lib/inviteFlow'
+import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../lib/validation'
 
-interface RegisterModalProps {
-  onClose: () => void
-}
-
-export function RegisterModal({ onClose }: RegisterModalProps) {
-  const { signUp } = useAuth()
+export function RegisterPage() {
+  const { signUp, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
   const { showToast } = useToast()
 
   const [email, setEmail] = useState('')
@@ -18,6 +16,10 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -49,6 +51,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
         setInfo('Cadastro criado! Confirme seu email para ativar a conta.')
         return
       }
+
       const invite = await completeSignupWithInvite()
       if (invite.hadInvite) {
         if (invite.accepted) {
@@ -57,7 +60,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
           showToast('Conta criada, mas o convite não pôde ser vinculado. Tente novamente mais tarde.', 'info')
         }
       }
-      onClose()
+      navigate('/', { replace: true })
     } catch {
       setError('Não foi possível concluir o cadastro. Tente novamente.')
     } finally {
@@ -66,35 +69,14 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="register-title"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
-              <Sparkles className="h-5 w-5 text-white" aria-hidden="true" />
-            </div>
-            <h2 id="register-title" className="text-xl font-bold">
-              Cadastre-se
-            </h2>
-            <p className="mt-1 text-sm text-slate-400">Crie sua conta e comece sua jornada.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-4 py-8 text-slate-100">
+      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
+            <Sparkles className="h-6 w-6 text-white" aria-hidden="true" />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="grid h-11 w-11 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <h1 className="text-2xl font-bold">StudyQuest</h1>
+          <p className="mt-1 text-sm text-slate-400">Crie sua conta e comece sua jornada</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
@@ -173,6 +155,16 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
             {submitting ? 'Cadastrando...' : 'Criar conta'}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-slate-400">
+          Já tem uma conta?{' '}
+          <Link
+            to="/login"
+            className="inline-flex min-h-[44px] items-center font-semibold text-indigo-400 transition hover:text-indigo-300"
+          >
+            Entrar
+          </Link>
+        </p>
       </div>
     </div>
   )

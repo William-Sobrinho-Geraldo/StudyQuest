@@ -10,6 +10,7 @@ import { InvitePage } from './pages/InvitePage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { QuestsPage } from './pages/QuestsPage'
+import { RegisterPage } from './pages/RegisterPage'
 import { ShopPage } from './pages/ShopPage'
 import { SocialPage } from './pages/SocialPage'
 
@@ -22,6 +23,7 @@ export function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/invite" element={<InvitePage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route
               path="/"
               element={

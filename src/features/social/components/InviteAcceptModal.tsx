@@ -3,6 +3,7 @@ import { Loader2, UserCheck, UserPlus, X } from 'lucide-react'
 import { acceptLinkInvite } from '../services/socialService'
 import { useToast } from '../../../components/Toast'
 import { clearPendingInvite } from '../lib/inviteStorage'
+import { emitFriendsChanged } from '../lib/socialEvents'
 
 interface InviteAcceptModalProps {
   playerTag: string
@@ -19,19 +20,20 @@ export function InviteAcceptModal({ playerTag, onClose }: InviteAcceptModalProps
     setSubmitting(true)
 
     try {
-      clearPendingInvite()
       const result = await acceptLinkInvite(playerTag)
 
       if (!result.success) {
         if (result.error === 'player_not_found') {
-          setError('Jogador n\u00e3o encontrado.')
+          setError('Jogador não encontrado.')
           return
         }
         setError(result.error ?? 'Erro ao aceitar convite.')
         return
       }
 
-      showToast('Voc\u00eas agora s\u00e3o amigos!', 'success')
+      clearPendingInvite()
+      emitFriendsChanged()
+      showToast('Vocês agora são amigos!', 'success')
       onClose()
     } catch {
       setError('Erro inesperado ao aceitar convite.')
