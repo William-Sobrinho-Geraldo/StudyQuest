@@ -1,5 +1,5 @@
 export const MIN_STUDY_MINUTES = 5
-export const MAX_STUDY_MINUTES = 60
+export const MAX_STUDY_MINUTES = 90
 export const STUDY_MINUTE_STEP = 5
 export const MAX_PAUSES = 2
 export const XP_PER_MINUTE = 10

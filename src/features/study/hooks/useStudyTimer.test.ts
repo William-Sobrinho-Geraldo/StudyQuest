@@ -45,24 +45,24 @@ afterEach(() => {
 describe('studyRules', () => {
   it('define os limites de negócio corretamente', () => {
     expect(MIN_STUDY_MINUTES).toBe(5)
-    expect(MAX_STUDY_MINUTES).toBe(60)
+    expect(MAX_STUDY_MINUTES).toBe(90)
     expect(STUDY_MINUTE_STEP).toBe(5)
     expect(MAX_PAUSES).toBe(2)
   })
 
-  it('gera opções de 5 a 60 minutos em incrementos de 5', () => {
+  it('gera opções de 5 a 90 minutos em incrementos de 5', () => {
     expect(generateStudyOptions()).toEqual(
-      Array.from({ length: 12 }, (_, index) => (index + 1) * 5),
+      Array.from({ length: 18 }, (_, index) => (index + 1) * 5),
     )
   })
 
   it('valida durações aceitáveis e rejeita as inválidas', () => {
     expect(validateStudyMinutes(5)).toBeNull()
     expect(validateStudyMinutes(30)).toBeNull()
-    expect(validateStudyMinutes(60)).toBeNull()
+    expect(validateStudyMinutes(90)).toBeNull()
 
     expect(validateStudyMinutes(3)).not.toBeNull()
-    expect(validateStudyMinutes(65)).not.toBeNull()
+    expect(validateStudyMinutes(95)).not.toBeNull()
     expect(validateStudyMinutes(23)).not.toBeNull()
     expect(validateStudyMinutes(7.5)).not.toBeNull()
   })
@@ -85,7 +85,7 @@ describe('useStudyTimer — seleção de duração', () => {
     const { result, saveSession } = setupTimer()
 
     expect(result.current.selectDuration(3).ok).toBe(false)
-    expect(result.current.selectDuration(65).ok).toBe(false)
+    expect(result.current.selectDuration(95).ok).toBe(false)
     expect(result.current.selectDuration(17).ok).toBe(false)
 
     expect(result.current.durationMinutes).toBe(25)

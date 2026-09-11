@@ -33,14 +33,15 @@ describe('StudyTimer — UI', () => {
     expect(screen.getByRole('timer')).toHaveTextContent('25:00')
     expect(screen.getByRole('button', { name: /iniciar/i })).toBeInTheDocument()
     expect(screen.getByTestId('pauses-indicator')).toHaveTextContent('2/2')
-    expect(screen.getByRole('button', { name: '5 min' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '60 min' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /diminuir 5 minutos/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /aumentar 5 minutos/i })).toBeInTheDocument()
+    expect(screen.getByRole('slider')).toHaveValue('25')
   })
 
-  it('permite selecionar a duração e inicia a contagem', () => {
+  it('permite ajustar a duração pelos botões e inicia a contagem', () => {
     renderTimer()
 
-    fireEvent.click(screen.getByRole('button', { name: '30 min' }))
+    fireEvent.click(screen.getByRole('button', { name: /aumentar 5 minutos/i }))
     expect(screen.getByRole('timer')).toHaveTextContent('30:00')
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
@@ -49,6 +50,38 @@ describe('StudyTimer — UI', () => {
     })
 
     expect(screen.getByRole('timer')).toHaveTextContent('29:00')
+  })
+
+  it('ajusta a duração pelo slider em blocos de 5 minutos', () => {
+    renderTimer()
+
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '45' } })
+    expect(screen.getByRole('timer')).toHaveTextContent('45:00')
+    expect(screen.getByRole('slider')).toHaveValue('45')
+  })
+
+  it('respeita os limites de 5 e 90 minutos', () => {
+    renderTimer()
+
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '5' } })
+    expect(screen.getByRole('button', { name: /diminuir 5 minutos/i })).toBeDisabled()
+
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '90' } })
+    expect(screen.getByRole('button', { name: /aumentar 5 minutos/i })).toBeDisabled()
+  })
+
+  it('oculta os controles de ajuste quando a sessão está em andamento', () => {
+    renderTimer()
+
+    expect(screen.getByRole('button', { name: /diminuir 5 minutos/i })).toBeInTheDocument()
+    expect(screen.getByRole('slider')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
+
+    expect(screen.queryByRole('button', { name: /diminuir 5 minutos/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /aumentar 5 minutos/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    expect(screen.getByRole('timer')).toHaveTextContent('25:00')
   })
 
   it('bloqueia o botão de pausa após o limite de 2 pausas', () => {
