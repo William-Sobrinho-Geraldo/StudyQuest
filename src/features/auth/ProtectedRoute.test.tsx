@@ -81,9 +81,9 @@ describe('ProtectedRoute — barreira de rotas protegidas', () => {
       error: null,
     })
 
-    renderApp('/leaderboard')
+    renderApp('/ranking')
 
-    expect(await screen.findByRole('heading', { name: 'Leaderboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Ranking Global' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'StudyQuest' })).not.toBeInTheDocument()
   })
 

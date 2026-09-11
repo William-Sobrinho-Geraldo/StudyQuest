@@ -8,7 +8,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/forge', label: 'Forge', icon: Hammer, end: false },
   { to: '/quests', label: 'Quests', icon: Swords, end: false },
-  { to: '/leaderboard', label: 'Leaderboard', icon: Trophy, end: false },
+  { to: '/ranking', label: 'Ranking', icon: Trophy, end: false },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {

@@ -14,6 +14,9 @@ import { QuestsPage } from './pages/QuestsPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ShopPage } from './pages/ShopPage'
 import { SocialPage } from './pages/SocialPage'
+import { SprintCreatePage } from './pages/SprintCreatePage'
+import { SprintInvitePage } from './pages/SprintInvitePage'
+import { SprintPage } from './pages/SprintPage'
 
 export function App() {
   return (
@@ -50,13 +53,14 @@ export function App() {
               }
             />
             <Route
-              path="/leaderboard"
+              path="/ranking"
               element={
                 <ProtectedRoute>
                   <LeaderboardPage />
                 </ProtectedRoute>
               }
             />
+            <Route path="/leaderboard" element={<Navigate to="/ranking" replace />} />
             <Route
               path="/quests"
               element={
@@ -78,6 +82,30 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <SocialPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sprints/create"
+              element={
+                <ProtectedRoute>
+                  <SprintCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sprints/invite"
+              element={
+                <ProtectedRoute>
+                  <SprintInvitePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sprints/:id"
+              element={
+                <ProtectedRoute>
+                  <SprintPage />
                 </ProtectedRoute>
               }
             />

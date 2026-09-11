@@ -425,6 +425,83 @@ export type Database = {
         }
         Relationships: []
       }
+      sprint_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          sprint_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          sprint_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          sprint_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_participants_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sprints: {
+        Row: {
+          created_by: string
+          duration_type: string
+          end_date: string
+          id: string
+          max_participants: number
+          name: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          created_by: string
+          duration_type: string
+          end_date: string
+          id?: string
+          max_participants?: number
+          name: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          created_by?: string
+          duration_type?: string
+          end_date?: string
+          id?: string
+          max_participants?: number
+          name?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprints_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -682,6 +759,34 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_global_ranking: {
+        Args: { p_period: string; p_limit?: number }
+        Returns: {
+          minutes: number
+          player_tag: string | null
+          pos: number
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "get_global_ranking"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_my_global_rank: {
+        Args: { p_period: string }
+        Returns: {
+          minutes: number
+          pos: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "get_my_global_rank"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_pending_invites: {
         Args: Record<string, never>
         Returns: {
@@ -699,9 +804,37 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_sprint_rankings: {
+        Args: { p_sprint_id: string }
+        Returns: {
+          minutes: number
+          participant_id: string
+          player_tag: string | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "get_sprint_rankings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       count_pending_invites: {
         Args: Record<string, never>
         Returns: number
+      }
+      create_sprint: {
+        Args: { p_duration_type: string; p_name: string }
+        Returns: {
+          created_by: string
+          duration_type: string
+          end_date: string
+          id: string
+          max_participants: number
+          name: string
+          start_date: string
+          status: string
+        }
       }
     }
     Enums: {
