@@ -583,6 +583,22 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      study_sessions_in_range: {
+        Args: { p_anchor?: string | null; p_period: string }
+        Returns: {
+          duration_minutes: number
+          gold: number
+          id: string
+          started_at: string
+          xp: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "study_sessions_in_range"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       refresh_shop: {
         Args: { p_player_level: number }
         Returns: {

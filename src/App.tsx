@@ -6,6 +6,7 @@ import { InviteLinkHandler } from './components/InviteLinkHandler'
 import { SocialProvider } from './features/social/context/SocialContext'
 import { DashboardPage } from './pages/DashboardPage'
 import { ForgePage } from './pages/ForgePage'
+import { HistoryPage } from './pages/HistoryPage'
 import { InvitePage } from './pages/InvitePage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
@@ -37,6 +38,14 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <ForgePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <HistoryPage />
                 </ProtectedRoute>
               }
             />

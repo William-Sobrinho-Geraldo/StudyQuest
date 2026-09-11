@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, History } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Coins, History, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -9,12 +10,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { AppShell } from '../components/AppShell'
+import { SessionHistoryList } from '../features/metrics/components/SessionHistoryList'
 import {
   fetchStudyHistory,
+  fetchStudySessions,
+  type SessionHistoryItem,
   type StudyHistoryBucket,
   type StudyHistoryPeriod,
-} from '../services/studyHistoryService'
-import { onStudySessionSaved } from '../../study/lib/studyEvents'
+} from '../features/metrics/services/studyHistoryService'
+import { onStudySessionSaved } from '../features/study/lib/studyEvents'
 
 const WEEK_DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
@@ -123,10 +128,11 @@ function ChartTooltip({
   )
 }
 
-export function StudyHistory() {
+function StudyHistoryPanel() {
   const [period, setPeriod] = useState<StudyHistoryPeriod>('week')
   const [anchor, setAnchor] = useState<string>(todayBrt)
   const [buckets, setBuckets] = useState<StudyHistoryBucket[]>([])
+  const [sessions, setSessions] = useState<SessionHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshEpoch, setRefreshEpoch] = useState(0)
@@ -140,10 +146,14 @@ export function StudyHistory() {
     setLoading(true)
     setError(null)
 
-    fetchStudyHistory(period, anchor)
-      .then((data) => {
+    Promise.all([
+      fetchStudyHistory(period, anchor),
+      fetchStudySessions(period, anchor),
+    ])
+      .then(([historyData, sessionsData]) => {
         if (!active) return
-        setBuckets(data)
+        setBuckets(historyData)
+        setSessions(sessionsData)
         setLoading(false)
       })
       .catch((reason: unknown) => {
@@ -182,8 +192,10 @@ export function StudyHistory() {
     }))
   }, [buckets, period])
 
-  const totalMinutes = buckets.reduce((total, bucket) => total + bucket.minutes, 0)
-  const totalSessions = buckets.reduce((total, bucket) => total + bucket.sessions, 0)
+  const totalMinutes = sessions.reduce((total, session) => total + session.duration_minutes, 0)
+  const totalSessions = sessions.length
+  const totalXp = sessions.reduce((total, session) => total + session.xp, 0)
+  const totalGold = sessions.reduce((total, session) => total + session.gold, 0)
 
   const goDelta = (delta: number) => {
     setAnchor((current) =>
@@ -191,22 +203,23 @@ export function StudyHistory() {
     )
   }
 
-  return (
-    <section className="mt-8">
-      <h2 className="text-xl font-bold text-white">Histórico de estudo</h2>
-      <p className="mt-1 text-sm text-slate-400">
-        Suas sessões registradas por dia, semana ou mês.
-      </p>
+  // Intervalo (recharts) entre rótulos do eixo X. No modo "Dia" há sempre 24
+  // pontos (0h..23h); mostramos um a cada 3 (0h, 3h, 6h, ..., 21h) para evitar
+  // sobreposição em telas menores. Semana mostra todos os 7 dias e o mês
+  // alterna dias intercalados.
+  const xAxisInterval = period === 'day' ? 2 : period === 'month' ? 1 : 0
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="flex rounded-lg border border-slate-800 bg-slate-900 p-1" role="group" aria-label="Período">
+  return (
+    <div className="mt-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-lg border border-slate-800 bg-slate-900 p-0.5" role="group" aria-label="Período">
           {PERIOD_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               aria-pressed={period === option.value}
               onClick={() => setPeriod(option.value)}
-              className={`flex min-h-[44px] items-center rounded-md px-4 text-sm font-medium transition-colors ${
+              className={`flex min-h-[32px] items-center rounded-md px-3 text-sm font-medium transition-colors ${
                 period === option.value
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-400 hover:text-white'
@@ -242,12 +255,30 @@ export function StudyHistory() {
 
       <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-slate-300">Minutos estudados</h3>
+          <h2 className="text-sm font-semibold text-slate-300">Minutos estudados</h2>
           {!loading && !error && (
-            <p className="flex items-center gap-1.5 text-sm text-slate-400" data-testid="history-summary">
-              <History className="h-4 w-4 text-indigo-400" aria-hidden="true" />
-              {totalSessions} {totalSessions === 1 ? 'sessão' : 'sessões'} · {totalMinutes} min
-            </p>
+            <div
+              className="flex flex-wrap items-center gap-2"
+              data-testid="history-summary"
+              aria-label="Resumo do período"
+            >
+              <span className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
+                <History className="h-3.5 w-3.5 text-indigo-400" aria-hidden="true" />
+                {totalSessions} {totalSessions === 1 ? 'sessão' : 'sessões'}
+              </span>
+              <span className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
+                <Clock className="h-3.5 w-3.5 text-indigo-400" aria-hidden="true" />
+                {totalMinutes} min
+              </span>
+              <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold text-indigo-300">
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                +{totalXp} XP
+              </span>
+              <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
+                <Coins className="h-3.5 w-3.5" aria-hidden="true" />
+                +{totalGold} Gold
+              </span>
+            </div>
           )}
         </div>
 
@@ -273,7 +304,7 @@ export function StudyHistory() {
                   stroke="#94a3b8"
                   tickLine={false}
                   axisLine={false}
-                  interval={period === 'month' ? 1 : 0}
+                  interval={xAxisInterval}
                   fontSize={11}
                 />
                 <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
@@ -290,6 +321,31 @@ export function StudyHistory() {
           )}
         </div>
       </div>
-    </section>
+
+      {!loading && !error && sessions.length > 0 && (
+        <SessionHistoryList sessions={sessions} period={period} />
+      )}
+    </div>
+  )
+}
+
+export function HistoryPage() {
+  const navigate = useNavigate()
+
+  return (
+    <AppShell>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          aria-label="Voltar ao Dashboard"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 transition hover:border-slate-700 hover:text-white"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
+        <h1 className="text-2xl font-bold">Histórico de estudo</h1>
+      </div>
+      <StudyHistoryPanel />
+    </AppShell>
   )
 }
