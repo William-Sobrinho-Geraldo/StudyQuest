@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { StudyHistory } from './StudyHistory'
+import { emitStudySessionSaved } from '../../study/lib/studyEvents'
 import type { StudyHistoryBucket } from '../services/studyHistoryService'
 
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -105,5 +106,22 @@ describe('StudyHistory', () => {
     render(<StudyHistory />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('boom')
+  })
+
+  it('refaz o fetch após uma sessão de estudo ser concluída', async () => {
+    render(<StudyHistory />)
+    await screen.findByTestId('history-summary')
+
+    expect(rpc).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      emitStudySessionSaved()
+    })
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
+    expect(rpc).toHaveBeenLastCalledWith('study_history', {
+      p_period: 'week',
+      p_anchor: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    })
   })
 })

@@ -11,6 +11,7 @@ import {
   saveStudySession,
   type StudySessionSummary,
 } from '../services/studySessionService'
+import { emitStudySessionSaved } from '../lib/studyEvents'
 
 export type StudyTimerStatus = 'idle' | 'running' | 'paused' | 'completed'
 
@@ -81,6 +82,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     try {
       await saveSession(result)
       setSessionCompletedAt(Date.now())
+      emitStudySessionSaved()
     } catch (error) {
       setSaveError(
         error instanceof Error

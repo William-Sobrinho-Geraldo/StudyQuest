@@ -8,6 +8,7 @@ import {
   useStudyTimerContext,
   type StudyTimerValue,
 } from '../../study/context/StudyTimerContext'
+import { emitStudySessionSaved } from '../../study/lib/studyEvents'
 import { HeroProfile } from './HeroProfile'
 
 const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
@@ -157,6 +158,24 @@ describe('HeroProfile', () => {
       screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }),
     ).toBeDisabled()
     expect(screen.getByTestId('timer-status')).toHaveTextContent('idle')
+  })
+
+  it('atualiza o perfil quando uma sessão de estudo é concluída', async () => {
+    mockSession()
+    mockProfileFetch([
+      { level: 1, current_xp: 50, gold: 0 },
+      { level: 2, current_xp: 150, gold: 20 },
+    ])
+    renderProfile()
+    await screen.findByText('50/100 XP')
+
+    act(() => {
+      emitStudySessionSaved()
+    })
+
+    expect(await screen.findByText('50/115 XP')).toBeInTheDocument()
+    expect(screen.getByText('Nível 2')).toBeInTheDocument()
+    expect(screen.getByTestId('hero-gold')).toHaveTextContent('20 Gold')
   })
 
   it('sem registro em profiles, assume nível 1 com barra vazia', async () => {

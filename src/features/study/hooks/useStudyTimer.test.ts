@@ -12,6 +12,14 @@ import {
 } from '../lib/studyRules'
 import { useStudyTimer, type ActionResult } from './useStudyTimer'
 
+const { emitStudySessionSaved } = vi.hoisted(() => ({
+  emitStudySessionSaved: vi.fn(),
+}))
+
+vi.mock('../lib/studyEvents', () => ({
+  emitStudySessionSaved,
+}))
+
 function setupTimer() {
   const saveSession = vi.fn().mockResolvedValue({})
   const utils = renderHook(() => useStudyTimer({ saveSession }))
@@ -294,6 +302,48 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       gold: 10,
     })
     expect(saveSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('emite evento de sessão salva para atualizar o histórico automaticamente', async () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(5)
+    })
+    act(() => {
+      result.current.start()
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(result.current.status).toBe('completed')
+    expect(emitStudySessionSaved).toHaveBeenCalledTimes(1)
+  })
+
+  it('não emite evento quando o salvamento da sessão falha', async () => {
+    const saveSession = vi.fn().mockRejectedValue(new Error('table does not exist'))
+    const { result } = renderHook(() => useStudyTimer({ saveSession }))
+
+    act(() => {
+      result.current.selectDuration(5)
+    })
+    act(() => {
+      result.current.start()
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(result.current.status).toBe('completed')
+    expect(result.current.saveError).toBe('table does not exist')
+    expect(emitStudySessionSaved).not.toHaveBeenCalled()
   })
 
   it('registra o erro de salvamento sem quebrar a conclusão', async () => {

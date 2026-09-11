@@ -14,6 +14,7 @@ import {
   type StudyHistoryBucket,
   type StudyHistoryPeriod,
 } from '../services/studyHistoryService'
+import { onStudySessionSaved } from '../../study/lib/studyEvents'
 
 const WEEK_DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
@@ -128,6 +129,11 @@ export function StudyHistory() {
   const [buckets, setBuckets] = useState<StudyHistoryBucket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshEpoch, setRefreshEpoch] = useState(0)
+
+  useEffect(() => {
+    return onStudySessionSaved(() => setRefreshEpoch((epoch) => epoch + 1))
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -149,7 +155,7 @@ export function StudyHistory() {
     return () => {
       active = false
     }
-  }, [period, anchor])
+  }, [period, anchor, refreshEpoch])
 
   const chartData = useMemo<ChartPoint[]>(() => {
     if (period === 'day') {

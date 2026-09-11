@@ -1,10 +1,9 @@
 import { Flame } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
+import { onStudySessionSaved } from '../../study/lib/studyEvents'
 
 export function StreakCard() {
-  const { sessionCompletedAt } = useStudyTimerContext()
   const [streak, setStreak] = useState<number | null>(null)
 
   const refreshStreak = useCallback(async () => {
@@ -21,9 +20,10 @@ export function StreakCard() {
   }, [refreshStreak])
 
   useEffect(() => {
-    if (sessionCompletedAt === null) return
-    void refreshStreak()
-  }, [sessionCompletedAt, refreshStreak])
+    return onStudySessionSaved(() => {
+      void refreshStreak()
+    })
+  }, [refreshStreak])
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={streak === null}>

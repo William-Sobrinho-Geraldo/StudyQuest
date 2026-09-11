@@ -2,6 +2,7 @@ import { Coins, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
+import { onStudySessionSaved } from '../../study/lib/studyEvents'
 import { getLevelProgress } from '../../../utils/leveling'
 import { useAuth } from '../../auth/AuthContext'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
@@ -39,6 +40,12 @@ export function HeroProfile() {
     setLoading(true)
     setError(null)
     void refreshProfile().finally(() => setLoading(false))
+  }, [refreshProfile])
+
+  useEffect(() => {
+    return onStudySessionSaved(() => {
+      void refreshProfile()
+    })
   }, [refreshProfile])
 
   const hasActiveSession = timer.status === 'running' || timer.status === 'paused'

@@ -2,14 +2,13 @@ import { Check, Pencil, Target, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
-import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
+import { onStudySessionSaved } from '../../study/lib/studyEvents'
 
 const DEFAULT_DAILY_GOAL_MINUTES = 30
 const MAX_DAILY_GOAL_MINUTES = 1200
 
 export function DailyGoalCard() {
   const { user } = useAuth()
-  const { sessionCompletedAt } = useStudyTimerContext()
   const [goal, setGoal] = useState<number | null>(null)
   const [todayMinutes, setTodayMinutes] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
@@ -53,9 +52,10 @@ export function DailyGoalCard() {
   }, [user])
 
   useEffect(() => {
-    if (sessionCompletedAt === null) return
-    void loadMinutes()
-  }, [sessionCompletedAt, loadMinutes])
+    return onStudySessionSaved(() => {
+      void loadMinutes()
+    })
+  }, [loadMinutes])
 
   const startEditing = () => {
     setInputValue(String(goal ?? DEFAULT_DAILY_GOAL_MINUTES))
