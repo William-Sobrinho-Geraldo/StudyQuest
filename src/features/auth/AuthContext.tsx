@@ -9,9 +9,12 @@ import {
   type ReactNode,
 } from 'react'
 import type { User } from '@supabase/supabase-js'
+import type { Database } from '../../lib/database.types'
 import { supabase } from '../../lib/supabase'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
+
+export type Profile = Database['public']['Tables']['profiles']['Row']
 
 export interface SignInResult {
   error?: string
@@ -23,6 +26,9 @@ export interface AuthContextValue {
   status: AuthStatus
   isLoading: boolean
   isAuthenticated: boolean
+  profile: Profile | null
+  profileLoading: boolean
+  refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<SignInResult>
   signUp: (email: string, password: string) => Promise<SignInResult>
   signOut: () => Promise<void>
@@ -35,6 +41,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const pendingInviteHandlerRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
@@ -63,6 +71,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription?.unsubscribe()
     }
   }, [])
+
+  const loadProfile = useCallback(async (userId: string) => {
+    setProfileLoading(true)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+    setProfileLoading(false)
+    if (!error) {
+      setProfile(data ?? null)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user) {
+      setProfile(null)
+      if (status !== 'loading') {
+        setProfileLoading(false)
+      }
+      return
+    }
+    void loadProfile(user.id)
+  }, [user, status, loadProfile])
+
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      await loadProfile(user.id)
+    }
+  }, [user, loadProfile])
 
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -111,13 +149,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       isLoading: status === 'loading',
       isAuthenticated: status === 'authenticated',
+      profile,
+      profileLoading,
+      refreshProfile,
       signIn,
       signUp,
       signOut,
       setProcessPendingInvite,
       processPendingInvite,
     }),
-    [user, status, signIn, signUp, signOut, setProcessPendingInvite, processPendingInvite],
+    [
+      user,
+      status,
+      profile,
+      profileLoading,
+      refreshProfile,
+      signIn,
+      signUp,
+      signOut,
+      setProcessPendingInvite,
+      processPendingInvite,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

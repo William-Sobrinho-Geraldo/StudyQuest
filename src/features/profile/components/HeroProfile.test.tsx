@@ -1,34 +1,19 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../auth/AuthContext'
-import {
-  StudyTimerProvider,
-  useStudyTimerContext,
-  type StudyTimerValue,
-} from '../../study/context/StudyTimerContext'
 import { emitStudySessionSaved } from '../../study/lib/studyEvents'
 import { HeroProfile } from './HeroProfile'
 
-const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
+const { getSession, onAuthStateChange, from } = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   from: vi.fn(),
-  rpc: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({
-  supabase: { auth: { getSession, onAuthStateChange }, from, rpc },
+  supabase: { auth: { getSession, onAuthStateChange }, from },
 }))
-
-let timerRef: { current: StudyTimerValue | null } = { current: null }
-
-function TimerHarness() {
-  const timer = useStudyTimerContext()
-  timerRef.current = timer
-  return <span data-testid="timer-status">{timer.status}</span>
-}
 
 interface ProfileRow {
   level: number
@@ -60,13 +45,41 @@ function mockSession() {
   })
 }
 
+function fullProfile() {
+  return {
+    id: SESSION.user.id,
+    level: 1,
+    current_xp: 0,
+    gold: 0,
+    created_at: '2026-01-01T00:00:00Z',
+    current_streak: 0,
+    last_streak_date: null,
+    daily_goal_minutes: 30,
+    last_chest_claim: null,
+    player_tag: null,
+    display_name: 'Aventureiro',
+    avatar_id: null,
+    equipped_title: null,
+    unlocked_titles: [],
+  }
+}
+
 function mockProfileFetch(rows: Array<ProfileRow | null>) {
   const maybeSingle = vi.fn()
   rows.forEach((row) => {
     maybeSingle.mockResolvedValueOnce({ data: row, error: null })
   })
   const eq = vi.fn().mockReturnValue({ maybeSingle })
-  const select = vi.fn().mockReturnValue({ eq })
+  const select = vi.fn((columns: string) => {
+    if (columns === '*') {
+      return {
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: fullProfile(), error: null }),
+        }),
+      }
+    }
+    return { eq }
+  })
   from.mockReturnValue({ select })
   return { select, eq, maybeSingle }
 }
@@ -77,19 +90,10 @@ function renderProfile() {
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <AuthProvider>
-        <StudyTimerProvider>
-          <TimerHarness />
-          <HeroProfile />
-        </StudyTimerProvider>
+        <HeroProfile />
       </AuthProvider>
     </MemoryRouter>,
   )
-}
-
-function startSession() {
-  act(() => {
-    timerRef.current?.start()
-  })
 }
 
 beforeEach(() => {
@@ -105,8 +109,9 @@ describe('HeroProfile', () => {
     await screen.findByText('50/100 XP')
 
     expect(screen.getByText('Nível 1')).toBeInTheDocument()
-    expect(screen.getByText('aventureiro@teste.com')).toBeInTheDocument()
+    expect(screen.getByText('Aventureiro')).toBeInTheDocument()
     expect(screen.getByTestId('hero-avatar-fallback')).toHaveTextContent('A')
+    expect(screen.getByRole('link', { name: /aventureiro/i })).toHaveAttribute('href', '/profile')
 
     expect(eq).toHaveBeenCalledWith('id', 'user-123')
 
@@ -116,48 +121,6 @@ describe('HeroProfile', () => {
 
     expect(screen.getByTestId('hero-xp')).toHaveTextContent('50/100 XP')
     expect(screen.getByTestId('hero-gold')).toHaveTextContent('0 Gold')
-  })
-
-  it('encerra a sessão ativa, soma a recompensa dela via RPC e reage em tempo real', async () => {
-    const user = userEvent.setup()
-    mockSession()
-    mockProfileFetch([
-      { level: 1, current_xp: 50, gold: 0 },
-      { level: 3, current_xp: 300, gold: 50 },
-    ])
-    rpc.mockResolvedValue({ data: [{ level: 3, current_xp: 300, gold: 50 }], error: null })
-
-    renderProfile()
-    await screen.findByText('50/100 XP')
-    startSession()
-    expect(screen.getByTestId('timer-status')).toHaveTextContent('running')
-
-    await user.click(screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }))
-
-    await screen.findByText('85/132 XP')
-    expect(screen.getByText('Nível 3')).toBeInTheDocument()
-    expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 250, p_gold: 50 })
-    expect(screen.getByTestId('timer-status')).toHaveTextContent('completed')
-
-    await waitFor(() => {
-      expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: '64.39%' })
-    })
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '64')
-    expect(screen.getByTestId('hero-gold')).toHaveTextContent('50 Gold')
-  })
-
-  it('fica desabilitado enquanto não há sessão de estudo em andamento', async () => {
-    mockSession()
-    mockProfileFetch([{ level: 1, current_xp: 50, gold: 0 }])
-
-    renderProfile()
-    await screen.findByText('50/100 XP')
-
-    expect(
-      screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }),
-    ).toBeDisabled()
-    expect(screen.getByTestId('timer-status')).toHaveTextContent('idle')
   })
 
   it('atualiza o perfil quando uma sessão de estudo é concluída', async () => {
@@ -183,26 +146,34 @@ describe('HeroProfile', () => {
     mockProfileFetch([null])
     renderProfile()
 
-    await screen.findByText('0/100 XP')
-
-    expect(screen.getByText('Nível 1')).toBeInTheDocument()
-    expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: '0.00%' })
-    expect(screen.getByTestId('hero-gold')).toHaveTextContent('0 Gold')
+    await waitFor(() => {
+      expect(screen.getByText('Nível 1')).toBeInTheDocument()
+      expect(screen.getByText('0/100 XP')).toBeInTheDocument()
+      expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: '0.00%' })
+      expect(screen.getByTestId('hero-gold')).toHaveTextContent('0 Gold')
+    })
   })
 
-  it('mostra o erro da RPC sem quebrar a tela', async () => {
-    const user = userEvent.setup()
+  it('expõe erro de carregamento do perfil sem quebrar a tela', async () => {
     mockSession()
-    mockProfileFetch([{ level: 1, current_xp: 50, gold: 0 }])
-    rpc.mockResolvedValue({ data: null, error: { message: 'rate limit' } })
-
+    const maybeSingle = vi.fn().mockResolvedValueOnce({
+      data: null,
+      error: { message: 'connection refused' },
+    })
+    const eq = vi.fn().mockReturnValue({ maybeSingle })
+    const select = vi.fn((columns: string) => {
+      if (columns === '*') {
+        return {
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: fullProfile(), error: null }),
+          }),
+        }
+      }
+      return { eq }
+    })
+    from.mockReturnValue({ select })
     renderProfile()
-    await screen.findByText('50/100 XP')
-    startSession()
 
-    await user.click(screen.getByRole('button', { name: 'Concluir Sessão (Teste Dev)' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('rate limit')
-    expect(screen.getByText('Nível 1')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('connection refused')
   })
 })

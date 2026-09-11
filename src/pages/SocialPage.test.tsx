@@ -77,9 +77,11 @@ function mockRpc() {
 function mockProfiles() {
   from.mockImplementation((table: string) => {
     if (table === 'profiles') {
+      const maybeSingle = vi.fn().mockResolvedValue({ data: tagsValue, error: null })
       return {
         select: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: tagsValue, error: null }),
+          eq: vi.fn().mockReturnValue({ maybeSingle }),
+          maybeSingle,
         }),
       }
     }

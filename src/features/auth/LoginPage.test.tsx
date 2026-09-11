@@ -60,7 +60,25 @@ beforeEach(() => {
   authMocks.from.mockReturnValue({
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 'user-1',
+            level: 1,
+            current_xp: 0,
+            gold: 0,
+            created_at: new Date().toISOString(),
+            current_streak: 0,
+            last_streak_date: null,
+            daily_goal_minutes: 30,
+            last_chest_claim: new Date().toISOString(),
+            player_tag: null,
+            display_name: 'Heroi',
+            avatar_id: null,
+            equipped_title: null,
+            unlocked_titles: [],
+          },
+          error: null,
+        }),
       }),
     }),
   })
@@ -94,7 +112,7 @@ describe('LoginPage — fluxo de autenticação', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith(credentials)
-    expect(screen.getAllByText(credentials.email).length).toBeGreaterThan(0)
+    expect(screen.getByText('Heroi')).toBeInTheDocument()
   })
 
   it('exibe erro e permanece no login quando as credenciais são inválidas', async () => {
@@ -110,6 +128,29 @@ describe('LoginPage — fluxo de autenticação', () => {
     expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toHaveValue(credentials.email)
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith(credentials)
+  })
+
+  it('navega para o dashboard mesmo quando o usuário ainda não tem display_name', async () => {
+    authMocks.signInWithPassword.mockResolvedValue({
+      data: { session: makeSession() },
+      error: null,
+    })
+    authMocks.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { id: 'user-1', display_name: null },
+            error: null,
+          }),
+        }),
+      }),
+    })
+
+    renderApp('/login')
+    await fillAndSubmit(credentials.email, credentials.password)
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crie seu Herói' })).not.toBeInTheDocument()
   })
 
   it('não chama o Supabase quando os campos estão vazios', async () => {
@@ -161,7 +202,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
-    expect(screen.getAllByText(credentials.email).length).toBeGreaterThan(0)
+    expect(screen.getByText('Heroi')).toBeInTheDocument()
   })
 
   it('exibe erro e permanece no modal quando o cadastro falha', async () => {

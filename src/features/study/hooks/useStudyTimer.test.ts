@@ -423,3 +423,21 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     expect(saveSession).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('useStudyTimer — modo foco', () => {
+  it('inicia com foco desativado e permite entrar e sair', () => {
+    const { result } = setupTimer()
+
+    expect(result.current.isFocusMode).toBe(false)
+
+    act(() => {
+      result.current.openFocusMode()
+    })
+    expect(result.current.isFocusMode).toBe(true)
+
+    act(() => {
+      result.current.closeFocusMode()
+    })
+    expect(result.current.isFocusMode).toBe(false)
+  })
+})

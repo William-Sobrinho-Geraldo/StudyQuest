@@ -1,11 +1,12 @@
 import { Coins, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { useStudyTimerContext } from '../../study/context/StudyTimerContext'
 import { onStudySessionSaved } from '../../study/lib/studyEvents'
 import { getLevelProgress } from '../../../utils/leveling'
 import { useAuth } from '../../auth/AuthContext'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
+import { getAvatarPreset } from '../../../lib/avatarPresets'
 
 interface ProfileStats {
   level: number
@@ -14,11 +15,9 @@ interface ProfileStats {
 }
 
 export function HeroProfile() {
-  const { user } = useAuth()
-  const timer = useStudyTimerContext()
+  const { user, profile } = useAuth()
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [granting, setGranting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const refreshProfile = useCallback(async () => {
@@ -48,33 +47,6 @@ export function HeroProfile() {
     })
   }, [refreshProfile])
 
-  const hasActiveSession = timer.status === 'running' || timer.status === 'paused'
-
-  const handleDevGrant = async () => {
-    if (granting) return
-    setGranting(true)
-    setError(null)
-    try {
-      if (!hasActiveSession) {
-        setError('Inicie uma sessão de estudo antes de concluí-la.')
-        return
-      }
-      const reward = await timer.finish()
-      if (!reward) return
-      const { error } = await supabase.rpc('add_xp', {
-        p_xp: reward.xp,
-        p_gold: reward.gold,
-      })
-      if (error) {
-        setError(error.message)
-      } else {
-        await refreshProfile()
-      }
-    } finally {
-      setGranting(false)
-    }
-  }
-
   if (loading) {
     return (
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy="true">
@@ -89,18 +61,24 @@ export function HeroProfile() {
   const gold = stats?.gold ?? 0
   const { level, xpIntoLevel, xpForNextLevel: nextLevelXp, progress } = getLevelProgress(xp)
   const percent = Math.round(progress * 100)
-  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined
+  const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'Aventureiro'
+  const preset = getAvatarPreset(profile?.avatar_id)
+  const AvatarIcon = preset?.icon
   const initial = user?.email?.charAt(0).toUpperCase() ?? '?'
 
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+    <Link
+      to="/profile"
+      className="block rounded-xl border border-slate-800 bg-slate-900 p-5 transition hover:border-slate-700 hover:bg-slate-800/80 active:scale-[0.99] cursor-pointer"
+    >
       <div className="flex items-center gap-4">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={`Avatar de ${user?.email ?? 'aventureiro'}`}
-            className="h-14 w-14 rounded-full object-cover"
-          />
+        {AvatarIcon ? (
+          <div
+            data-testid="hero-avatar-preset"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600"
+          >
+            <AvatarIcon className="h-7 w-7 text-white" aria-hidden="true" />
+          </div>
         ) : (
           <div
             data-testid="hero-avatar-fallback"
@@ -110,7 +88,7 @@ export function HeroProfile() {
           </div>
         )}
         <div>
-          <p className="text-lg font-bold">{user?.email ?? 'Aventureiro'}</p>
+          <p className="text-lg font-bold">{displayName}</p>
           <p data-testid="hero-level" className="text-sm font-medium text-indigo-400">
             Nível {level}
           </p>
@@ -144,26 +122,11 @@ export function HeroProfile() {
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => void handleDevGrant()}
-          disabled={granting || !hasActiveSession}
-          title={
-            hasActiveSession
-              ? 'Encerra a sessão em andamento e soma XP/Gold ao perfil'
-              : 'Inicie o timer de estudo antes de concluir a sessão'
-          }
-          className="flex min-h-[48px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {granting ? 'Salvando...' : 'Concluir Sessão (Teste Dev)'}
-        </button>
-        {error && (
-          <p role="alert" className="text-sm text-red-400">
-            {error}
-          </p>
-        )}
-      </div>
-    </section>
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-red-400">
+          {error}
+        </p>
+      )}
+    </Link>
   )
 }

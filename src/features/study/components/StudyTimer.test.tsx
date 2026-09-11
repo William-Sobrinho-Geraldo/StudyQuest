@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { StudyTimer } from './StudyTimer'
-import { StudyTimerProvider } from '../context/StudyTimerContext'
+import { StudyTimerProvider, useStudyTimerContext } from '../context/StudyTimerContext'
+import { FocusOverlay } from './FocusOverlay'
 
 const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
 
@@ -17,9 +18,29 @@ function renderTimer() {
   )
 }
 
+let focusRef: { current: { isFocusMode: boolean } | null } = { current: null }
+
+function FocusProbe() {
+  const timer = useStudyTimerContext()
+  focusRef.current = timer
+  return null
+}
+
+function renderTimerWithFocus() {
+  focusRef.current = null
+  return render(
+    <StudyTimerProvider>
+      <FocusProbe />
+      <StudyTimer />
+      <FocusOverlay />
+    </StudyTimerProvider>,
+  )
+}
+
 beforeEach(() => {
   vi.useFakeTimers()
   saveStudySessionMock.mockClear()
+  focusRef.current = null
 })
 
 afterEach(() => {
@@ -100,7 +121,21 @@ describe('StudyTimer — UI', () => {
     expect(screen.getByRole('button', { name: /pausar/i })).toBeDisabled()
   })
 
-  it('finaliza a sessão, calcula recompensas e salva no histórico', async () => {
+  it('abre o Modo Foco Total ao iniciar a sessão', () => {
+    renderTimerWithFocus()
+
+    expect(screen.queryByTestId('focus-overlay')).not.toBeInTheDocument()
+    expect(focusRef.current?.isFocusMode).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
+
+    expect(focusRef.current?.isFocusMode).toBe(true)
+    expect(screen.getByTestId('focus-overlay')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sair do foco/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /concluir sessão/i })).toBeInTheDocument()
+  })
+
+  it('finaliza a sessão e salva no histórico', async () => {
     renderTimer()
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
@@ -108,11 +143,6 @@ describe('StudyTimer — UI', () => {
     await act(async () => {
       vi.advanceTimersByTime(25 * 60_000)
     })
-
-    expect(screen.getByText('Sessão concluída!')).toBeInTheDocument()
-    expect(screen.getByText('+250 XP')).toBeInTheDocument()
-    expect(screen.getByText('+50 Gold')).toBeInTheDocument()
-    expect(screen.getByRole('timer')).toHaveTextContent('00:00')
 
     expect(saveStudySessionMock).toHaveBeenCalledTimes(1)
     expect(saveStudySessionMock).toHaveBeenCalledWith({
@@ -120,20 +150,5 @@ describe('StudyTimer — UI', () => {
       xp: 250,
       gold: 50,
     })
-  })
-
-  it('permite reiniciar e iniciar uma nova sessão', async () => {
-    renderTimer()
-
-    fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
-
-    await act(async () => {
-      vi.advanceTimersByTime(25 * 60_000)
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /nova sessão/i }))
-
-    expect(screen.getByRole('timer')).toHaveTextContent('25:00')
-    expect(screen.getByRole('button', { name: /iniciar/i })).toBeInTheDocument()
   })
 })

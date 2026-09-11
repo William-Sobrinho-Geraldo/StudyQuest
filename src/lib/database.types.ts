@@ -16,40 +16,52 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          avatar_id: string | null
           created_at: string
           current_streak: number
           current_xp: number
           daily_goal_minutes: number
+          display_name: string | null
+          equipped_title: string | null
           gold: number
           id: string
           last_chest_claim: string
           last_streak_date: string | null
           level: number
           player_tag: string | null
+          unlocked_titles: string[]
         }
         Insert: {
+          avatar_id?: string | null
           created_at?: string
           current_streak?: number
           current_xp?: number
           daily_goal_minutes?: number
+          display_name?: string | null
+          equipped_title?: string | null
           gold?: number
           id: string
           last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
           player_tag?: string | null
+          unlocked_titles?: string[]
         }
         Update: {
+          avatar_id?: string | null
           created_at?: string
           current_streak?: number
           current_xp?: number
           daily_goal_minutes?: number
+          display_name?: string | null
+          equipped_title?: string | null
           gold?: number
           id?: string
           last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
           player_tag?: string | null
+          unlocked_titles?: string[]
         }
         Relationships: []
       }
@@ -510,15 +522,19 @@ export type Database = {
       add_xp: {
         Args: { p_gold: number; p_xp: number }
         Returns: {
+          avatar_id: string | null
           created_at: string
           current_streak: number
           current_xp: number
           daily_goal_minutes: number
+          display_name: string | null
+          equipped_title: string | null
           gold: number
           id: string
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          unlocked_titles: string[]
         }[]
         SetofOptions: {
           from: "*"
@@ -530,15 +546,19 @@ export type Database = {
       claim_quest: {
         Args: { p_quest_id: string }
         Returns: {
+          avatar_id: string | null
           created_at: string
           current_streak: number
           current_xp: number
           daily_goal_minutes: number
+          display_name: string | null
+          equipped_title: string | null
           gold: number
           id: string
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          unlocked_titles: string[]
         }[]
         SetofOptions: {
           from: "*"
@@ -550,15 +570,19 @@ export type Database = {
       claim_chest_reward: {
         Args: Record<string, never>
         Returns: {
+          avatar_id: string | null
           created_at: string
           current_streak: number
           current_xp: number
           daily_goal_minutes: number
+          display_name: string | null
+          equipped_title: string | null
           gold: number
           id: string
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          unlocked_titles: string[]
         }[]
         SetofOptions: {
           from: "*"

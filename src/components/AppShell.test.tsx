@@ -57,7 +57,25 @@ beforeEach(() => {
   authMocks.from.mockReturnValue({
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 'user-1',
+            level: 1,
+            current_xp: 0,
+            gold: 0,
+            created_at: new Date().toISOString(),
+            current_streak: 0,
+            last_streak_date: null,
+            daily_goal_minutes: 30,
+            last_chest_claim: new Date().toISOString(),
+            player_tag: null,
+            display_name: 'Heroi',
+            avatar_id: null,
+            equipped_title: null,
+            unlocked_titles: [],
+          },
+          error: null,
+        }),
       }),
     }),
   })

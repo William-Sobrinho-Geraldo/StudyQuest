@@ -47,6 +47,26 @@ function makeSession(overrides: Partial<Session> = {}): Session {
   }
 }
 
+function makeProfile(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: 'user-1',
+    level: 1,
+    current_xp: 0,
+    gold: 0,
+    created_at: new Date().toISOString(),
+    current_streak: 0,
+    last_streak_date: null,
+    daily_goal_minutes: 30,
+    last_chest_claim: new Date().toISOString(),
+    player_tag: null,
+    display_name: 'Heroi',
+    avatar_id: null,
+    equipped_title: null,
+    unlocked_titles: [],
+    ...overrides,
+  }
+}
+
 beforeEach(() => {
   authMocks.getSession.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.signInWithPassword.mockResolvedValue({ data: { session: null }, error: null })
@@ -56,7 +76,7 @@ beforeEach(() => {
   authMocks.from.mockReturnValue({
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: makeProfile(), error: null }),
       }),
     }),
   })
@@ -105,5 +125,45 @@ describe('ProtectedRoute — barreira de rotas protegidas', () => {
     renderApp('/login')
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+  })
+
+  it('permite o acesso à rota protegida mesmo sem display_name definido', async () => {
+    authMocks.getSession.mockResolvedValue({
+      data: { session: makeSession() },
+      error: null,
+    })
+    authMocks.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: makeProfile({ display_name: null }),
+            error: null,
+          }),
+        }),
+      }),
+    })
+
+    renderApp('/ranking')
+
+    expect(await screen.findByRole('heading', { name: 'Ranking Global' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crie seu Herói' })).not.toBeInTheDocument()
+  })
+
+  it('roteia URLs desconhecidas para o dashboard quando autenticado', async () => {
+    authMocks.getSession.mockResolvedValue({
+      data: { session: makeSession() },
+      error: null,
+    })
+
+    renderApp('/rota-inexistente')
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+  })
+
+  it('roteia URLs desconhecidas para /login quando não autenticado', async () => {
+    renderApp('/rota-inexistente')
+
+    expect(await screen.findByRole('heading', { name: 'StudyQuest' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
 })

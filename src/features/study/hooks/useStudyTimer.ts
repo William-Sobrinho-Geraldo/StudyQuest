@@ -43,6 +43,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [sessionCompletedAt, setSessionCompletedAt] = useState<number | null>(null)
+  const [isFocusMode, setIsFocusMode] = useState(false)
 
   const statusRef = useRef<StudyTimerStatus>('idle')
   const pausesUsedRef = useRef(0)
@@ -63,6 +64,9 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     statusRef.current = next
     setStatus(next)
   }, [])
+
+  const openFocusMode = useCallback(() => setIsFocusMode(true), [])
+  const closeFocusMode = useCallback(() => setIsFocusMode(false), [])
 
   const finish = useCallback(async (): Promise<StudyTimerResult | null> => {
     if (completedRef.current) return null
@@ -204,6 +208,9 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     saveError,
     isSaving,
     sessionCompletedAt,
+    isFocusMode,
+    openFocusMode,
+    closeFocusMode,
     selectDuration,
     start,
     pause,

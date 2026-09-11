@@ -104,6 +104,13 @@ beforeEach(() => {
     subscribe: vi.fn(),
   })
   authMocks.removeChannel.mockResolvedValue('ok')
+  authMocks.from.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    }),
+  })
 })
 
 afterEach(() => {
