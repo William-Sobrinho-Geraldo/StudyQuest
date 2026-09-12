@@ -1,15 +1,119 @@
-import { useState } from 'react'
-import { Crown, Loader2, Trophy } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { Check, Crown, Loader2, Trophy, UserCheck, UserPlus } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { useToast } from '../components/Toast'
 import { useAuth } from '../features/auth/AuthContext'
 import { useGlobalRanking } from '../features/ranking/hooks/useGlobalRanking'
 import { GLOBAL_RANKING_PERIODS } from '../features/ranking/lib/periods'
 import type { GlobalRankingPeriod } from '../features/ranking/lib/periods'
-import type { GlobalRankingEntry } from '../features/ranking/services/rankingService'
+import {
+  sendFriendRequest,
+  type GlobalRankingEntry,
+  type RankingRelation,
+} from '../features/ranking/services/rankingService'
 import { formatMinutes } from '../utils/formatMinutes'
 
 function getInitial(playerTag: string | null): string {
   return playerTag?.charAt(0).toUpperCase() ?? '?'
+}
+
+function friendRequestErrorMessage(code?: string): string {
+  switch (code) {
+    case 'already_friends_or_pending':
+      return 'Vocês já são amigos ou já existe uma solicitação pendente.'
+    case 'cannot_add_self':
+      return 'Você não pode adicionar a si mesmo.'
+    case 'player_not_found':
+      return 'Jogador não encontrado.'
+    default:
+      return 'Não foi possível enviar a solicitação. Tente novamente.'
+  }
+}
+
+interface FriendRequestButtonProps {
+  relation: RankingRelation
+  userId: string
+  playerTag: string | null
+  busy: boolean
+  isOwn: boolean
+  compact?: boolean
+  onSend: (userId: string) => void
+}
+
+function FriendRequestButton({
+  relation,
+  userId,
+  playerTag,
+  busy,
+  isOwn,
+  compact = false,
+  onSend,
+}: FriendRequestButtonProps) {
+  if (isOwn || relation === 'self') {
+    return compact ? <span className="h-8 w-8 shrink-0" aria-hidden="true" /> : null
+  }
+
+  let Icon = UserPlus
+  let label = 'Adicionar'
+  let style =
+    'border-indigo-500/40 bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25'
+  let disabled = false
+
+  if (busy) {
+    Icon = Loader2
+    label = 'Enviando...'
+    style = 'border-indigo-500/50 bg-indigo-600/20 text-indigo-300'
+    disabled = true
+  } else if (relation === 'friends') {
+    Icon = UserCheck
+    label = 'Amigos'
+    style = 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+    disabled = true
+  } else if (relation === 'pending_out') {
+    Icon = Check
+    label = 'Solicitação Enviada'
+    style = 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+    disabled = true
+  } else if (relation === 'pending_in') {
+    Icon = UserCheck
+    label = 'Convite Recebido'
+    style = 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+    disabled = true
+  }
+
+  const ariaLabel = (() => {
+    const tag = playerTag ?? 'jogador'
+    switch (relation) {
+      case null:
+        return `Adicionar ${tag} como amigo`
+      case 'friends':
+        return `${tag} já é seu amigo`
+      case 'pending_out':
+        return `Solicitação enviada para ${tag}`
+      case 'pending_in':
+        return `Você recebeu convite de ${tag}`
+      default:
+        return label
+    }
+  })()
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSend(userId)}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      title={compact ? label : undefined}
+      className={`touch-manipulation active:scale-95 transition-transform p-2 ${
+        compact
+          ? 'grid h-8 w-8 shrink-0 place-items-center rounded-lg border'
+          : 'flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border text-xs font-semibold'
+      } ${style} ${disabled ? 'cursor-default disabled:opacity-90' : ''}`}
+    >
+      <Icon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
+      {!compact && <span>{label}</span>}
+    </button>
+  )
 }
 
 const PODIUM_STYLES = {
@@ -37,9 +141,11 @@ interface PodiumCardProps {
   tone: PodiumTone
   leading?: boolean
   isOwn?: boolean
+  busy: boolean
+  onSend: (userId: string) => void
 }
 
-function PodiumCard({ entry, tone, leading = false, isOwn = false }: PodiumCardProps) {
+function PodiumCard({ entry, tone, leading = false, isOwn = false, busy, onSend }: PodiumCardProps) {
   const style = PODIUM_STYLES[tone]
   return (
     <div
@@ -73,15 +179,51 @@ function PodiumCard({ entry, tone, leading = false, isOwn = false }: PodiumCardP
         <p className="mt-0.5 text-xs font-medium text-amber-300/90">{style.label}</p>
         <p className="mt-0.5 text-xs text-slate-400">{formatMinutes(entry.minutes)}</p>
       </div>
+      <FriendRequestButton
+        relation={entry.relation}
+        userId={entry.user_id}
+        playerTag={entry.player_tag}
+        busy={busy}
+        isOwn={isOwn}
+        compact
+        onSend={onSend}
+      />
     </div>
   )
 }
 
 export function LeaderboardPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [period, setPeriod] = useState<GlobalRankingPeriod>('week')
   const { ranking, myRank, loading, error } = useGlobalRanking(period)
+  const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set())
+  const [sentIds, setSentIds] = useState<ReadonlySet<string>>(new Set())
   const ownUserId = user?.id ?? ''
+
+  const handleSend = useCallback(
+    async (userId: string) => {
+      setBusyIds((current) => new Set(current).add(userId))
+      try {
+        const result = await sendFriendRequest(userId)
+        if (!result.success) {
+          showToast(friendRequestErrorMessage(result.error), 'error')
+          return
+        }
+        setSentIds((current) => new Set(current).add(userId))
+        showToast('Solicitação de amizade enviada!', 'success')
+      } catch {
+        showToast('Erro inesperado ao enviar a solicitação.', 'error')
+      } finally {
+        setBusyIds((current) => {
+          const next = new Set(current)
+          next.delete(userId)
+          return next
+        })
+      }
+    },
+    [showToast],
+  )
 
   return (
     <AppShell>
@@ -135,6 +277,8 @@ export function LeaderboardPage() {
                 entry={ranking[1]}
                 tone="silver"
                 isOwn={ranking[1].user_id === ownUserId}
+                busy={busyIds.has(ranking[1].user_id)}
+                onSend={handleSend}
               />
             )}
             {ranking[0] && (
@@ -143,6 +287,8 @@ export function LeaderboardPage() {
                 tone="gold"
                 leading
                 isOwn={ranking[0].user_id === ownUserId}
+                busy={busyIds.has(ranking[0].user_id)}
+                onSend={handleSend}
               />
             )}
             {ranking[2] && (
@@ -150,6 +296,8 @@ export function LeaderboardPage() {
                 entry={ranking[2]}
                 tone="bronze"
                 isOwn={ranking[2].user_id === ownUserId}
+                busy={busyIds.has(ranking[2].user_id)}
+                onSend={handleSend}
               />
             )}
           </section>
@@ -162,6 +310,7 @@ export function LeaderboardPage() {
               <ol className="space-y-2">
                 {ranking.slice(3).map((entry) => {
                   const isOwn = entry.user_id === ownUserId
+                  const relation = sentIds.has(entry.user_id) ? 'pending_out' : entry.relation
                   return (
                     <li
                       key={entry.user_id}
@@ -190,6 +339,14 @@ export function LeaderboardPage() {
                           {formatMinutes(entry.minutes)}
                         </p>
                       </div>
+                      <FriendRequestButton
+                        relation={relation}
+                        userId={entry.user_id}
+                        playerTag={entry.player_tag}
+                        busy={busyIds.has(entry.user_id)}
+                        isOwn={isOwn}
+                        onSend={handleSend}
+                      />
                     </li>
                   )
                 })}

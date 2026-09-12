@@ -750,6 +750,10 @@ export type Database = {
         Args: { p_target_tag: string }
         Returns: Json
       }
+      send_invite_by_user: {
+        Args: { p_target_user_id: string }
+        Returns: Json
+      }
       accept_link_invite: {
         Args: { p_sender_tag: string; p_receiver_id: string }
         Returns: Json
@@ -789,6 +793,7 @@ export type Database = {
           minutes: number
           player_tag: string | null
           pos: number
+          relation: string | null
           user_id: string
         }[]
         SetofOptions: {
