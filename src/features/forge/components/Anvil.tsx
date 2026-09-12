@@ -1,12 +1,13 @@
 import { Coins, Hammer, Loader2, X } from 'lucide-react'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
-import { MAX_REFINE_LEVEL, SLOT_LABELS, type RefineResult } from '../lib/forgeRules'
+import { MAX_REFINE_LEVEL, SLOT_LABELS } from '../lib/forgeRules'
+import { formatDurationPreview } from '../lib/forgeTimers'
 import type { SelectedMeta } from '../hooks/useForge'
 import { ItemBadge } from './ItemBadge'
 
-function refineButtonLabel(meta: SelectedMeta): string {
+function startButtonLabel(meta: SelectedMeta): string {
   if (meta.isMax) return `Refinar ${meta.item.name} (máximo)`
-  return `Refinar ${meta.item.name} de +${meta.item.enhancementLevel} para +${
+  return `Iniciar Refino ${meta.item.name} de +${meta.item.enhancementLevel} para +${
     meta.item.enhancementLevel + 1
   }`
 }
@@ -15,25 +16,20 @@ interface AnvilProps {
   gold: number | null
   selectedMeta: SelectedMeta | null
   busy: boolean
-  lastResult: RefineResult | null
   error: string | null
-  canUseForge: boolean
   onClearSelection: () => void
-  onRefine: () => void
+  onStartRefine: () => void
 }
 
 export function Anvil({
   gold,
   selectedMeta,
   busy,
-  lastResult,
   error,
-  canUseForge,
   onClearSelection,
-  onRefine,
+  onStartRefine,
 }: AnvilProps) {
-  const refineDisabled =
-    !canUseForge ||
+  const startDisabled =
     !selectedMeta ||
     busy ||
     selectedMeta.isMax ||
@@ -94,14 +90,14 @@ export function Anvil({
 
             <div className="shrink-0 text-sm text-slate-400 sm:text-right">
               <p>
-                Chance:{' '}
-                <span className="font-semibold text-white">
-                  {Math.round(selectedMeta.rate * 100)}%
-                </span>
-              </p>
-              <p className="mt-1">
                 Custo:{' '}
                 <span className="font-semibold text-white">{selectedMeta.cost} Gold</span>
+              </p>
+              <p className="mt-1">
+                Duração:{' '}
+                <span className="font-semibold text-white">
+                  {formatDurationPreview(selectedMeta.durationSeconds)}
+                </span>
               </p>
               {selectedMeta.isMax && (
                 <p className="mt-1 text-xs text-amber-400">Refino máximo atingido.</p>
@@ -129,41 +125,26 @@ export function Anvil({
 
       <button
         type="button"
-        data-testid="anvil-refine-button"
-        aria-label={selectedMeta ? refineButtonLabel(selectedMeta) : 'Refinar item selecionado'}
-        disabled={refineDisabled}
-        onClick={onRefine}
+        data-testid="anvil-start-refine-button"
+        aria-label={selectedMeta ? startButtonLabel(selectedMeta) : 'Iniciar refino'}
+        disabled={startDisabled}
+        onClick={onStartRefine}
         className="mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {busy
-          ? 'Forjando...'
+          ? 'Iniciando...'
           : selectedMeta
             ? selectedMeta.isMax
               ? `Máximo (+${MAX_REFINE_LEVEL})`
-              : `Refinar +${selectedMeta.item.enhancementLevel} → +${
+              : `Iniciar Refino +${selectedMeta.item.enhancementLevel} → +${
                   selectedMeta.item.enhancementLevel + 1
                 }`
             : 'Selecione um item'}
       </button>
 
       {selectedMeta && !selectedMeta.isMax && !selectedMeta.canAfford && (
-        <p className="mt-2 text-xs text-red-400">Gold insuficiente para esta tentativa.</p>
-      )}
-
-      {lastResult && (
-        <div
-          role={lastResult.success ? 'status' : 'alert'}
-          className={`mt-4 rounded-xl border p-4 text-sm font-medium ${
-            lastResult.success
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-              : 'border-red-500/30 bg-red-500/10 text-red-300'
-          }`}
-        >
-          {lastResult.success
-            ? `Sucesso! ${SLOT_LABELS[lastResult.slot]} +${lastResult.enhancementBefore} → +${lastResult.enhancementAfter}`
-            : `Falha! ${SLOT_LABELS[lastResult.slot]} +${lastResult.enhancementBefore} → +${lastResult.enhancementAfter}`}
-        </div>
+        <p className="mt-2 text-xs text-red-400">Gold insuficiente para iniciar o refino.</p>
       )}
 
       {error && (

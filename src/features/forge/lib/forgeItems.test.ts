@@ -69,6 +69,8 @@ describe('gearRowToForgeItem', () => {
       itemLevel: 20,
       enhancementLevel: 4,
       rarity: 'rare',
+      isInForge: false,
+      forgeEndsAt: null,
     })
   })
 })

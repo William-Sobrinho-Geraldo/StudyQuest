@@ -57,10 +57,10 @@ export function ItemDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="touch-manipulation active:scale-95 transition-transform cursor-pointer p-2 -mt-2 -mr-2 text-gray-400 hover:text-white"
             aria-label="Fechar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
@@ -102,27 +102,31 @@ export function ItemDetailModal({
               Equipar
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              onSendToAnvil(item.id)
-              onClose()
-            }}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-500 ${
-              isEquipped ? 'col-span-2' : ''
-            }`}
-          >
-            <Hammer className="h-4 w-4" aria-hidden="true" />
-            Enviar para Bigorna
-          </button>
+          {item.isInForge ? (
+            <div
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 ${
+                isEquipped ? 'col-span-2' : ''
+              }`}
+            >
+              <Hammer className="h-4 w-4" aria-hidden="true" />
+              Em refino na Bigorna
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onSendToAnvil(item.id)
+                onClose()
+              }}
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-500 ${
+                isEquipped ? 'col-span-2' : ''
+              }`}
+            >
+              <Hammer className="h-4 w-4" aria-hidden="true" />
+              Enviar para Bigorna
+            </button>
+          )}
         </div>
-
-        <button
-          onClick={onClose}
-          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-800 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
-        >
-          Fechar
-        </button>
       </div>
     </div>
   )

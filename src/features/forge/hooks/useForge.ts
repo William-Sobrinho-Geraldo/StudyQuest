@@ -4,13 +4,11 @@ import { useAuth } from '../../auth/AuthContext'
 import {
   MAX_REFINE_LEVEL,
   SLOTS,
-  attemptRefine,
   canEquip,
   refineCost,
-  successRate,
   type EquipmentSlot,
-  type RefineResult,
 } from '../lib/forgeRules'
+import { forgeDurationSeconds } from '../lib/forgeTimers'
 import {
   gearRowToForgeItem,
   isGearRow,
@@ -25,11 +23,13 @@ import {
 
 export interface SelectedMeta {
   item: ForgeItem
-  rate: number
+  // Custo em Gold para INICIAR o refino temporizado.
   cost: number
+  // Duração total do refino (segundos) para o nível de refino atual.
+  durationSeconds: number
   isMax: boolean
   canAfford: boolean
-  // Regra de uso: item só pode ser equipado se item_level <= nível do personagem.
+  // Regra de uso: item só pode ser refinado se item_level <= nível do personagem.
   canEquip: boolean
   blockedByLevel: boolean
 }
@@ -71,8 +71,8 @@ export function useForge() {
   const [gold, setGold] = useState<number | null>(null)
   const [characterLevel, setCharacterLevel] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const [adBusy, setAdBusy] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [lastResult, setLastResult] = useState<RefineResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -161,6 +161,19 @@ export function useForge() {
     }
   }, [user])
 
+  // Item atualmente na Bigorna (no máximo 1 por jogador). Pode estar no
+  // inventário ou equipado.
+  const activeForgeItem = useMemo<ForgeItem | null>(() => {
+    const inInventory = inventory.find((item) => item.isInForge)
+    if (inInventory) return inInventory
+    return SLOTS.map((slot) => equipped[slot]).find((item) => item?.isInForge) ?? null
+  }, [equipped, inventory])
+
+  const activeForgeEndsAt = useMemo<string | null>(
+    () => activeForgeItem?.forgeEndsAt ?? null,
+    [activeForgeItem],
+  )
+
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null
     const spare = inventory.find((item) => item.id === selectedItemId)
@@ -177,8 +190,8 @@ export function useForge() {
     const levelOk = characterLevel !== null && canEquip(selectedItem.itemLevel, characterLevel)
     return {
       item: selectedItem,
-      rate: successRate(enhancementLevel),
       cost,
+      durationSeconds: forgeDurationSeconds(enhancementLevel),
       isMax: enhancementLevel >= MAX_REFINE_LEVEL,
       canAfford: gold !== null && gold >= cost,
       canEquip: levelOk,
@@ -194,92 +207,134 @@ export function useForge() {
     setSelectedItemId(null)
   }, [])
 
-  const refine = useCallback(async () => {
-    if (!user || gold === null || busy || !selectedItem) return
+  // Aplica a linha devolvida pelo servidor (verdade) no inventário ou no
+  // paperdoll, conforme onde o item vive.
+  const applyAuthoritativeItem = useCallback((item: ForgeItem) => {
+    setInventory((previous) => {
+      const exists = previous.some((i) => i.id === item.id)
+      return exists ? previous.map((i) => (i.id === item.id ? item : i)) : previous
+    })
+    setEquipped((previous) => {
+      const slot = SLOTS.find((s) => previous[s]?.id === item.id)
+      if (!slot) return previous
+      return { ...previous, [slot]: item }
+    })
+  }, [])
 
-    const outcome = attemptRefine(
-      selectedItem.slot,
-      selectedItem.itemLevel,
-      selectedItem.enhancementLevel,
-      gold,
-      Math.random(),
-    )
-    if (outcome.status === 'unavailable') {
-      setError(
-        outcome.reason === 'max_level'
-          ? 'Este item já está no refino máximo.'
-          : 'Gold insuficiente para essa tentativa.',
-      )
+  // Paga o Gold e inicia o refino temporizado (a Bigorna fica ocupada).
+  const startForge = useCallback(async () => {
+    if (!user || gold === null || busy || adBusy || !selectedItem) return
+    if (selectedItem.isInForge) return
+    if (selectedItem.enhancementLevel >= MAX_REFINE_LEVEL) return
+
+    const cost = refineCost(selectedItem.itemLevel, selectedItem.enhancementLevel)
+    if (gold < cost) {
+      setError('Gold insuficiente para iniciar o refino.')
       return
     }
 
-    const result = outcome.result
-    const previousEquipped = equipped
-    const previousInventory = inventory
     const previousGold = gold
-    const nextGold = gold - result.cost
-    const nextItem: ForgeItem = { ...selectedItem, enhancementLevel: result.enhancementAfter }
-    const isEquippedPiece = SLOTS.some((slot) => equipped[slot]?.id === selectedItem.id)
-
-    let nextEquipped = previousEquipped
-    let nextInventory = previousInventory
-    if (isEquippedPiece) {
-      nextEquipped = { ...previousEquipped, [selectedItem.slot]: nextItem }
-    } else {
-      nextInventory = previousInventory.map((item) =>
-        item.id === selectedItem.id ? nextItem : item,
-      )
-    }
-
     setError(null)
     setBusy(true)
-    setLastResult(result)
-    setEquipped(nextEquipped)
-    setInventory(nextInventory)
-    setGold(nextGold)
+    setGold(gold - cost)
 
-    // Persiste de forma atômica no servidor: a RPC valida o estado do item,
-    // desconta o Gold e aplica o novo enhancement. O rolamento veio do cliente.
-    const { data, error: rpcError } = await supabase.rpc('refine_item', {
+    const { data, error: rpcError } = await supabase.rpc('start_forge_refinement', {
       p_inventory_id: selectedItem.id,
-      p_success: result.success,
-      p_enhancement_level: selectedItem.enhancementLevel,
     })
 
     if (rpcError) {
-      setEquipped(previousEquipped)
-      setInventory(previousInventory)
       setGold(previousGold)
-      setLastResult(null)
       setError(rpcError.message)
-    } else {
-      // Usa a linha devolvida pelo servidor como verdade (evita divergência).
-      const row = ((data ?? []) as InventoryRow[]).find(isGearRow)
-      if (row) {
-        const authoritative = gearRowToForgeItem(row)
-        if (isEquippedPiece) {
-          setEquipped((previous) => ({
-            ...previous,
-            [authoritative.slot]: authoritative,
-          }))
-        } else {
-          setInventory((previous) =>
-            previous.map((item) =>
-              item.id === authoritative.id ? authoritative : item,
-            ),
-          )
-        }
-      }
+      setBusy(false)
+      return
     }
 
+    const row = ((data ?? []) as InventoryRow[]).find(isGearRow)
+    if (row) {
+      applyAuthoritativeItem(gearRowToForgeItem(row))
+    }
+    setSelectedItemId(null)
     setBusy(false)
-  }, [busy, equipped, gold, inventory, selectedItem, user])
+  }, [applyAuthoritativeItem, busy, adBusy, gold, selectedItem, user])
+
+  // Anúncio (mockado): 2s de "vídeo" e corta 25% do tempo RESTANTE.
+  const reduceForgeTime = useCallback(async () => {
+    if (!user || busy || adBusy || !activeForgeItem) return
+    setError(null)
+    setAdBusy(true)
+
+    // Mock do vídeo do anúncio.
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    const { data, error: rpcError } = await supabase.rpc('reduce_forge_time_ad', {
+      p_inventory_id: activeForgeItem.id,
+    })
+
+    setAdBusy(false)
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    const row = ((data ?? []) as InventoryRow[]).find(isGearRow)
+    if (row) {
+      applyAuthoritativeItem(gearRowToForgeItem(row))
+    }
+  }, [activeForgeItem, applyAuthoritativeItem, busy, adBusy, user])
+
+  // Coleta o item refina e libera a Bigorna (+1 de refino).
+  const collectForged = useCallback(async () => {
+    if (!user || busy || adBusy || !activeForgeItem) return
+    setError(null)
+    setBusy(true)
+
+    const { data, error: rpcError } = await supabase.rpc('collect_forged_item', {
+      p_inventory_id: activeForgeItem.id,
+    })
+
+    setBusy(false)
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    const row = ((data ?? []) as InventoryRow[]).find(isGearRow)
+    if (row) {
+      applyAuthoritativeItem(gearRowToForgeItem(row))
+    }
+  }, [activeForgeItem, applyAuthoritativeItem, busy, adBusy, user])
+
+  // Atalho discreto: conclui o refino imediatamente (ignora o timer).
+  const completeForge = useCallback(async () => {
+    if (!user || busy || adBusy || !activeForgeItem) return
+    setError(null)
+    setBusy(true)
+
+    const { data, error: rpcError } = await supabase.rpc('complete_forge_now', {
+      p_inventory_id: activeForgeItem.id,
+    })
+
+    setBusy(false)
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    const row = ((data ?? []) as InventoryRow[]).find(isGearRow)
+    if (row) {
+      applyAuthoritativeItem(gearRowToForgeItem(row))
+    }
+  }, [activeForgeItem, applyAuthoritativeItem, busy, adBusy, user])
 
   const equipFromInventory = useCallback(
     async (itemId: string, slot: EquipmentSlot) => {
       if (!user || busy) return
       const incoming = inventory.find((item) => item.id === itemId)
       if (!incoming) return
+      if (incoming.isInForge) {
+        setError('Este item está em refino na Bigorna.')
+        return
+      }
       if (characterLevel !== null && !canEquip(incoming.itemLevel, characterLevel)) {
         setError(
           `Item Nível ${incoming.itemLevel} requer personagem Nível ${incoming.itemLevel}.`,
@@ -380,13 +435,17 @@ export function useForge() {
     gold,
     characterLevel,
     busy,
+    adBusy,
     loading,
-    lastResult,
     error,
-    canUseForge: gold !== null,
+    activeForgeItem,
+    activeForgeEndsAt,
     selectItem,
     clearSelection,
-    refine,
+    startForge,
+    reduceForgeTime,
+    collectForged,
+    completeForge,
     equipFromInventory,
     openChest,
   }

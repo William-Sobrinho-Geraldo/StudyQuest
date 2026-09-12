@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
 import { Anvil } from '../features/forge/components/Anvil'
+import { ForgeTimerPanel } from '../features/forge/components/ForgeTimerPanel'
 import { InventoryGrid } from '../features/forge/components/InventoryGrid'
 import { ItemDetailModal } from '../features/forge/components/ItemDetailModal'
 import { Paperdoll } from '../features/forge/components/Paperdoll'
@@ -36,8 +37,28 @@ export function ForgePage() {
   }
 
   const handleSendToAnvil = (itemId: string) => {
+    if (forge.activeForgeItem) {
+      showToast('A Bigorna já está refinando um item.', 'info')
+      return
+    }
     forge.selectItem(itemId)
     document.getElementById('anvil-section')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
+
+  const handleStartRefine = () => {
+    void forge.startForge()
+  }
+
+  const handleWatchAd = () => {
+    void forge.reduceForgeTime()
+  }
+
+  const handleCollect = () => {
+    void forge.collectForged()
+  }
+
+  const handleCompleteNow = () => {
+    void forge.completeForge()
   }
 
   const handleOpenChest = async (chestId: string) => {
@@ -53,8 +74,9 @@ export function ForgePage() {
     <AppShell>
       <h1 className="text-2xl font-bold">Forge</h1>
       <p className="mt-1 text-sm text-slate-400">
-        Equipe seus itens (do seu nível ou abaixo), guarde sobressalentes no inventário e refine
-        na Bigorna. Do +5 em diante o refino tem risco.
+        Equipe seus itens (do seu nível ou abaixo), guarde sobressalentes no inventário e
+        refine na Bigorna. Pague Gold para iniciar o refino e aguarde o tempo real — ou assista
+        anúncios para acelerar.
       </p>
 
       <div className="mt-6 flex flex-col gap-4">
@@ -75,16 +97,26 @@ export function ForgePage() {
           onDetailItem={handleOpenDetail}
         />
 
-        <Anvil
-          gold={forge.gold}
-          selectedMeta={forge.selectedMeta}
-          busy={forge.busy}
-          lastResult={forge.lastResult}
-          error={forge.error}
-          canUseForge={forge.canUseForge}
-          onClearSelection={forge.clearSelection}
-          onRefine={() => void forge.refine()}
-        />
+        {forge.activeForgeItem ? (
+          <ForgeTimerPanel
+            item={forge.activeForgeItem}
+            endsAt={forge.activeForgeEndsAt}
+            gold={forge.gold}
+            adBusy={forge.adBusy}
+            error={forge.error}
+            onWatchAd={handleWatchAd}
+            onCollect={handleCollect}
+          />
+        ) : (
+          <Anvil
+            gold={forge.gold}
+            selectedMeta={forge.selectedMeta}
+            busy={forge.busy}
+            error={forge.error}
+            onClearSelection={forge.clearSelection}
+            onStartRefine={handleStartRefine}
+          />
+        )}
       </div>
 
       <div className="mt-4">
@@ -105,21 +137,22 @@ export function ForgePage() {
             baixo, de 10 em 10).
           </li>
           <li>
-            <span className="text-slate-300">+0 até +5</span> é sempre seguro (100% de sucesso).
+            A Bigorna refina <span className="text-slate-300">1 item por vez</span>, em tempo
+            real. Você paga o custo em Gold apenas para iniciar o refino.
           </li>
           <li>
-            Do <span className="text-slate-300">+5 em diante</span> a chance cai: 80% → 65% → 50%
-            → 35% → 20% → 10% → 5%.
+            O tempo do refino escala com o nível atual: <span className="text-slate-300">+0→+1 5 min</span>,{' '}
+            <span className="text-slate-300">+1→+2 30 min</span>, <span className="text-slate-300">+2→+3 2h</span>,{' '}
+            <span className="text-slate-300">+3→+4 6h</span>, <span className="text-slate-300">+4→+5 12h</span> e{' '}
+            <span className="text-slate-300">+5 em diante 24h</span>.
           </li>
           <li>
-            Em caso de falha, o item <span className="text-slate-300">perde 1 nível</span>. O item{' '}
-            <span className="text-slate-300">nunca quebra</span>.
+            Assista anúncios para <span className="text-slate-300">cortar 25% do tempo restante</span>{' '}
+            por vídeo — quantas vezes quiser.
           </li>
-          <li>O Gold da tentativa é consumido no sucesso e na falha (custo maior para itens de nível mais alto).</li>
           <li>
-            Toque em um item do <span className="text-slate-300">inventário</span> para equipá-lo,
-            ou toque em qualquer item e use <span className="text-slate-300">Enviar para Bigorna</span>{' '}
-            para refiná-lo.
+            Quando o tempo acabar, toque em <span className="text-slate-300">Coletar Item</span> para
+            ganhar +1 de refino e liberar a Bigorna.
           </li>
         </ul>
       </div>
@@ -131,6 +164,17 @@ export function ForgePage() {
           onClose={() => setDetailItem(null)}
           onEquip={handleEquip}
           onSendToAnvil={handleSendToAnvil}
+        />
+      )}
+
+      {/* Atalho de teste: conclui o refino de forma sutil e sem texto. */}
+      {forge.activeForgeItem && (
+        <button
+          type="button"
+          data-testid="complete-forge-now"
+          aria-label="Concluir refino"
+          onClick={handleCompleteNow}
+          className="fixed bottom-16 left-1/2 z-40 h-4 w-24 -translate-x-1/2 rounded-full bg-slate-500/25 opacity-40 transition hover:opacity-80"
         />
       )}
     </AppShell>

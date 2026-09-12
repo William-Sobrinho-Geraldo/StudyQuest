@@ -97,7 +97,9 @@ export type Database = {
           created_at: string
           enhancement_level: number
           equipped: boolean
+          forge_ends_at: string | null
           id: string
+          is_in_forge: boolean
           item_category: string
           item_level: number
           name: string | null
@@ -110,7 +112,9 @@ export type Database = {
           created_at?: string
           enhancement_level?: number
           equipped?: boolean
+          forge_ends_at?: string | null
           id?: string
+          is_in_forge?: boolean
           item_category: string
           item_level?: number
           name?: string | null
@@ -123,7 +127,9 @@ export type Database = {
           created_at?: string
           enhancement_level?: number
           equipped?: boolean
+          forge_ends_at?: string | null
           id?: string
+          is_in_forge?: boolean
           item_category?: string
           item_level?: number
           name?: string | null
@@ -650,6 +656,102 @@ export type Database = {
           enhancement_level: number
           equipped: boolean
           id: string
+          item_category: string
+          item_level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          stats: Json | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      collect_forged_item: {
+        Args: { p_inventory_id: string }
+        Returns: {
+          created_at: string
+          enhancement_level: number
+          equipped: boolean
+          forge_ends_at: string | null
+          id: string
+          is_in_forge: boolean
+          item_category: string
+          item_level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          stats: Json | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      complete_forge_now: {
+        Args: { p_inventory_id: string }
+        Returns: {
+          created_at: string
+          enhancement_level: number
+          equipped: boolean
+          forge_ends_at: string | null
+          id: string
+          is_in_forge: boolean
+          item_category: string
+          item_level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          stats: Json | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      reduce_forge_time_ad: {
+        Args: { p_inventory_id: string }
+        Returns: {
+          created_at: string
+          enhancement_level: number
+          equipped: boolean
+          forge_ends_at: string | null
+          id: string
+          is_in_forge: boolean
+          item_category: string
+          item_level: number
+          name: string | null
+          quantity: number
+          rarity: string
+          stats: Json | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      start_forge_refinement: {
+        Args: { p_inventory_id: string }
+        Returns: {
+          created_at: string
+          enhancement_level: number
+          equipped: boolean
+          forge_ends_at: string | null
+          id: string
+          is_in_forge: boolean
           item_category: string
           item_level: number
           name: string | null

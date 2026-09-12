@@ -13,6 +13,9 @@ export interface ForgeItem {
   // Nível de encantamento/refino atual (+0 até +12).
   enhancementLevel: number
   rarity?: ForgeRarity
+  // Refino temporizado: marca o item que está na Bigorna (1 por jogador).
+  isInForge?: boolean
+  forgeEndsAt?: string | null
 }
 
 // Equipados viraram um mapeamento parcial: usuários novos começam sem peças.
@@ -40,6 +43,9 @@ export interface GearInventoryRow {
   enhancement_level: number
   quantity: 1
   equipped: boolean
+  // Refino temporizado.
+  is_in_forge?: boolean
+  forge_ends_at?: string | null
   // Stats próprias da instância (multiplicadores futuros por rarity/item_level).
   stats?: Json | null
 }
@@ -56,6 +62,8 @@ export interface SupplyChestRow {
   enhancement_level: 0
   quantity: number
   equipped: false
+  is_in_forge?: false
+  forge_ends_at?: null
   stats?: Json | null
 }
 
@@ -77,6 +85,8 @@ export function gearRowToForgeItem(row: GearInventoryRow): ForgeItem {
     itemLevel: row.item_level,
     enhancementLevel: row.enhancement_level,
     rarity: row.rarity,
+    isInForge: row.is_in_forge ?? false,
+    forgeEndsAt: row.forge_ends_at ?? null,
   }
 }
 

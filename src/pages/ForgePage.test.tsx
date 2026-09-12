@@ -31,6 +31,9 @@ let insertResultRows: InventoryRow[]
 let updateError: { message: string } | null
 let rpcError: { message: string } | null
 let openChestResult: InventoryRow[]
+let startForgeResult: InventoryRow | null
+let reduceForgeResult: InventoryRow | null
+let collectForgeResult: InventoryRow | null
 
 interface Capture {
   profileUpdatePatches: unknown[]
@@ -45,6 +48,7 @@ function makeGear(
   enhancementLevel = 0,
   equipped = false,
   itemLevel = 10,
+  forge: { is_in_forge?: boolean; forge_ends_at?: string | null } = {},
 ): GearInventoryRow {
   return {
     id,
@@ -56,6 +60,8 @@ function makeGear(
     enhancement_level: enhancementLevel,
     quantity: 1,
     equipped,
+    is_in_forge: forge.is_in_forge ?? false,
+    forge_ends_at: forge.forge_ends_at ?? null,
   }
 }
 
@@ -126,21 +132,48 @@ function setupRpc() {
     if (rpcError) {
       return Promise.resolve({ data: null, error: rpcError })
     }
-    if (fn === 'refine_item') {
+    if (fn === 'start_forge_refinement') {
       const id = args.p_inventory_id as string
-      const success = args.p_success as boolean
-      const current = args.p_enhancement_level as number
-      const next = success
-        ? Math.min(current + 1, MAX_REFINE_LEVEL)
-        : Math.max(current - 1, 0)
       const row = inventoryRows.find((r) => r.id === id)
-      if (!row || row.item_category === 'supply_chest') {
-        return Promise.resolve({ data: [], error: null })
-      }
-      return Promise.resolve({
-        data: [{ ...row, enhancement_level: next }],
-        error: null,
-      })
+      const result =
+        startForgeResult ??
+        (row
+          ? {
+              ...row,
+              is_in_forge: true,
+              forge_ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            }
+          : null)
+      return Promise.resolve({ data: result ? [result] : [], error: null })
+    }
+    if (fn === 'reduce_forge_time_ad') {
+      const id = args.p_inventory_id as string
+      const row = inventoryRows.find((r) => r.id === id)
+      const result =
+        reduceForgeResult ??
+        (row
+          ? {
+              ...row,
+              is_in_forge: true,
+              forge_ends_at: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
+            }
+          : null)
+      return Promise.resolve({ data: result ? [result] : [], error: null })
+    }
+    if (fn === 'collect_forged_item' || fn === 'complete_forge_now') {
+      const id = args.p_inventory_id as string
+      const row = inventoryRows.find((r) => r.id === id)
+      const result =
+        collectForgeResult ??
+        (row
+          ? {
+              ...row,
+              enhancement_level: row.enhancement_level + 1,
+              is_in_forge: false,
+              forge_ends_at: null,
+            }
+          : null)
+      return Promise.resolve({ data: result ? [result] : [], error: null })
     }
     if (fn === 'open_inventory_chest') {
       return Promise.resolve({ data: openChestResult, error: null })
@@ -206,6 +239,9 @@ describe('ForgePage', () => {
     updateError = null
     rpcError = null
     openChestResult = []
+    startForgeResult = null
+    reduceForgeResult = null
+    collectForgeResult = null
   })
 
   afterEach(() => {
@@ -250,7 +286,7 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
   })
 
-  it('enviar item equipado para a bigorna prepara-a com chance, custo e botão habilitado', async () => {
+  it('enviar item equipado para a bigorna mostra custo, tempo e botão habilitado', async () => {
     inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     setupSut(emptyCapture())
     await renderReadyForge()
@@ -260,17 +296,17 @@ describe('ForgePage', () => {
     const summary = screen.getByTestId('anvil-selected-item')
     expect(summary).toHaveTextContent('Arma pronto para refino')
     expect(summary).toHaveTextContent('Espada do Aprendiz')
-    expect(summary).toHaveTextContent('80%')
     expect(summary).toHaveTextContent('160 Gold')
+    expect(summary).toHaveTextContent('24h')
 
-    const refineButton = screen.getByRole('button', {
-      name: 'Refinar Espada do Aprendiz de +5 para +6',
+    const startButton = screen.getByRole('button', {
+      name: 'Iniciar Refino Espada do Aprendiz de +5 para +6',
     })
-    expect(refineButton).toBeEnabled()
-    expect(refineButton).toHaveTextContent('Refinar +5 → +6')
+    expect(startButton).toBeEnabled()
+    expect(startButton).toHaveTextContent('Iniciar Refino +5 → +6')
   })
 
-  it('enviar item do inventário para a bigorna seleciona-o para refino', async () => {
+  it('enviar item do inventário para a bigorna prepara-o para iniciar o refino', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     setupSut(emptyCapture())
     await renderReadyForge()
@@ -280,97 +316,140 @@ describe('ForgePage', () => {
     const summary = screen.getByTestId('anvil-selected-item')
     expect(summary).toHaveTextContent('Elmo pronto para refino')
     expect(summary).toHaveTextContent('Coifa de Saber')
+    expect(summary).toHaveTextContent('5 min')
     expect(
-      screen.getByRole('button', { name: 'Refinar Coifa de Saber de +0 para +1' }),
+      screen.getByRole('button', { name: 'Iniciar Refino Coifa de Saber de +0 para +1' }),
     ).toBeEnabled()
   })
 
-  it('refina com sucesso quando o rand fica abaixo da taxa (+5 para +6)', async () => {
-    inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
-    const capture = emptyCapture()
-    const random = vi.spyOn(Math, 'random').mockReturnValue(0.5)
-    setupSut(capture)
-    await renderReadyForge()
-
-    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
-    )
-
-    expect(await screen.findByRole('status')).toHaveTextContent('Sucesso! Arma +5 → +6')
-    expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+6')
-    expect(screen.getByTestId('forge-gold')).toHaveTextContent('9840 Gold')
-
-    expect(rpc).toHaveBeenCalledWith('refine_item', {
-      p_inventory_id: 'weapon-eq',
-      p_success: true,
-      p_enhancement_level: 5,
-    })
-    expect(random).toHaveBeenCalledTimes(1)
-  })
-
-  it('aplica a regressão de nível na falha quando o rand passa da taxa (+5 para +4)', async () => {
-    inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
-    const capture = emptyCapture()
-    vi.spyOn(Math, 'random').mockReturnValue(0.9)
-    setupSut(capture)
-    await renderReadyForge()
-
-    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
-    )
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Falha! Arma +5 → +4')
-    expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+4')
-    expect(screen.getByTestId('forge-gold')).toHaveTextContent('9840 Gold')
-    expect(rpc).toHaveBeenCalledWith('refine_item', {
-      p_inventory_id: 'weapon-eq',
-      p_success: false,
-      p_enhancement_level: 5,
-    })
-  })
-
-  it('não bloqueia +0 para +1 mesmo com rand altíssimo (zona segura 100%)', async () => {
+  it('iniciar refino cobra o gold e ocupa a bigorna com o timer', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
-    vi.spyOn(Math, 'random').mockReturnValue(0.999_999)
     setupSut(emptyCapture())
     await renderReadyForge()
 
     sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
     fireEvent.click(
-      screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +0 para +1' }),
+      screen.getByRole('button', { name: 'Iniciar Refino Espada do Aprendiz de +0 para +1' }),
     )
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Sucesso! Arma +0 → +1')
-    expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+1')
+    expect(await screen.findByLabelText('Refino em andamento')).toBeInTheDocument()
+    expect(rpc).toHaveBeenCalledWith('start_forge_refinement', {
+      p_inventory_id: 'weapon-eq',
+    })
     expect(screen.getByTestId('forge-gold')).toHaveTextContent('9975 Gold')
+    expect(screen.getByTestId('forge-countdown')).toBeInTheDocument()
   })
 
-  it('bloqueia a tentativa quando o saldo não cobre o custo e mantém o nível', async () => {
+  it('mostra painel de refino com contador e botão de anúncio quando há item na bigorna', async () => {
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 0, false, 10, {
+        is_in_forge: true,
+        forge_ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      }),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    expect(screen.getByLabelText('Refino em andamento')).toBeInTheDocument()
+    expect(screen.getByTestId('forge-countdown')).toBeInTheDocument()
+    expect(screen.getByTestId('forge-watch-ad-button')).toHaveTextContent(
+      'Assistir Anúncio (-25% tempo)',
+    )
+    expect(screen.queryByTestId('anvil-empty-state')).not.toBeInTheDocument()
+  })
+
+  it('assistir anúncio reduz o tempo restante via reduce_forge_time_ad', async () => {
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 0, false, 10, {
+        is_in_forge: true,
+        forge_ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      }),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    fireEvent.click(screen.getByTestId('forge-watch-ad-button'))
+
+    await waitFor(
+      () =>
+        expect(rpc).toHaveBeenCalledWith('reduce_forge_time_ad', {
+          p_inventory_id: 'forging-helmet',
+        }),
+      { timeout: 3000 },
+    )
+  })
+
+  it('mostra Coletar Item quando o tempo acaba e libera a bigorna ao coletar', async () => {
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 3, false, 10, {
+        is_in_forge: true,
+        forge_ends_at: new Date(Date.now() - 1000).toISOString(),
+      }),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    expect(screen.getByTestId('forge-collect-button')).toBeInTheDocument()
+    expect(screen.queryByTestId('forge-countdown')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('forge-watch-ad-button')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('forge-collect-button'))
+
+    expect(rpc).toHaveBeenCalledWith('collect_forged_item', {
+      p_inventory_id: 'forging-helmet',
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inventory-item-forging-helmet')).toHaveTextContent('+4')
+    })
+    expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
+  })
+
+  it('botão discreto conclui o refino automaticamente', async () => {
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 3, false, 10, {
+        is_in_forge: true,
+        forge_ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      }),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    fireEvent.click(screen.getByTestId('complete-forge-now'))
+
+    expect(rpc).toHaveBeenCalledWith('complete_forge_now', {
+      p_inventory_id: 'forging-helmet',
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inventory-item-forging-helmet')).toHaveTextContent('+4')
+    })
+    expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
+    expect(screen.queryByTestId('complete-forge-now')).not.toBeInTheDocument()
+  })
+
+  it('bloqueia iniciar refino quando o saldo não cobre o custo', async () => {
     inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     goldValue = 100
-    const capture = emptyCapture()
-    vi.spyOn(Math, 'random').mockReturnValue(0.1)
-    setupSut(capture)
+    setupSut(emptyCapture())
     await renderReadyForge()
 
     sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
 
-    const refineButton = screen.getByRole('button', {
-      name: 'Refinar Espada do Aprendiz de +5 para +6',
+    const startButton = screen.getByRole('button', {
+      name: 'Iniciar Refino Espada do Aprendiz de +5 para +6',
     })
-    expect(refineButton).toBeDisabled()
-    expect(screen.getByText('Gold insuficiente para esta tentativa.')).toBeInTheDocument()
+    expect(startButton).toBeDisabled()
+    expect(screen.getByText('Gold insuficiente para iniciar o refino.')).toBeInTheDocument()
 
-    fireEvent.click(refineButton)
+    fireEvent.click(startButton)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+5')
-    })
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(rpc).not.toHaveBeenCalledWith('refine_item', expect.anything())
+    expect(screen.queryByLabelText('Refino em andamento')).not.toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalledWith('start_forge_refinement', expect.anything())
   })
 
   it('desabilita o botão no refino máximo (+12)', async () => {
@@ -385,20 +464,19 @@ describe('ForgePage', () => {
     expect(maxButton).toHaveTextContent(`Máximo (+${MAX_REFINE_LEVEL})`)
   })
 
-  it('falha ao persistir o refino na RPC reverte o nível e restaura o saldo', async () => {
+  it('falha ao iniciar o refino na RPC restaura o saldo', async () => {
     inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     rpcError = { message: 'update falhou' }
-    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     setupSut(emptyCapture())
     await renderReadyForge()
 
     sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
     fireEvent.click(
-      screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
+      screen.getByRole('button', { name: 'Iniciar Refino Espada do Aprendiz de +5 para +6' }),
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent('update falhou')
-    expect(screen.getByTestId('equipment-slot-weapon')).toHaveTextContent('+5')
+    expect(screen.queryByLabelText('Refino em andamento')).not.toBeInTheDocument()
     expect(screen.getByTestId('forge-gold')).toHaveTextContent('10000 Gold')
   })
 
