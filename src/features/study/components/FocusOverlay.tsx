@@ -1,11 +1,8 @@
-import { BookOpen, Flag, Pause, Play, X } from 'lucide-react'
+import { BookOpen, Pause, Play, X } from 'lucide-react'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 
 const PAUSE_BUTTON =
   'flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 text-base font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
-
-const FINISH_BUTTON =
-  'flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-6 text-sm font-semibold text-slate-300 transition hover:border-indigo-500 hover:text-white'
 
 export function FocusOverlay() {
   const timer = useStudyTimerContext()
@@ -84,13 +81,17 @@ export function FocusOverlay() {
               Retomar
             </button>
           ) : null}
-
-          <button type="button" onClick={handleFinish} className={FINISH_BUTTON}>
-            <Flag className="h-4 w-4" aria-hidden="true" />
-            Concluir Sessão
-          </button>
         </footer>
       </div>
+
+      {/* Atalho de teste: conclui a sessão de forma sutil e sem texto. */}
+      <button
+        type="button"
+        data-testid="finish-session"
+        aria-label="Concluir sessão"
+        onClick={handleFinish}
+        className="absolute bottom-1.5 left-1/2 h-4 w-24 -translate-x-1/2 rounded-full bg-slate-500/25 opacity-40 transition hover:opacity-80"
+      />
     </div>
   )
 }
