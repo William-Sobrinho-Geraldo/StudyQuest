@@ -5,7 +5,6 @@ import { ToastProvider } from '../components/Toast'
 import { AuthProvider } from '../features/auth/AuthContext'
 import { EQUIPMENT_STORAGE_KEY, type GearInventoryRow, type InventoryRow } from '../features/forge/lib/forgeItems'
 import { MAX_REFINE_LEVEL, SLOTS, type EquipmentSlot } from '../features/forge/lib/forgeRules'
-import { ITEM_DRAG_SLOT_TYPE } from '../features/forge/lib/dragAndDrop'
 import { ForgePage } from './ForgePage'
 
 const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
@@ -181,45 +180,19 @@ async function renderReadyForge() {
   return screen.getByTestId('forge-gold')
 }
 
-function makeDataTransfer(): DataTransfer {
-  try {
-    if (typeof DataTransfer !== 'undefined') {
-      const dataTransfer = new DataTransfer()
-      dataTransfer.setData('text/plain', 'probe')
-      dataTransfer.getData('text/plain')
-      dataTransfer.clearData()
-      return dataTransfer
-    }
-  } catch {
-    // jsdom sem suporte completo de DataTransfer: usa um stub equivalente.
-  }
-
-  const store = new Map<string, string>()
-  return {
-    dropEffect: 'none',
-    effectAllowed: 'all',
-    files: [],
-    items: [],
-    types: [],
-    setData: (type: string, value: string) => store.set(type, value),
-    getData: (type: string) => store.get(type) ?? '',
-    clearData: () => store.clear(),
-    setDragImage: () => {},
-  } as unknown as DataTransfer
-}
-
-function dragAndDrop(source: HTMLElement, target: HTMLElement) {
-  const dataTransfer = makeDataTransfer()
-  fireEvent.dragStart(source, { dataTransfer })
-  fireEvent.drop(target, { dataTransfer })
-  fireEvent.dragEnd(source)
-}
-
-// O ItemCard abre o modal por pointerdown/up (com limiar de 300ms para não
-// conflitar com o drag). fireEvent.click não dispara esses eventos.
+// A interação primária é o toque: abre o modal de detalhes do item.
 function tapCard(card: HTMLElement) {
-  fireEvent.pointerDown(card)
-  fireEvent.pointerUp(card)
+  fireEvent.click(card)
+}
+
+function sendToAnvil(card: HTMLElement) {
+  tapCard(card)
+  fireEvent.click(screen.getByRole('button', { name: /enviar para bigorna/i }))
+}
+
+function equipFromModal(card: HTMLElement) {
+  tapCard(card)
+  fireEvent.click(screen.getByRole('button', { name: /equipar/i }))
 }
 
 describe('ForgePage', () => {
@@ -277,15 +250,12 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('inventory-count')).toHaveTextContent('1 / 24 itens')
   })
 
-  it('arrastar item para a bigorna prepara-a com chance, custo e botão habilitado', async () => {
+  it('enviar item equipado para a bigorna prepara-a com chance, custo e botão habilitado', async () => {
     inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
 
     const summary = screen.getByTestId('anvil-selected-item')
     expect(summary).toHaveTextContent('Arma pronto para refino')
@@ -300,15 +270,12 @@ describe('ForgePage', () => {
     expect(refineButton).toHaveTextContent('Refinar +5 → +6')
   })
 
-  it('arrastar item do inventário para a bigorna seleciona-o para refino', async () => {
+  it('enviar item do inventário para a bigorna seleciona-o para refino', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('inventory-item-spare-helmet-0'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('inventory-item-spare-helmet-0'))
 
     const summary = screen.getByTestId('anvil-selected-item')
     expect(summary).toHaveTextContent('Elmo pronto para refino')
@@ -325,10 +292,7 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
     )
@@ -352,10 +316,7 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
     )
@@ -376,10 +337,7 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +0 para +1' }),
     )
@@ -397,10 +355,7 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
 
     const refineButton = screen.getByRole('button', {
       name: 'Refinar Espada do Aprendiz de +5 para +6',
@@ -423,10 +378,7 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
 
     const maxButton = screen.getByRole('button', { name: 'Refinar Espada do Aprendiz (máximo)' })
     expect(maxButton).toBeDisabled()
@@ -440,10 +392,7 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
+    sendToAnvil(screen.getByTestId('equipment-slot-weapon'))
     fireEvent.click(
       screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
     )
@@ -453,51 +402,13 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('forge-gold')).toHaveTextContent('10000 Gold')
   })
 
-  it('arrastar um item equipado até a bigorna seleciona-o para refino', async () => {
-    inventoryRows = [...forgeRows(5), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
-    setupSut(emptyCapture())
-    await renderReadyForge()
-
-    dragAndDrop(
-      screen.getByTestId('equipment-slot-weapon'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
-
-    const summary = screen.getByTestId('anvil-selected-item')
-    expect(summary).toHaveTextContent('Espada do Aprendiz')
-    expect(summary).toHaveTextContent('80%')
-    expect(
-      screen.getByRole('button', { name: 'Refinar Espada do Aprendiz de +5 para +6' }),
-    ).toBeEnabled()
-  })
-
-  it('arrastar um item do inventário até a bigorna seleciona-o para refino', async () => {
-    inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Coifa de Saber')]
-    setupSut(emptyCapture())
-    await renderReadyForge()
-
-    dragAndDrop(
-      screen.getByTestId('inventory-item-spare-helmet-0'),
-      screen.getByTestId('anvil-drop-zone'),
-    )
-
-    const summary = screen.getByTestId('anvil-selected-item')
-    expect(summary).toHaveTextContent('Coifa de Saber')
-    expect(
-      screen.getByRole('button', { name: 'Refinar Coifa de Saber de +0 para +1' }),
-    ).toBeEnabled()
-  })
-
-  it('arrastar item do inventário sobre um slot equipa e devolve o antigo ao inventário', async () => {
+  it('equipar item do inventário devolve o antigo ao inventário', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-weapon-0', 'weapon', 'Lâmina de Estudo')]
     const capture = emptyCapture()
     setupSut(capture)
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('inventory-item-spare-weapon-0'),
-      screen.getByTestId('equipment-slot-weapon'),
-    )
+    equipFromModal(screen.getByTestId('inventory-item-spare-weapon-0'))
 
     await waitFor(() => {
       fireEvent.mouseEnter(screen.getByTestId('equipment-slot-weapon'))
@@ -514,38 +425,13 @@ describe('ForgePage', () => {
     expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true })
   })
 
-  it('rejeita soltar item em slot de tipo diferente sem chamar o banco', async () => {
-    inventoryRows = [
-      ...forgeRows(),
-      makeGear('spare-chest-0', 'chest', 'Peitoral de Ferro', 0, false),
-    ]
-    const capture = emptyCapture()
-    setupSut(capture)
-    await renderReadyForge()
-
-    dragAndDrop(
-      screen.getByTestId('inventory-item-spare-chest-0'),
-      screen.getByTestId('equipment-slot-boots'),
-    )
-
-    expect(screen.getByTestId('inventory-item-spare-chest-0')).toBeInTheDocument()
-    fireEvent.mouseEnter(screen.getByTestId('equipment-slot-boots'))
-    expect(screen.getByTestId('equipment-slot-boots-tooltip')).toHaveTextContent(
-      'Botas do Peregrino',
-    )
-    expect(capture.inventoryUpdatePatches).toHaveLength(0)
-  })
-
-  it('aceita soltar item no slot do tipo correspondente (mesma categoria)', async () => {
+  it('equipa item do inventário no slot correspondente', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-helmet-0', 'helmet', 'Elmo de Ferro', 0, false)]
     const capture = emptyCapture()
     setupSut(capture)
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('inventory-item-spare-helmet-0'),
-      screen.getByTestId('equipment-slot-helmet'),
-    )
+    equipFromModal(screen.getByTestId('inventory-item-spare-helmet-0'))
 
     await waitFor(() =>
       expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true }),
@@ -556,7 +442,7 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('equipment-slot-helmet-tooltip')).toHaveTextContent('Elmo de Ferro')
   })
 
-  it('troca a bota equipada ao soltar uma nova bota no slot (desequipa antes de equipar)', async () => {
+  it('troca a bota equipada ao equipar uma nova bota', async () => {
     inventoryRows = [
       ...forgeRows(),
       makeGear('spare-boots-0', 'boots', 'Botas do Andarilho', 0, false),
@@ -565,10 +451,7 @@ describe('ForgePage', () => {
     setupSut(capture)
     await renderReadyForge()
 
-    dragAndDrop(
-      screen.getByTestId('inventory-item-spare-boots-0'),
-      screen.getByTestId('equipment-slot-boots'),
-    )
+    equipFromModal(screen.getByTestId('inventory-item-spare-boots-0'))
 
     await waitFor(() =>
       expect(capture.inventoryUpdatePatches).toContainEqual({ equipped: true }),
@@ -596,26 +479,6 @@ describe('ForgePage', () => {
     )
   })
 
-  it('ignora drop forçado em slot sem drag real do item (defesa contra payload simulado)', async () => {
-    characterLevelValue = 23
-    inventoryRows = [
-      ...forgeRows(),
-      makeGear('spare-high-0', 'weapon', 'Lâmina de Estudo', 0, false, 30),
-    ]
-    const capture = emptyCapture()
-    setupSut(capture)
-    await renderReadyForge()
-
-    const dataTransfer = makeDataTransfer()
-    dataTransfer.setData('text/plain', 'spare-high-0')
-    dataTransfer.setData(ITEM_DRAG_SLOT_TYPE, 'weapon')
-    fireEvent.drop(screen.getByTestId('equipment-slot-weapon'), { dataTransfer })
-
-    expect(capture.inventoryUpdatePatches).toHaveLength(0)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByTestId('inventory-item-spare-high-0')).toBeInTheDocument()
-  })
-
   it('item acima do nível fica bloqueado no inventário (sem selecionar ou refinar)', async () => {
     characterLevelValue = 15
     inventoryRows = [
@@ -634,22 +497,6 @@ describe('ForgePage', () => {
 
     expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
     expect(screen.queryByTestId('anvil-selected-item')).not.toBeInTheDocument()
-  })
-
-  it('some o tooltip ao iniciar o arrasto e não o deixa preso após o drop', async () => {
-    inventoryRows = [...forgeRows(), makeGear('spare-weapon-0', 'weapon', 'Lâmina de Estudo')]
-    setupSut(emptyCapture())
-    await renderReadyForge()
-
-    const card = screen.getByTestId('inventory-item-spare-weapon-0')
-    fireEvent.mouseEnter(card)
-    expect(screen.getByTestId('inventory-item-spare-weapon-0-tooltip')).toBeInTheDocument()
-
-    fireEvent.dragStart(card, { dataTransfer: makeDataTransfer() })
-    expect(screen.queryByTestId('inventory-item-spare-weapon-0-tooltip')).not.toBeInTheDocument()
-
-    fireEvent.dragEnd(card)
-    expect(screen.queryByTestId('inventory-item-spare-weapon-0-tooltip')).not.toBeInTheDocument()
   })
 
   it('abre um baú, consome a quantidade e adiciona o equipamento ao inventário', async () => {
@@ -761,12 +608,8 @@ describe('ForgePage', () => {
     tapCard(screen.getByTestId('inventory-item-spare-helmet-0'))
 
     expect(screen.getByRole('heading', { name: 'Coifa de Saber' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Equipar/ }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Enviar para Bigorna/ }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Equipar/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enviar para Bigorna/ })).toBeInTheDocument()
   })
 
   it('abre detalhe de item equipado sem o botão Equipar', async () => {
@@ -778,19 +621,16 @@ describe('ForgePage', () => {
 
     expect(screen.getByRole('heading', { name: 'Espada do Aprendiz' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Equipar/ })).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Enviar para Bigorna/ }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enviar para Bigorna/ })).toBeInTheDocument()
   })
 
-  it('Equipar fecha o modal e equipa o item do inventário via clique (sem drag)', async () => {
+  it('Equipar fecha o modal e equipa o item do inventário via clique', async () => {
     inventoryRows = [...forgeRows(), makeGear('spare-weapon-0', 'weapon', 'Lâmina de Estudo')]
     const capture = emptyCapture()
     setupSut(capture)
     await renderReadyForge()
 
-    tapCard(screen.getByTestId('inventory-item-spare-weapon-0'))
-    fireEvent.click(screen.getByRole('button', { name: /Equipar/ }))
+    equipFromModal(screen.getByTestId('inventory-item-spare-weapon-0'))
 
     expect(screen.queryByRole('heading', { name: 'Lâmina de Estudo' })).not.toBeInTheDocument()
     await waitFor(() =>
@@ -808,8 +648,7 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    tapCard(screen.getByTestId('inventory-item-spare-helmet-0'))
-    fireEvent.click(screen.getByRole('button', { name: /Enviar para Bigorna/ }))
+    sendToAnvil(screen.getByTestId('inventory-item-spare-helmet-0'))
 
     expect(screen.queryByRole('heading', { name: 'Coifa de Saber' })).not.toBeInTheDocument()
     const summary = screen.getByTestId('anvil-selected-item')

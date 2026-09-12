@@ -1,8 +1,6 @@
-import type { DragEvent } from 'react'
 import { Coins, Hammer, Loader2, X } from 'lucide-react'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { MAX_REFINE_LEVEL, SLOT_LABELS, type RefineResult } from '../lib/forgeRules'
-import { readItemDrag } from '../lib/dragAndDrop'
 import type { SelectedMeta } from '../hooks/useForge'
 import { ItemBadge } from './ItemBadge'
 
@@ -20,9 +18,6 @@ interface AnvilProps {
   lastResult: RefineResult | null
   error: string | null
   canUseForge: boolean
-  dragOver: boolean
-  onDragOver: (value: boolean) => void
-  onDropItem: (itemId: string) => void
   onClearSelection: () => void
   onRefine: () => void
 }
@@ -34,9 +29,6 @@ export function Anvil({
   lastResult,
   error,
   canUseForge,
-  dragOver,
-  onDragOver,
-  onDropItem,
   onClearSelection,
   onRefine,
 }: AnvilProps) {
@@ -59,7 +51,7 @@ export function Anvil({
         <div className="flex items-center gap-2 text-sm">
           <Hammer className="h-5 w-5 text-orange-400" aria-hidden="true" />
           <span className="font-semibold text-white">Bigorna</span>
-          <span className="text-xs text-slate-500">— solte o item a refinar</span>
+          <span className="text-xs text-slate-500">— toque em um item para prepará-lo</span>
         </div>
         <span
           data-testid="forge-gold"
@@ -70,32 +62,7 @@ export function Anvil({
         </span>
       </div>
 
-      <div
-        data-testid="anvil-drop-zone"
-        onDragOver={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          onDragOver(true)
-        }}
-        onDragLeave={(event) => {
-          const related = event.relatedTarget
-          if (!(related instanceof Node) || !event.currentTarget.contains(related)) {
-            onDragOver(false)
-          }
-        }}
-        onDrop={(event: DragEvent<HTMLDivElement>) => {
-          event.preventDefault()
-          event.stopPropagation()
-          onDragOver(false)
-          const itemId = readItemDrag(event)
-          if (itemId) onDropItem(itemId)
-        }}
-        className={`mt-4 flex min-h-40 items-center justify-center rounded-xl border-2 p-4 transition ${
-          dragOver
-            ? 'border-orange-400 bg-orange-500/10 ring-2 ring-orange-400/30'
-            : 'border-dashed border-slate-700 bg-slate-950/40'
-        }`}
-      >
+      <div className="mt-4 flex min-h-40 items-center justify-center rounded-xl border-2 border-dashed border-slate-700 bg-slate-950/40 p-4">
         {selectedMeta ? (
           <div
             data-testid="anvil-selected-item"
@@ -147,10 +114,13 @@ export function Anvil({
             </div>
           </div>
         ) : (
-          <div data-testid="anvil-empty-state" className="flex flex-col items-center gap-2 text-center">
+          <div
+            data-testid="anvil-empty-state"
+            className="flex flex-col items-center gap-2 text-center"
+          >
             <Hammer className="h-8 w-8 text-slate-600" aria-hidden="true" />
             <p className="text-sm text-slate-400">
-              Solte um item aqui (inventário ou equipado) ou clique em qualquer item para
+              Toque em um item do inventário ou equipado e use “Enviar para Bigorna” para
               prepará-lo no refino.
             </p>
           </div>

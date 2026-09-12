@@ -17,9 +17,6 @@ import { calculateTotalStats } from '../utils/statsCalculator'
 export function ForgePage() {
   const forge = useForge()
   const { showToast } = useToast()
-  const [dragOverSlot, setDragOverSlot] = useState<EquipmentSlot | null>(null)
-  const [anvilDragOver, setAnvilDragOver] = useState(false)
-  const [draggedItemType, setDraggedItemType] = useState<EquipmentSlot | null>(null)
   const [detailItem, setDetailItem] = useState<ForgeItem | null>(null)
 
   const totalStats = useMemo(() => calculateTotalStats(forge.equipped), [forge.equipped])
@@ -64,13 +61,8 @@ export function ForgePage() {
         <Paperdoll
           equipped={forge.equipped}
           selectedItemId={forge.selectedItemId}
-          dragOverSlot={dragOverSlot}
-          draggedItemType={draggedItemType}
           characterLevel={forge.characterLevel}
           onDetailItem={handleOpenDetail}
-          onDragOverSlot={setDragOverSlot}
-          onDropOnSlot={(itemId, slot) => void forge.equipFromInventory(itemId, slot)}
-          onDragTypeChange={setDraggedItemType}
         />
 
         <PlayerStatsPanel stats={totalStats} />
@@ -81,7 +73,6 @@ export function ForgePage() {
           selectedItemId={forge.selectedItemId}
           characterLevel={forge.characterLevel}
           onDetailItem={handleOpenDetail}
-          onDragTypeChange={setDraggedItemType}
         />
 
         <Anvil
@@ -91,9 +82,6 @@ export function ForgePage() {
           lastResult={forge.lastResult}
           error={forge.error}
           canUseForge={forge.canUseForge}
-          dragOver={anvilDragOver}
-          onDragOver={setAnvilDragOver}
-          onDropItem={forge.selectItem}
           onClearSelection={forge.clearSelection}
           onRefine={() => void forge.refine()}
         />
@@ -129,9 +117,9 @@ export function ForgePage() {
           </li>
           <li>O Gold da tentativa é consumido no sucesso e na falha (custo maior para itens de nível mais alto).</li>
           <li>
-            Arraste itens do <span className="text-slate-300">inventário</span> sobre os slots de{' '}
-            <span className="text-slate-300">equipamento</span> para equipá-los, ou sobre a{' '}
-            <span className="text-slate-300">Bigorna</span> para refiná-los.
+            Toque em um item do <span className="text-slate-300">inventário</span> para equipá-lo,
+            ou toque em qualquer item e use <span className="text-slate-300">Enviar para Bigorna</span>{' '}
+            para refiná-lo.
           </li>
         </ul>
       </div>

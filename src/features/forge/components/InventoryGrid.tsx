@@ -1,8 +1,6 @@
-import type { DragEvent } from 'react'
 import { Backpack, Box } from 'lucide-react'
-import { canEquip, type EquipmentSlot } from '../lib/forgeRules'
+import { canEquip } from '../lib/forgeRules'
 import type { ForgeItem } from '../lib/forgeItems'
-import { beginItemDrag } from '../lib/dragAndDrop'
 import { ItemCard } from './ItemCard'
 
 interface InventoryCellProps {
@@ -10,10 +8,9 @@ interface InventoryCellProps {
   selected: boolean
   blocked: boolean
   onDetail: (id: string) => void
-  onDragTypeChange: (type: EquipmentSlot | null) => void
 }
 
-function InventoryCell({ item, selected, blocked, onDetail, onDragTypeChange }: InventoryCellProps) {
+function InventoryCell({ item, selected, blocked, onDetail }: InventoryCellProps) {
   return (
     <ItemCard
       item={item}
@@ -21,7 +18,6 @@ function InventoryCell({ item, selected, blocked, onDetail, onDragTypeChange }: 
       blocked={blocked}
       role="button"
       tabIndex={blocked ? -1 : 0}
-      draggable={!blocked}
       data-testid={`inventory-item-${item.id}`}
       aria-label={
         blocked
@@ -29,14 +25,10 @@ function InventoryCell({ item, selected, blocked, onDetail, onDragTypeChange }: 
           : `Refinar ${item.name} de +${item.enhancementLevel}`
       }
       title={blocked ? `Requer personagem Nível ${item.itemLevel}` : undefined}
-      onDetailClick={() => {
+      onClick={() => {
         if (!blocked) onDetail(item.id)
       }}
-      onDragStart={(event: DragEvent<HTMLDivElement>) => {
-        if (!blocked) beginItemDrag(event, item.id)
-      }}
-      onDragTypeChange={onDragTypeChange}
-      className={blocked ? 'aspect-square p-2 cursor-not-allowed' : 'aspect-square p-2 cursor-grab'}
+      className="aspect-square p-2"
     />
   )
 }
@@ -47,7 +39,6 @@ interface InventoryGridProps {
   selectedItemId: string | null
   characterLevel: number | null
   onDetailItem: (id: string) => void
-  onDragTypeChange: (type: EquipmentSlot | null) => void
 }
 
 export function InventoryGrid({
@@ -56,7 +47,6 @@ export function InventoryGrid({
   selectedItemId,
   characterLevel,
   onDetailItem,
-  onDragTypeChange,
 }: InventoryGridProps) {
   const isBlocked = (item: ForgeItem) =>
     characterLevel !== null && !canEquip(item.itemLevel, characterLevel)
@@ -86,7 +76,6 @@ export function InventoryGrid({
               selected={item.id === selectedItemId}
               blocked={isBlocked(item)}
               onDetail={onDetailItem}
-              onDragTypeChange={onDragTypeChange}
             />
           ) : (
             <div

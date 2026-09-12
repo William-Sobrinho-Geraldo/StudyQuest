@@ -1,29 +1,20 @@
 import { Lock } from 'lucide-react'
-import { useRef, useState, type ComponentPropsWithoutRef, type DragEvent } from 'react'
+import { useState, type ComponentPropsWithoutRef } from 'react'
 import { getItemImage } from '../../../utils/itemVisuals'
 import type { ForgeItem } from '../lib/forgeItems'
-import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
-import { setItemDragSlot } from '../lib/dragAndDrop'
+import { SLOT_LABELS } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
-
-// Imagem 1x1 transparente usada como ghost do drag (evita snapshot do DOM).
-const TRANSPARENT_DRAG_IMAGE =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
 interface ItemCardProps {
   item: ForgeItem
   blocked?: boolean
   selected?: boolean
-  accent?: boolean
-  dragTarget?: boolean
   className?: string
-  onDragTypeChange?: (type: EquipmentSlot | null) => void
-  onDetailClick?: () => void
 }
 
-// O rest são atributos/props padrão de <div> (role, event handlers, aria-*,
-// title...) repassados ao quadrado draggable do card. O tooltip vive em um nó
-// irmão e só é montado fora do arrasto para nunca entrar na ghost image.
+// O restante são atributos/props padrão de <div> (role, event handlers,
+// aria-*, title...) repassados ao card clicável. O tooltip vive em um nó
+// irmão e é montado apenas no hover/focus.
 type ItemCardRootProps = Omit<
   ComponentPropsWithoutRef<'div'>,
   keyof ItemCardProps | 'children'
@@ -35,80 +26,23 @@ export function ItemCard({
   item,
   blocked = false,
   selected = false,
-  accent = false,
-  dragTarget = false,
   className = '',
-  onDragTypeChange,
-  onDetailClick,
   ...rest
 }: ItemCardProps & ItemCardRootProps) {
-  const {
-    'data-testid': dataTestId,
-    onDragStart: originalDragStart,
-    onDragEnd: originalDragEnd,
-    onFocus: originalFocus,
-    onBlur: originalBlur,
-    ...divProps
-  } = rest
-  const [isDragging, setIsDragging] = useState(false)
+  const { 'data-testid': dataTestId, onFocus, onBlur, ...divProps } = rest
   const [showTooltip, setShowTooltip] = useState(false)
-  const pointerDownTime = useRef(0)
-  const didDrag = useRef(false)
   const { border, glow, text } = rarityStyle(item.rarity)
 
-  const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
-    didDrag.current = true
-    setIsDragging(true)
-    setShowTooltip(false)
-    if (typeof event.dataTransfer.setDragImage === 'function') {
-      const dragIcon = new Image()
-      dragIcon.src = TRANSPARENT_DRAG_IMAGE
-      event.dataTransfer.setDragImage(dragIcon, 0, 0)
-    }
-    setItemDragSlot(event, item.slot)
-    onDragTypeChange?.(item.slot)
-    originalDragStart?.(event)
-  }
-
-  const handleDragEnd = (event: DragEvent<HTMLDivElement>) => {
-    setIsDragging(false)
-    setShowTooltip(false)
-    onDragTypeChange?.(null)
-    originalDragEnd?.(event)
-  }
-
-  const handlePointerDown = () => {
-    pointerDownTime.current = performance.now()
-    didDrag.current = false
-  }
-
-  const handlePointerUp = () => {
-    const elapsed = performance.now() - pointerDownTime.current
-    if (!didDrag.current && elapsed < 300) {
-      onDetailClick?.()
-    }
-  }
-
-  const ringClass = !blocked
-    ? selected
-      ? 'ring-2 ring-indigo-500/40'
-      : accent
-        ? 'ring-2 ring-orange-400/50'
-        : dragTarget
-          ? 'ring-2 ring-white/40'
-          : ''
-    : ''
-
   const cardClasses = [
-    'relative flex items-center justify-center rounded-xl border-2 bg-slate-800/90 transition',
-    blocked ? 'border-slate-700/80 opacity-50' : `${border} ${glow}`,
-    ringClass,
+    'relative flex items-center justify-center rounded-xl border-2 bg-slate-800/90 touch-manipulation select-none transition-transform',
+    blocked
+      ? 'cursor-not-allowed border-slate-700/80 opacity-50'
+      : `cursor-pointer active:scale-95 ${border} ${glow}`,
+    selected && !blocked ? 'ring-2 ring-indigo-500/40' : '',
     className,
   ]
     .filter(Boolean)
     .join(' ')
-
-  const tooltipVisible = showTooltip && !isDragging
 
   return (
     <div className="relative">
@@ -119,16 +53,12 @@ export function ItemCard({
         onMouseLeave={() => setShowTooltip(false)}
         onFocus={(event) => {
           setShowTooltip(true)
-          originalFocus?.(event)
+          onFocus?.(event)
         }}
         onBlur={(event) => {
           setShowTooltip(false)
-          originalBlur?.(event)
+          onBlur?.(event)
         }}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
         className={cardClasses}
       >
         {blocked ? (
@@ -163,7 +93,7 @@ export function ItemCard({
         )}
       </div>
 
-      {tooltipVisible && (
+      {showTooltip && (
         <div
           data-testid={dataTestId ? `${dataTestId}-tooltip` : undefined}
           role="tooltip"
