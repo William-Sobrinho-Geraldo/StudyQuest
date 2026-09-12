@@ -1,7 +1,7 @@
 import { Lock } from 'lucide-react'
+import { getItemImage } from '../../../utils/itemVisuals'
 import type { ForgeItem } from '../lib/forgeItems'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
-import { SLOT_ICONS } from './slotIcons'
 
 interface ItemBadgeProps {
   item: ForgeItem
@@ -10,7 +10,6 @@ interface ItemBadgeProps {
 }
 
 export function ItemBadge({ item, vertical = false, blocked = false }: ItemBadgeProps) {
-  const Icon = SLOT_ICONS[item.slot]
   const style = rarityStyle(item.rarity)
 
   return (
@@ -22,14 +21,20 @@ export function ItemBadge({ item, vertical = false, blocked = false }: ItemBadge
       }
     >
       <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 ${
+        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-800 ${
           blocked ? 'opacity-50' : ''
         }`}
       >
         {blocked ? (
           <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
         ) : (
-          <Icon className={`h-4 w-4 ${style.icon}`} aria-hidden="true" />
+          <img
+            src={getItemImage(item.name, item.slot)}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+          />
         )}
       </span>
       <span className="min-w-0">

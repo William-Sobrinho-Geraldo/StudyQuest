@@ -1,6 +1,6 @@
 import { Check, Coins, Loader2, Swords, X } from 'lucide-react'
+import { getItemImage } from '../../../utils/itemVisuals'
 import { SLOT_LABELS } from '../../forge/lib/forgeRules'
-import { SLOT_ICONS } from '../../forge/components/slotIcons'
 import { RARITY_LABELS, rarityStyle } from '../../forge/lib/rarityStyles'
 import { calculateItemStats } from '../../../utils/statsCalculator'
 import { SHOWCASE_SLOT_INDEX, type ShopSlot } from '../lib/shopItems'
@@ -24,7 +24,6 @@ export function ShopCard({
   onBuy,
   onDetail,
 }: ShopCardProps) {
-  const Icon = SLOT_ICONS[slot.item_category]
   const style = rarityStyle(slot.rarity)
   const isShowcase = slot.slot === SHOWCASE_SLOT_INDEX
   const disabled = busy || expired || slot.bought || !canAfford
@@ -46,8 +45,14 @@ export function ShopCard({
       )}
 
       <div className="flex items-start justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
-          <Icon className={`h-5 w-5 ${style.icon}`} aria-hidden="true" />
+        <span className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-900">
+          <img
+            src={getItemImage(slot.name, slot.item_category)}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+          />
         </span>
         <span
           className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${style.chip}`}

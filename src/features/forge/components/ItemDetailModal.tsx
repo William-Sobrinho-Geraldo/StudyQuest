@@ -1,7 +1,7 @@
 import { Hammer, Swords, X } from 'lucide-react'
+import { getItemImage } from '../../../utils/itemVisuals'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
-import { SLOT_ICONS } from './slotIcons'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
 import { calculateItemStats } from '../../../utils/statsCalculator'
 
@@ -20,7 +20,6 @@ export function ItemDetailModal({
   onEquip,
   onSendToAnvil,
 }: ItemDetailModalProps) {
-  const Icon = SLOT_ICONS[item.slot]
   const { text: textColor } = rarityStyle(item.rarity)
   const stats = calculateItemStats(item)
 
@@ -40,8 +39,14 @@ export function ItemDetailModal({
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800">
-              <Icon className={`h-5 w-5 ${textColor}`} aria-hidden="true" />
+            <span className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-800">
+              <img
+                src={getItemImage(item.name, item.slot)}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+              />
             </span>
             <div>
               <h2 className={`text-lg font-bold ${textColor}`}>{item.name}</h2>

@@ -1,7 +1,7 @@
 import { Check, Coins, Loader2, X } from 'lucide-react'
+import { getItemImage } from '../../../utils/itemVisuals'
 import { RARITY_LABELS, rarityStyle } from '../../forge/lib/rarityStyles'
 import { SLOT_LABELS } from '../../forge/lib/forgeRules'
-import { SLOT_ICONS } from '../../forge/components/slotIcons'
 import { ShopStats } from './ShopCard'
 import type { ShopSlot } from '../lib/shopItems'
 
@@ -22,7 +22,6 @@ export function ShopItemModal({
   onBuy,
   onClose,
 }: ShopItemModalProps) {
-  const Icon = SLOT_ICONS[slot.item_category]
   const { text: textColor } = rarityStyle(slot.rarity)
   const isShowcase = slot.slot === 6
 
@@ -37,8 +36,14 @@ export function ShopItemModal({
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800">
-              <Icon className={`h-5 w-5 ${textColor}`} aria-hidden="true" />
+            <span className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-800">
+              <img
+                src={getItemImage(slot.name, slot.item_category)}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+              />
             </span>
             <div>
               <h2 className={`text-lg font-bold ${textColor}`}>{slot.name}</h2>

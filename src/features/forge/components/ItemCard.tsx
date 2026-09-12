@@ -1,10 +1,10 @@
 import { Lock } from 'lucide-react'
 import { useRef, useState, type ComponentPropsWithoutRef, type DragEvent } from 'react'
+import { getItemImage } from '../../../utils/itemVisuals'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import { setItemDragSlot } from '../lib/dragAndDrop'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
-import { SLOT_ICONS } from './slotIcons'
 
 // Imagem 1x1 transparente usada como ghost do drag (evita snapshot do DOM).
 const TRANSPARENT_DRAG_IMAGE =
@@ -54,8 +54,7 @@ export function ItemCard({
   const [showTooltip, setShowTooltip] = useState(false)
   const pointerDownTime = useRef(0)
   const didDrag = useRef(false)
-  const Icon = SLOT_ICONS[item.slot]
-  const { border, glow, icon: iconColor, text } = rarityStyle(item.rarity)
+  const { border, glow, text } = rarityStyle(item.rarity)
 
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
     didDrag.current = true
@@ -132,17 +131,19 @@ export function ItemCard({
         onPointerUp={handlePointerUp}
         className={cardClasses}
       >
-        <span
-          className={`flex h-9 w-9 items-center justify-center rounded-md bg-slate-800 ${
-            blocked ? 'opacity-50' : ''
-          }`}
-        >
-          {blocked ? (
+        {blocked ? (
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-800 opacity-50">
             <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
-          ) : (
-            <Icon className={`h-4 w-4 ${iconColor}`} aria-hidden="true" />
-          )}
-        </span>
+          </span>
+        ) : (
+          <img
+            src={getItemImage(item.name, item.slot)}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+          />
+        )}
 
         {item.itemLevel > 0 && (
           <span className="absolute bottom-1 left-1.5 text-[10px] font-semibold leading-none text-slate-400">
