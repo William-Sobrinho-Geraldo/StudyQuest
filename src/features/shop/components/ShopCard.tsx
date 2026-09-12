@@ -1,5 +1,5 @@
 import { Check, Coins, Loader2, Swords, X } from 'lucide-react'
-import { getItemImage } from '../../../utils/itemVisuals'
+import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
 import { SLOT_LABELS } from '../../forge/lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../../forge/lib/rarityStyles'
 import { calculateItemStats } from '../../../utils/statsCalculator'
@@ -45,13 +45,18 @@ export function ShopCard({
       )}
 
       <div className="flex items-start justify-between">
-        <span className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-900">
+        <span className="relative flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-900">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 m-auto h-3/4 w-3/4 rounded-full blur-lg"
+            style={{ backgroundColor: getRarityGlowColor(slot.rarity) }}
+          />
           <img
             src={getItemImage(slot.name, slot.item_category)}
             alt=""
             aria-hidden="true"
             draggable={false}
-            className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+            className="pointer-events-none relative z-10 w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
           />
         </span>
         <span

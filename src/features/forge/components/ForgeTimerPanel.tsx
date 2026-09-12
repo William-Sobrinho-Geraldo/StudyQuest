@@ -1,5 +1,5 @@
 import { Coins, Hammer, Loader2 } from 'lucide-react'
-import { getItemImage } from '../../../utils/itemVisuals'
+import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS } from '../lib/forgeRules'
@@ -50,13 +50,18 @@ export function ForgeTimerPanel({
       </div>
 
       <div className="mt-4 flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-slate-700 bg-slate-950/40 p-6 text-center">
-        <span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl bg-slate-800">
+        <span className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl bg-slate-800">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 m-auto h-3/4 w-3/4 rounded-full blur-lg"
+            style={{ backgroundColor: getRarityGlowColor(item.rarity) }}
+          />
           <img
             src={getItemImage(item.name, item.slot)}
             alt=""
             aria-hidden="true"
             draggable={false}
-            className="pointer-events-none h-full w-full select-none object-contain p-2 drop-shadow-sm"
+            className="pointer-events-none relative z-10 h-full w-full select-none object-contain p-2 drop-shadow-sm"
           />
         </span>
 

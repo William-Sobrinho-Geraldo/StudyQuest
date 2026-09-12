@@ -1,7 +1,23 @@
+import type { ForgeRarity } from '../features/forge/lib/forgeItems'
+
 // Mapeamento estrito 1:1 entre nome de item e asset visual.
 // Existem exatamente 12 imagens em public/assets/items, portanto existem
 // exatamente 12 itens (4 slots × 3 classes). Cada nome aponta para uma
 // imagem única — sem sinônimos, sem heurísticas de substring.
+
+// Cor de glow/sombra volumétrica atrás da arte de cada item, conforme a
+// raridade. Transparência moderada para não ofuscar a arte nem sobrecarregar
+// a GPU no WebView do Android/Capacitor.
+export const RARITY_GLOW_COLORS: Record<ForgeRarity, string> = {
+  common: 'rgba(16, 185, 129, 0.25)', // emerald-500
+  rare: 'rgba(59, 130, 246, 0.35)', // blue-500
+  epic: 'rgba(168, 85, 247, 0.40)', // purple-500
+  legendary: 'rgba(245, 158, 11, 0.45)', // amber-500
+}
+
+export function getRarityGlowColor(rarity?: ForgeRarity): string {
+  return rarity ? (RARITY_GLOW_COLORS[rarity] ?? RARITY_GLOW_COLORS.common) : RARITY_GLOW_COLORS.common
+}
 
 const ITEM_MAP: Record<string, string> = {
   // Weapons

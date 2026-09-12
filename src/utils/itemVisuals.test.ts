@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getItemImage } from './itemVisuals'
+import { getItemImage, getRarityGlowColor, RARITY_GLOW_COLORS } from './itemVisuals'
 
 describe('getItemImage', () => {
   it('mapeia cada uma das 3 armas para a imagem única', () => {
@@ -42,5 +42,18 @@ describe('getItemImage', () => {
 
   it('usa arma médio como fallback para categoria desconhecida', () => {
     expect(getItemImage('Alguma Coisa', 'shield')).toBe('/assets/items/arma_medio.webp')
+  })
+})
+
+describe('getRarityGlowColor', () => {
+  it('mapeia cada raridade para a cor de glow correspondente', () => {
+    expect(getRarityGlowColor('common')).toBe('rgba(16, 185, 129, 0.25)')
+    expect(getRarityGlowColor('rare')).toBe('rgba(59, 130, 246, 0.35)')
+    expect(getRarityGlowColor('epic')).toBe('rgba(168, 85, 247, 0.40)')
+    expect(getRarityGlowColor('legendary')).toBe('rgba(245, 158, 11, 0.45)')
+  })
+
+  it('retorna a cor comum quando a raridade é indefinida', () => {
+    expect(getRarityGlowColor(undefined)).toBe(RARITY_GLOW_COLORS.common)
   })
 })

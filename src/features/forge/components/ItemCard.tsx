@@ -1,6 +1,6 @@
 import { Lock } from 'lucide-react'
 import { useState, type ComponentPropsWithoutRef } from 'react'
-import { getItemImage } from '../../../utils/itemVisuals'
+import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
@@ -34,7 +34,7 @@ export function ItemCard({
   const { border, glow, text } = rarityStyle(item.rarity)
 
   const cardClasses = [
-    'relative flex items-center justify-center rounded-xl border-2 bg-slate-800/90 touch-manipulation select-none transition-transform',
+    'relative flex items-center justify-center overflow-hidden rounded-xl border-2 bg-slate-800/90 touch-manipulation select-none transition-transform',
     blocked
       ? 'cursor-not-allowed border-slate-700/80 opacity-50'
       : `cursor-pointer active:scale-95 ${border} ${glow}`,
@@ -66,13 +66,20 @@ export function ItemCard({
             <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
           </span>
         ) : (
-          <img
-            src={getItemImage(item.name, item.slot)}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
-          />
+          <>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 m-auto h-3/4 w-3/4 rounded-full blur-lg"
+              style={{ backgroundColor: getRarityGlowColor(item.rarity) }}
+            />
+            <img
+              src={getItemImage(item.name, item.slot)}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="pointer-events-none relative z-10 h-full w-full select-none object-contain p-1.5 drop-shadow-sm"
+            />
+          </>
         )}
 
         {item.itemLevel > 0 && (
