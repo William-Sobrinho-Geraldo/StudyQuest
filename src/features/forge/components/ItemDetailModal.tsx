@@ -1,4 +1,5 @@
 import { Coins, Hammer, Swords, X } from 'lucide-react'
+import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
 import { getItemStats } from '../../../utils/itemStats'
 import { getItemSalePrice } from '../../../utils/pricing'
@@ -23,6 +24,8 @@ export function ItemDetailModal({
   onSendToAnvil,
   onSell,
 }: ItemDetailModalProps) {
+  useModalBackHandler(onClose)
+
   const { text: textColor, chip } = rarityStyle(item.rarity)
   const stats = getItemStats(item.slot, item.itemLevel, item.rarity, item.enhancementLevel)
 

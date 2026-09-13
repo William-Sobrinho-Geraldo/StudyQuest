@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Loader2, Lock, Mail, Sparkles, X } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import { useModalBackHandler } from '../../hooks/useNativeBackButton'
 import { useToast } from '../../components/Toast'
 import { completeSignupWithInvite } from '../social/lib/inviteFlow'
 import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../../lib/validation'
@@ -10,6 +11,8 @@ interface RegisterModalProps {
 }
 
 export function RegisterModal({ onClose }: RegisterModalProps) {
+  useModalBackHandler(onClose)
+
   const { signUp } = useAuth()
   const { showToast } = useToast()
 
@@ -112,6 +115,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
                 name="email"
                 type="email"
                 autoComplete="email"
+                enterKeyHint="next"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="voce@exemplo.com"
@@ -134,6 +138,7 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                enterKeyHint="done"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Mínimo de 6 caracteres"

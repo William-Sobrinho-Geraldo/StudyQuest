@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Loader2, UserCheck, UserPlus, X } from 'lucide-react'
 import { acceptLinkInvite } from '../services/socialService'
+import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 import { useToast } from '../../../components/Toast'
 import { clearPendingInvite } from '../lib/inviteStorage'
 import { emitFriendsChanged } from '../lib/socialEvents'
@@ -11,6 +12,8 @@ interface InviteAcceptModalProps {
 }
 
 export function InviteAcceptModal({ playerTag, onClose }: InviteAcceptModalProps) {
+  useModalBackHandler(onClose)
+
   const { showToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

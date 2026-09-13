@@ -128,10 +128,12 @@ export function DailyGoalCard() {
               min={1}
               max={MAX_DAILY_GOAL_MINUTES}
               step={1}
+              inputMode="numeric"
+              enterKeyHint="done"
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               aria-label="Meta diária em minutos"
-              className="h-11 w-28 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-white focus:border-indigo-500 focus:outline-none"
+              className="h-11 w-28 rounded-lg border border-slate-700 bg-slate-800 px-3 text-base text-white focus:border-indigo-500 focus:outline-none"
             />
             <button
               type="button"

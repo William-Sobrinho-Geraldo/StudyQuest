@@ -358,6 +358,7 @@ export type Database = {
           id: string
           metric: string
           period: string
+          reward_chest_tier: string | null
           reward_gold: number
           reward_xp: number
           target: number
@@ -371,6 +372,7 @@ export type Database = {
           id: string
           metric: string
           period: string
+          reward_chest_tier?: string | null
           reward_gold?: number
           reward_xp?: number
           target: number
@@ -384,6 +386,7 @@ export type Database = {
           id?: string
           metric?: string
           period?: string
+          reward_chest_tier?: string | null
           reward_gold?: number
           reward_xp?: number
           target?: number

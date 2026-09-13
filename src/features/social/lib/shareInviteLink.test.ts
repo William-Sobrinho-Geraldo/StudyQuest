@@ -13,11 +13,21 @@ const mocks = vi.hoisted(() => ({
   nativePlatform: false,
   shareNative: vi.fn(),
   shareNativeError: null as Error | null,
+  browserOpen: vi.fn(),
 }))
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => mocks.nativePlatform,
+  },
+}))
+
+vi.mock('@capacitor/browser', () => ({
+  Browser: {
+    open: (...args: unknown[]) => {
+      mocks.browserOpen(...args)
+      return Promise.resolve()
+    },
   },
 }))
 
@@ -58,6 +68,7 @@ beforeEach(() => {
   clipboardWrite.mockReset()
   windowOpen.mockReset()
   webShare.mockReset()
+  mocks.browserOpen.mockReset()
   webShare.mockResolvedValue(undefined)
   clipboardWrite.mockResolvedValue(undefined)
 })
@@ -159,6 +170,20 @@ describe('shareViaWhatsApp — cascata de fallback', () => {
 
     expect(windowOpen).toHaveBeenCalled()
     expect(clipboardWrite).toHaveBeenCalled()
+    expect(result.outcome).toBe('whatsapp')
+  })
+
+  it('usa @capacitor/browser quando a share nativa falha em plataforma nativa', async () => {
+    mocks.nativePlatform = true
+    mocks.shareNativeError = new Error('native share failed')
+    setupNavigator({ ua: MOBILE_UA })
+
+    const result = await shareViaWhatsApp('william#8492')
+
+    expect(mocks.browserOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ url: buildWhatsAppLink('william#8492') }),
+    )
+    expect(windowOpen).not.toHaveBeenCalled()
     expect(result.outcome).toBe('whatsapp')
   })
 

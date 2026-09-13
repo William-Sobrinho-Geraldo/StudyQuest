@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ToastProvider } from './components/Toast'
+import { ConnectivityListener } from './components/ConnectivityListener'
+import { useNativeBackButton } from './hooks/useNativeBackButton'
 import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { InviteLinkHandler } from './components/InviteLinkHandler'
@@ -23,8 +25,11 @@ import { SprintInvitePage } from './pages/SprintInvitePage'
 import { SprintPage } from './pages/SprintPage'
 
 export function App() {
+  useNativeBackButton()
+
   return (
     <ToastProvider>
+      <ConnectivityListener />
       <AuthProvider>
         <SocialProvider>
           <StudyTimerProvider>

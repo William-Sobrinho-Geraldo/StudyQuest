@@ -58,6 +58,7 @@ export function SprintCreatePage() {
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={40}
+            enterKeyHint="done"
             placeholder="Ex.: Maratona de Provas"
             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
           />

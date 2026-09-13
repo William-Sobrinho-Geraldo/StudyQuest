@@ -1,11 +1,14 @@
 import { BookOpen, Pause, Play, X } from 'lucide-react'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
+import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 
 const PAUSE_BUTTON =
   'flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 text-base font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
 
 export function FocusOverlay() {
   const timer = useStudyTimerContext()
+
+  useModalBackHandler(timer.closeFocusMode, timer.isFocusMode)
 
   if (!timer.isFocusMode) return null
 

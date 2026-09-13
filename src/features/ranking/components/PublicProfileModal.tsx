@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Clock, Loader2, UserPlus, X } from 'lucide-react'
 import { useAuth } from '../../../features/auth/AuthContext'
+import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 import { UserAvatar } from '../../../components/UserAvatar'
 import { computeCombatTotals, formatStudyDuration } from '../../../utils/equippedStats'
 import type { ForgeRarity } from '../../../features/forge/lib/forgeItems'
@@ -18,6 +19,8 @@ interface PublicProfileModalProps {
 }
 
 export function PublicProfileModal({ userId, onClose, onSendRequest }: PublicProfileModalProps) {
+  useModalBackHandler(onClose)
+
   const { user } = useAuth()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [relation, setRelation] = useState<PublicProfileRelation>('none')

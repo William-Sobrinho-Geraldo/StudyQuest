@@ -1,4 +1,5 @@
 import { Coins, X } from 'lucide-react'
+import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 
 interface SellConfirmationModalProps {
   itemName: string
@@ -15,6 +16,8 @@ export function SellConfirmationModal({
   onConfirm,
   onClose,
 }: SellConfirmationModalProps) {
+  useModalBackHandler(onClose)
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"

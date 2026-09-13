@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 
 export const INVITE_PATH = '/invite'
 
@@ -89,8 +90,13 @@ export async function shareViaWhatsApp(playerTag: string): Promise<ShareInviteRe
     }
   }
 
-  // 3. Desktop (e falhas mobile): abre o WhatsApp direto em nova aba e copia o link.
-  window.open(buildWhatsAppLink(playerTag), '_blank', 'noopener,noreferrer')
+  // 3. Desktop (e falhas mobile): abre o WhatsApp e copia o link.
+  const whatsappUrl = buildWhatsAppLink(playerTag)
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url: whatsappUrl })
+  } else {
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+  }
   try {
     await navigator.clipboard.writeText(url)
   } catch {

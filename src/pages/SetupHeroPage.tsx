@@ -94,6 +94,7 @@ export function SetupHeroPage() {
               maxLength={NAME_MAX}
               placeholder="Ex: Arthur, Valkiria, Magnus"
               autoComplete="off"
+              enterKeyHint="done"
               className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
             />
             <p className="mt-1 text-xs text-slate-500">

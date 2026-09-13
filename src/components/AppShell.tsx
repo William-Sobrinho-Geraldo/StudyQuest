@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="relative mx-auto min-h-screen w-full max-w-md overflow-hidden bg-slate-900 shadow-xl">
-        <header className="sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/95 px-4 py-2 backdrop-blur">
+        <header className="sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/95 px-4 pb-2 pt-[env(safe-area-inset-top)] backdrop-blur">
           <div className="flex shrink-0 items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
               <Sparkles className="h-5 w-5 text-white" aria-hidden="true" />

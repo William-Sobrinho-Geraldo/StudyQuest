@@ -94,6 +94,7 @@ export function RegisterPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                enterKeyHint="next"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="voce@exemplo.com"
@@ -116,6 +117,7 @@ export function RegisterPage() {
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                enterKeyHint="done"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Mínimo de 6 caracteres"

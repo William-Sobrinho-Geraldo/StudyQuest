@@ -49,11 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true
 
     async function restoreSession() {
-      const { data } = await supabase.auth.getSession()
-      if (!active) return
-      const activeSession = data.session ?? null
-      setUser(activeSession?.user ?? null)
-      setStatus(activeSession ? 'authenticated' : 'unauthenticated')
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!active) return
+        const activeSession = data.session ?? null
+        setUser(activeSession?.user ?? null)
+        setStatus(activeSession ? 'authenticated' : 'unauthenticated')
+      } catch {
+        if (!active) return
+        setUser(null)
+        setStatus('unauthenticated')
+      }
     }
 
     void restoreSession()

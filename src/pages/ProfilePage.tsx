@@ -146,6 +146,7 @@ function EditHeroModal({
               onChange={(event) => { setName(event.target.value); if (error) setError(null) }}
               maxLength={NAME_MAX}
               autoComplete="off"
+              enterKeyHint="next"
               className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
             />
             <p className="mt-1 text-xs text-slate-500">
@@ -166,6 +167,7 @@ function EditHeroModal({
               maxLength={GOAL_MAX}
               placeholder="Concurso / OAB / Dev Pleno"
               autoComplete="off"
+              enterKeyHint="done"
               className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
             />
             <p className="mt-1 text-xs text-slate-500">
