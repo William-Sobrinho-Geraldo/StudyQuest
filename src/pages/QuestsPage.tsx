@@ -22,24 +22,28 @@ import { REWARD_COLORS } from '../lib/rewardColors'
 const CATEGORIES: {
   id: QuestCategoryId
   label: string
+  shortLabel: string
   description: string
   icon: LucideIcon
 }[] = [
   {
     id: 'daily',
     label: 'Quests Diárias',
+    shortLabel: 'Diárias',
     description: 'Novos objetivos a cada dia, com reset diário. Foco em engajamento rápido.',
     icon: Sun,
   },
   {
     id: 'weekly',
     label: 'Quests Semanais',
+    shortLabel: 'Semanais',
     description: 'Metas da semana, com reset toda segunda-feira. Foco em consistência.',
     icon: CalendarDays,
   },
   {
     id: 'main',
     label: 'Quests Principais',
+    shortLabel: 'Principais',
     description: 'Marcos da jornada de longo prazo, com curva suavizada por trilha.',
     icon: ScrollText,
   },
@@ -143,21 +147,21 @@ export function QuestsPage() {
       </p>
 
       <div className="mt-6 flex flex-col gap-6">
-        <nav aria-label="Categorias de quests" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {CATEGORIES.map(({ id, label, icon: Icon }) => (
+        <nav aria-label="Categorias de quests" className="grid w-full grid-cols-3 gap-2">
+          {CATEGORIES.map(({ id, shortLabel, icon: Icon }) => (
             <button
               key={id}
               type="button"
               aria-pressed={id === selectedCategory.id}
               onClick={() => setSelectedId(id)}
-              className={`flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition ${
+              className={`flex w-full min-h-[44px] flex-col items-center justify-center gap-1 rounded-full border px-1 text-xs font-medium transition sm:text-sm ${
                 id === selectedCategory.id
                   ? 'border-indigo-500 bg-indigo-600 text-white'
                   : 'border-slate-700 text-slate-300 hover:border-indigo-500 hover:text-white'
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
-              {label}
+              {shortLabel}
             </button>
           ))}
         </nav>

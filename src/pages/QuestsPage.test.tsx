@@ -143,15 +143,15 @@ describe('QuestsPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Quests' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Quests Diárias' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Diárias' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    expect(screen.getByRole('button', { name: 'Quests Semanais' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Semanais' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
-    expect(screen.getByRole('button', { name: 'Quests Principais' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Principais' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
@@ -166,9 +166,9 @@ describe('QuestsPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Quests' })
-    await user.click(screen.getByRole('button', { name: 'Quests Principais' }))
+    await user.click(screen.getByRole('button', { name: 'Principais' }))
 
-    expect(screen.getByRole('button', { name: 'Quests Principais' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Principais' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
@@ -183,7 +183,7 @@ describe('QuestsPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Quests' })
-    await user.click(screen.getByRole('button', { name: 'Quests Diárias' }))
+    await user.click(screen.getByRole('button', { name: 'Diárias' }))
 
     expect(await screen.findByText('Aquecimento')).toBeInTheDocument()
     expect(screen.getByText('1/1 sessões')).toBeInTheDocument()
@@ -214,7 +214,7 @@ describe('QuestsPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Quests' })
-    await user.click(screen.getByRole('button', { name: 'Quests Diárias' }))
+    await user.click(screen.getByRole('button', { name: 'Diárias' }))
 
     const claimButton = screen
       .getAllByRole('button', { name: 'Reivindicar' })
@@ -235,7 +235,7 @@ describe('QuestsPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Quests' })
-    await user.click(screen.getByRole('button', { name: 'Quests Semanais' }))
+    await user.click(screen.getByRole('button', { name: 'Semanais' }))
 
     expect(await screen.findByText('Resiliência Semanal')).toBeInTheDocument()
     expect(screen.getByText('60/150 min')).toBeInTheDocument()
