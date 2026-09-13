@@ -36,6 +36,17 @@ interface BuyShopItemRow {
 
 const SHOP_TABLE = 'rotating_shop' as const
 
+const INVENTORY_FULL_ERROR = 'INVENTORY_FULL'
+
+export interface BuyResult {
+  success: boolean
+  error?: string
+}
+
+export function isInventoryFullError(error: string | undefined): boolean {
+  return typeof error === 'string' && error.toUpperCase().includes(INVENTORY_FULL_ERROR)
+}
+
 export function useShop() {
   const { user } = useAuth()
   const [shop, setShop] = useState<ShopData | null>(null)
@@ -118,11 +129,11 @@ export function useShop() {
   }, [busy, characterLevel, user])
 
   const buy = useCallback(
-    async (slotNumber: number): Promise<boolean> => {
-      if (!user || busy || !shop) return false
+    async (slotNumber: number): Promise<BuyResult> => {
+      if (!user || busy || !shop) return { success: false, error: 'shop indisponivel' }
 
       const target = shop.slots.find((slot) => slot.slot === slotNumber)
-      if (!target || target.bought) return false
+      if (!target || target.bought) return { success: false, error: 'item ja comprado' }
 
       setBusy(true)
       setError(null)
@@ -134,11 +145,11 @@ export function useShop() {
       setBusy(false)
       if (rpcError) {
         setError(rpcError.message)
-        return false
+        return { success: false, error: rpcError.message }
       }
 
       const row = ((data ?? []) as BuyShopItemRow[])[0]
-      if (!row) return false
+      if (!row) return { success: false, error: 'resposta invalida' }
 
       setGold(row.profile_gold)
       setShop((previous) =>
@@ -151,7 +162,7 @@ export function useShop() {
             }
           : previous,
       )
-      return true
+      return { success: true }
     },
     [busy, shop, user],
   )

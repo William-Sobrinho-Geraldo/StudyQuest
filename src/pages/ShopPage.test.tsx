@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -223,5 +223,58 @@ describe('ShopPage — fluxo de atualização do mercado', () => {
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('refresh_shop', { p_player_level: 35 }))
     expect(screen.queryByText(/ainda está em rotação/i)).not.toBeInTheDocument()
+  })
+
+  it('exibe toast amigável ao tentar comprar equipamento com inventário cheio', async () => {
+    const user = userEvent.setup()
+    rpc.mockImplementation((fn: string) => {
+      if (fn === 'refresh_shop') return Promise.resolve({ data: refreshRows, error: null })
+      if (fn === 'buy_shop_item') {
+        return Promise.resolve({ data: null, error: { message: 'INVENTORY_FULL' } })
+      }
+      return Promise.resolve({ data: null, error: null })
+    })
+    renderShop()
+    await screen.findByText('Lâmina de Estudo')
+
+    const slot1 = screen.getByTestId('shop-slot-1')
+    await user.click(within(slot1).getByRole('button', { name: /comprar/i }))
+
+    expect(
+      await screen.findByText(/Inventário cheio! Venda os itens que não estiver usando/i),
+    ).toBeInTheDocument()
+  })
+
+  it('compra de avatar continua funcionando normalmente', async () => {
+    const user = userEvent.setup()
+    shopRow = makeSlot({ slot_6_price: 200 })
+    rpc.mockImplementation((fn: string) => {
+      if (fn === 'refresh_shop') return Promise.resolve({ data: refreshRows, error: null })
+      if (fn === 'buy_shop_item') {
+        return Promise.resolve({
+          data: [
+            {
+              shop_slot: 6,
+              shop_bought: true,
+              inventory_id: null,
+              inventory_name: 'epico_6',
+              inventory_item_category: 'avatar',
+              inventory_rarity: 'epic',
+              inventory_item_level: 0,
+              profile_gold: 300,
+            },
+          ],
+          error: null,
+        })
+      }
+      return Promise.resolve({ data: null, error: null })
+    })
+    renderShop()
+    await screen.findByText('Lâmina de Estudo')
+
+    const slot6 = screen.getByTestId('shop-slot-6')
+    await user.click(within(slot6).getByRole('button', { name: /comprar/i }))
+
+    expect(await screen.findByText('Avatar desbloqueado!')).toBeInTheDocument()
   })
 })

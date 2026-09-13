@@ -1,11 +1,15 @@
 import { AlertTriangle, Loader2, PlayCircle, RefreshCw, Sparkles, Store, Video, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { AppShell } from '../components/AppShell'
+import { useToast } from '../components/Toast'
 import { useAuth } from '../features/auth/AuthContext'
 import { ShopCard } from '../features/shop/components/ShopCard'
 import { ShopItemModal } from '../features/shop/components/ShopItemModal'
-import { useShop } from '../features/shop/hooks/useShop'
+import { isInventoryFullError, useShop } from '../features/shop/hooks/useShop'
 import { isAvatarSlot, type ShopSlot } from '../features/shop/lib/shopItems'
+
+const INVENTORY_FULL_MESSAGE =
+  'Inventário cheio! Venda os itens que não estiver usando para liberar espaço.'
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
@@ -112,10 +116,10 @@ function SkipWaitModal({
 
 export function ShopPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const shop = useShop()
   const [selected, setSelected] = useState<ShopSlot | null>(null)
   const [now, setNow] = useState(() => Date.now())
-  const [toast, setToast] = useState<string | null>(null)
   const [showSkipModal, setShowSkipModal] = useState(false)
 
   useEffect(() => {
@@ -134,26 +138,26 @@ export function ShopPage() {
     async (slotNumber: number) => {
       const target = shop.slots.find((slot) => slot.slot === slotNumber)
       const isAvatar = target ? isAvatarSlot(target) : false
-      const success = await shop.buy(slotNumber)
-      setToast(
-        success
-          ? isAvatar
-            ? 'Avatar desbloqueado!'
-            : 'Item adicionado ao seu inventário!'
-          : shop.error ?? 'Não foi possível comprar.',
-      )
-      window.setTimeout(() => setToast(null), 2500)
+      const result = await shop.buy(slotNumber)
+      if (result.success) {
+        showToast(isAvatar ? 'Avatar desbloqueado!' : 'Item adicionado ao seu inventário!')
+        return
+      }
+      const message = isInventoryFullError(result.error)
+        ? INVENTORY_FULL_MESSAGE
+        : result.error ?? 'Não foi possível comprar.'
+      showToast(message, 'error')
     },
-    [shop],
+    [shop, showToast],
   )
 
   const handleRefresh = useCallback(async () => {
     const success = await shop.refresh()
-    setToast(
+    showToast(
       success ? 'Mercado rotativo atualizado!' : shop.error ?? 'Não foi possível atualizar.',
+      success ? 'success' : 'error',
     )
-    window.setTimeout(() => setToast(null), 2500)
-  }, [shop])
+  }, [shop, showToast])
 
   const handleRefreshClick = useCallback(() => {
     if (shop.expired || shop.slots.length === 0) {
@@ -295,12 +299,6 @@ export function ShopPage() {
           onClose={() => setShowSkipModal(false)}
           busy={shop.busy}
         />
-      )}
-
-      {toast && (
-        <div className="fixed inset-x-0 bottom-24 z-50 mx-auto flex w-fit max-w-md items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 shadow-xl">
-          {toast}
-        </div>
       )}
     </AppShell>
   )
