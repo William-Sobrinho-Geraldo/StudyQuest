@@ -7,6 +7,7 @@ import { InventoryGrid } from '../features/forge/components/InventoryGrid'
 import { ItemDetailModal } from '../features/forge/components/ItemDetailModal'
 import { Paperdoll } from '../features/forge/components/Paperdoll'
 import { PlayerStatsPanel } from '../features/forge/components/PlayerStatsPanel'
+import { SellConfirmationModal } from '../features/forge/components/SellConfirmationModal'
 import { SupplyChests } from '../features/forge/components/SupplyChests'
 import { useForge } from '../features/forge/hooks/useForge'
 import { INVENTORY_CAPACITY } from '../features/forge/lib/forgeItems'
@@ -14,11 +15,13 @@ import { type ForgeItem } from '../features/forge/lib/forgeItems'
 import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
 import { CHEST_TIER_META, isQuestChestTier } from '../features/quests/lib/chestTiers'
 import { calculateTotalStats } from '../utils/statsCalculator'
+import { getItemSalePrice } from '../utils/pricing'
 
 export function ForgePage() {
   const forge = useForge()
   const { showToast } = useToast()
   const [detailItem, setDetailItem] = useState<ForgeItem | null>(null)
+  const [sellItem, setSellItem] = useState<ForgeItem | null>(null)
 
   const totalStats = useMemo(() => calculateTotalStats(forge.equipped), [forge.equipped])
 
@@ -43,6 +46,24 @@ export function ForgePage() {
     }
     forge.selectItem(itemId)
     document.getElementById('anvil-section')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
+
+  const handleSell = (itemId: string) => {
+    const target = forge.inventory.find((item) => item.id === itemId)
+    if (!target) return
+    setDetailItem(null)
+    setSellItem(target)
+  }
+
+  const handleConfirmSell = async () => {
+    if (!sellItem) return
+    const result = await forge.sellItem(sellItem.id)
+    if (result.success) {
+      showToast(`Item vendido por ${result.salePrice} Gold!`)
+    } else {
+      showToast(result.error ?? 'Não foi possível vender o item.', 'error')
+    }
+    setSellItem(null)
   }
 
   const handleStartRefine = () => {
@@ -164,6 +185,17 @@ export function ForgePage() {
           onClose={() => setDetailItem(null)}
           onEquip={handleEquip}
           onSendToAnvil={handleSendToAnvil}
+          onSell={handleSell}
+        />
+      )}
+
+      {sellItem && (
+        <SellConfirmationModal
+          itemName={sellItem.name}
+          salePrice={getItemSalePrice(sellItem)}
+          busy={forge.busy}
+          onConfirm={() => void handleConfirmSell()}
+          onClose={() => setSellItem(null)}
         />
       )}
 

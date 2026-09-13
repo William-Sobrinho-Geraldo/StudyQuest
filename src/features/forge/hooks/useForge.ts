@@ -34,6 +34,12 @@ export interface SelectedMeta {
   blockedByLevel: boolean
 }
 
+export interface SellResult {
+  success: boolean
+  salePrice?: number
+  error?: string
+}
+
 interface LegacyGearRow {
   user_id: string
   item_category: EquipmentSlot
@@ -426,6 +432,36 @@ export function useForge() {
     [busy, characterLevel, user],
   )
 
+  // Vende um equipamento sobressalente e recupera 40% do valor de mercado.
+  const sellItem = useCallback(
+    async (itemId: string): Promise<SellResult> => {
+      if (!user || busy) return { success: false, error: 'Ação indisponível no momento.' }
+      const item = inventory.find((i) => i.id === itemId)
+      if (!item) return { success: false, error: 'Item não encontrado.' }
+      if (item.isInForge) return { success: false, error: 'Este item está em refino na Bigorna.' }
+
+      setError(null)
+      setBusy(true)
+
+      const { data, error: rpcError } = await supabase.rpc('sell_inventory_item', {
+        p_user_id: user.id,
+        p_inventory_id: itemId,
+      })
+
+      setBusy(false)
+      if (rpcError) {
+        setError(rpcError.message)
+        return { success: false, error: rpcError.message }
+      }
+
+      const salePrice = typeof data === 'number' ? data : 0
+      setInventory((previous) => previous.filter((i) => i.id !== itemId))
+      setGold((previous) => (previous === null ? salePrice : previous + salePrice))
+      return { success: true, salePrice }
+    },
+    [busy, inventory, user],
+  )
+
   return {
     equipped,
     inventory,
@@ -448,5 +484,6 @@ export function useForge() {
     completeForge,
     equipFromInventory,
     openChest,
+    sellItem,
   }
 }

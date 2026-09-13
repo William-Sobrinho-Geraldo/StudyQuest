@@ -1,6 +1,7 @@
-import { Hammer, Swords, X } from 'lucide-react'
+import { Coins, Hammer, Swords, X } from 'lucide-react'
 import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
 import { getItemStats } from '../../../utils/itemStats'
+import { getItemSalePrice } from '../../../utils/pricing'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
@@ -11,6 +12,7 @@ interface ItemDetailModalProps {
   onClose: () => void
   onEquip: (itemId: string, slot: EquipmentSlot) => void
   onSendToAnvil: (itemId: string) => void
+  onSell: (itemId: string) => void
 }
 
 export function ItemDetailModal({
@@ -19,6 +21,7 @@ export function ItemDetailModal({
   onClose,
   onEquip,
   onSendToAnvil,
+  onSell,
 }: ItemDetailModalProps) {
   const { text: textColor, chip } = rarityStyle(item.rarity)
   const stats = getItemStats(item.slot, item.itemLevel, item.rarity, item.enhancementLevel)
@@ -139,6 +142,17 @@ export function ItemDetailModal({
             </button>
           )}
         </div>
+
+        {!isEquipped && !item.isInForge && (
+          <button
+            type="button"
+            onClick={() => onSell(item.id)}
+            className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-600/20 px-4 text-sm font-semibold text-red-400 transition hover:bg-red-600/40"
+          >
+            <Coins className="h-4 w-4 text-amber-400" aria-hidden="true" />
+            Vender por {getItemSalePrice(item)} Gold
+          </button>
+        )}
       </div>
     </div>
   )

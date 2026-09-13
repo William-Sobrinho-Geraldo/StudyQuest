@@ -856,6 +856,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      sell_inventory_item: {
+        Args: { p_user_id: string; p_inventory_id: string }
+        Returns: number
+      }
       today_study_minutes: {
         Args: Record<string, never>
         Returns: number
