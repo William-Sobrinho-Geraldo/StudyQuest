@@ -7,27 +7,16 @@ import { useGlobalRanking } from '../features/ranking/hooks/useGlobalRanking'
 import { GLOBAL_RANKING_PERIODS } from '../features/ranking/lib/periods'
 import type { GlobalRankingPeriod } from '../features/ranking/lib/periods'
 import {
+  friendRequestErrorMessage,
   sendFriendRequest,
   type GlobalRankingEntry,
   type RankingRelation,
 } from '../features/ranking/services/rankingService'
+import { PublicProfileModal } from '../features/ranking/components/PublicProfileModal'
 import { formatMinutes } from '../utils/formatMinutes'
 
 function getInitial(playerTag: string | null): string {
   return playerTag?.charAt(0).toUpperCase() ?? '?'
-}
-
-function friendRequestErrorMessage(code?: string): string {
-  switch (code) {
-    case 'already_friends_or_pending':
-      return 'Vocês já são amigos ou já existe uma solicitação pendente.'
-    case 'cannot_add_self':
-      return 'Você não pode adicionar a si mesmo.'
-    case 'player_not_found':
-      return 'Jogador não encontrado.'
-    default:
-      return 'Não foi possível enviar a solicitação. Tente novamente.'
-  }
 }
 
 interface FriendRequestButtonProps {
@@ -55,29 +44,28 @@ function FriendRequestButton({
 
   let Icon = UserPlus
   let label = 'Adicionar'
-  let style =
-    'border-indigo-500/40 bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25'
+  let style = 'bg-indigo-600/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-600/20'
   let disabled = false
 
   if (busy) {
     Icon = Loader2
     label = 'Enviando...'
-    style = 'border-indigo-500/50 bg-indigo-600/20 text-indigo-300'
+    style = 'bg-indigo-600/10 text-indigo-400 border-indigo-500/30'
     disabled = true
   } else if (relation === 'friends') {
     Icon = UserCheck
     label = 'Amigos'
-    style = 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+    style = 'bg-slate-800/60 text-emerald-400 border-emerald-500/20 pointer-events-none'
     disabled = true
   } else if (relation === 'pending_out') {
     Icon = Check
     label = 'Solicitação Enviada'
-    style = 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+    style = 'bg-slate-800/40 text-slate-400 border-slate-700/50 pointer-events-none'
     disabled = true
   } else if (relation === 'pending_in') {
     Icon = UserCheck
     label = 'Convite Recebido'
-    style = 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+    style = 'bg-amber-500/10 text-amber-400 border-amber-500/20 pointer-events-none'
     disabled = true
   }
 
@@ -100,17 +88,20 @@ function FriendRequestButton({
   return (
     <button
       type="button"
-      onClick={() => onSend(userId)}
+      onClick={(event) => {
+        event.stopPropagation()
+        onSend(userId)
+      }}
       disabled={disabled}
       aria-label={ariaLabel}
       title={compact ? label : undefined}
-      className={`touch-manipulation active:scale-95 transition-transform p-2 ${
+      className={`touch-manipulation select-none active:scale-95 transition-all border ${
         compact
-          ? 'grid h-8 w-8 shrink-0 place-items-center rounded-lg border'
-          : 'flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border text-xs font-semibold'
+          ? 'grid h-8 w-8 shrink-0 place-items-center rounded-lg'
+          : 'flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium'
       } ${style} ${disabled ? 'cursor-default disabled:opacity-90' : ''}`}
     >
-      <Icon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
+      <Icon className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
       {!compact && <span>{label}</span>}
     </button>
   )
@@ -139,17 +130,29 @@ type PodiumTone = keyof typeof PODIUM_STYLES
 interface PodiumCardProps {
   entry: GlobalRankingEntry
   tone: PodiumTone
+  relation: RankingRelation
   leading?: boolean
   isOwn?: boolean
   busy: boolean
+  onOpen: (userId: string) => void
   onSend: (userId: string) => void
 }
 
-function PodiumCard({ entry, tone, leading = false, isOwn = false, busy, onSend }: PodiumCardProps) {
+function PodiumCard({
+  entry,
+  tone,
+  relation,
+  leading = false,
+  isOwn = false,
+  busy,
+  onOpen,
+  onSend,
+}: PodiumCardProps) {
   const style = PODIUM_STYLES[tone]
   return (
     <div
-      className={`flex flex-col items-center gap-2 rounded-xl border bg-slate-900 p-3 text-center ${
+      onClick={() => onOpen(entry.user_id)}
+      className={`flex cursor-pointer touch-manipulation flex-col items-center gap-2 rounded-xl border bg-slate-900 p-3 text-center transition-colors active:bg-slate-800/50 ${
         style.ring
       } ${leading ? 'pt-6' : ''}`}
     >
@@ -180,7 +183,7 @@ function PodiumCard({ entry, tone, leading = false, isOwn = false, busy, onSend 
         <p className="mt-0.5 text-xs text-slate-400">{formatMinutes(entry.minutes)}</p>
       </div>
       <FriendRequestButton
-        relation={entry.relation}
+        relation={relation}
         userId={entry.user_id}
         playerTag={entry.player_tag}
         busy={busy}
@@ -199,21 +202,24 @@ export function LeaderboardPage() {
   const { ranking, myRank, loading, error } = useGlobalRanking(period)
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set())
   const [sentIds, setSentIds] = useState<ReadonlySet<string>>(new Set())
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const ownUserId = user?.id ?? ''
 
   const handleSend = useCallback(
-    async (userId: string) => {
+    async (userId: string): Promise<boolean> => {
       setBusyIds((current) => new Set(current).add(userId))
       try {
         const result = await sendFriendRequest(userId)
         if (!result.success) {
           showToast(friendRequestErrorMessage(result.error), 'error')
-          return
+          return false
         }
         setSentIds((current) => new Set(current).add(userId))
         showToast('Solicitação de amizade enviada!', 'success')
+        return true
       } catch {
         showToast('Erro inesperado ao enviar a solicitação.', 'error')
+        return false
       } finally {
         setBusyIds((current) => {
           const next = new Set(current)
@@ -224,6 +230,14 @@ export function LeaderboardPage() {
     },
     [showToast],
   )
+
+  const openProfile = useCallback((userId: string) => {
+    setSelectedUserId(userId)
+  }, [])
+
+  const closeProfile = useCallback(() => {
+    setSelectedUserId(null)
+  }, [])
 
   return (
     <AppShell>
@@ -237,7 +251,11 @@ export function LeaderboardPage() {
         </div>
       </header>
 
-      <div className="mt-5 flex gap-2" role="tablist" aria-label="Período do ranking">
+      <div
+        className="mt-5 flex gap-1 rounded-xl border border-slate-800 bg-slate-900/60 p-1"
+        role="tablist"
+        aria-label="Período do ranking"
+      >
         {GLOBAL_RANKING_PERIODS.map(({ value, label }) => {
           const isActive = period === value
           return (
@@ -247,10 +265,10 @@ export function LeaderboardPage() {
               role="tab"
               aria-selected={isActive}
               onClick={() => setPeriod(value)}
-              className={`min-h-[44px] flex-1 rounded-xl border px-3 text-sm font-semibold transition ${
+              className={`flex-1 touch-manipulation select-none rounded-lg px-3 py-1.5 text-xs font-medium transition-all md:text-sm ${
                 isActive
-                  ? 'border-indigo-500/50 bg-indigo-600/20 text-indigo-300'
-                  : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
               }`}
             >
               {label}
@@ -276,8 +294,10 @@ export function LeaderboardPage() {
               <PodiumCard
                 entry={ranking[1]}
                 tone="silver"
+                relation={sentIds.has(ranking[1].user_id) ? 'pending_out' : ranking[1].relation}
                 isOwn={ranking[1].user_id === ownUserId}
                 busy={busyIds.has(ranking[1].user_id)}
+                onOpen={openProfile}
                 onSend={handleSend}
               />
             )}
@@ -285,9 +305,11 @@ export function LeaderboardPage() {
               <PodiumCard
                 entry={ranking[0]}
                 tone="gold"
+                relation={sentIds.has(ranking[0].user_id) ? 'pending_out' : ranking[0].relation}
                 leading
                 isOwn={ranking[0].user_id === ownUserId}
                 busy={busyIds.has(ranking[0].user_id)}
+                onOpen={openProfile}
                 onSend={handleSend}
               />
             )}
@@ -295,8 +317,10 @@ export function LeaderboardPage() {
               <PodiumCard
                 entry={ranking[2]}
                 tone="bronze"
+                relation={sentIds.has(ranking[2].user_id) ? 'pending_out' : ranking[2].relation}
                 isOwn={ranking[2].user_id === ownUserId}
                 busy={busyIds.has(ranking[2].user_id)}
+                onOpen={openProfile}
                 onSend={handleSend}
               />
             )}
@@ -314,20 +338,21 @@ export function LeaderboardPage() {
                   return (
                     <li
                       key={entry.user_id}
-                      className={`flex items-center gap-3 rounded-xl border p-3 ${
+                      onClick={() => openProfile(entry.user_id)}
+                      className={`flex cursor-pointer touch-manipulation items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors active:bg-slate-800/50 ${
                         isOwn
                           ? 'border-indigo-500/40 bg-indigo-500/10'
                           : 'border-slate-800 bg-slate-900'
                       }`}
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-slate-400">
+                      <span className="w-7 shrink-0 select-none text-center text-sm font-bold text-slate-400">
                         {entry.pos}
                       </span>
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-sm font-bold text-white">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-700/60 bg-indigo-600/30 text-base font-bold text-indigo-300 shadow-sm">
                         {getInitial(entry.player_tag)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
+                        <p className="truncate font-semibold text-slate-100">
                           {entry.player_tag ?? 'Jogador'}
                           {isOwn && (
                             <span className="ml-1.5 text-xs font-medium text-indigo-400">
@@ -335,7 +360,7 @@ export function LeaderboardPage() {
                             </span>
                           )}
                         </p>
-                        <p className="mt-0.5 text-xs font-medium text-slate-400">
+                        <p className="mt-0.5 text-xs text-slate-400">
                           {formatMinutes(entry.minutes)}
                         </p>
                       </div>
@@ -371,6 +396,14 @@ export function LeaderboardPage() {
             </div>
           )}
         </>
+      )}
+
+      {selectedUserId && (
+        <PublicProfileModal
+          userId={selectedUserId}
+          onClose={closeProfile}
+          onSendRequest={handleSend}
+        />
       )}
     </AppShell>
   )

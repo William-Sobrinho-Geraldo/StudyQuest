@@ -44,6 +44,8 @@ const myRankValue = [{ pos: 99, minutes: 5 }]
 
 let sendInviteImpl: (args: Record<string, unknown>) => Promise<{ data: unknown; error: null }>
 
+let publicProfileValue: Record<string, unknown>
+
 function mockRpc() {
   rpc.mockImplementation((fn: string, args?: Record<string, unknown>) => {
     if (fn === 'get_global_ranking') {
@@ -54,6 +56,9 @@ function mockRpc() {
     }
     if (fn === 'send_invite_by_user') {
       return sendInviteImpl(args ?? {})
+    }
+    if (fn === 'get_public_profile') {
+      return Promise.resolve({ data: publicProfileValue, error: null })
     }
     return Promise.resolve({ data: null, error: null })
   })
@@ -89,6 +94,21 @@ function renderLeaderboard() {
 beforeEach(() => {
   vi.clearAllMocks()
   sendInviteImpl = async () => ({ data: { success: true }, error: null })
+  publicProfileValue = {
+    id: 'user-4',
+    display_name: 'Bia',
+    player_tag: 'bia#9012',
+    avatar_id: null,
+    study_goal: 'Concurso',
+    bio: 'Foco total',
+    level: 5,
+    current_xp: 120,
+    current_streak: 3,
+    total_minutes: 130,
+    session_count: 4,
+    relation: 'none',
+    equipped: [{ item_category: 'weapon', item_level: 10, enhancement_level: 0, rarity: 'common' }],
+  }
 
   getSession.mockResolvedValue({
     data: { session: { user: { id: USER_ID } } },
@@ -169,5 +189,51 @@ describe('LeaderboardPage', () => {
       await screen.findByText('Vocês já são amigos ou já existe uma solicitação pendente.'),
     ).toBeInTheDocument()
     expect(within(biaRow).getByRole('button', { name: 'Adicionar bia#9012 como amigo' })).toBeEnabled()
+  })
+
+  it('abre o perfil público ao clicar numa linha do ranking', async () => {
+    const user = userEvent.setup()
+    renderLeaderboard()
+    await screen.findByText('bia#9012')
+
+    await user.click(screen.getByText('bia#9012'))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Bia' })
+    expect(within(dialog).getByText('Foco: Concurso')).toBeInTheDocument()
+    expect(within(dialog).getByText('Foco total')).toBeInTheDocument()
+    expect(within(dialog).getByTestId('public-profile-level')).toHaveTextContent('Nível 5')
+    expect(within(dialog).getByRole('button', { name: '+ Adicionar Amigo' })).toBeInTheDocument()
+  })
+
+  it('não abre o modal ao clicar no botão de adicionar da linha', async () => {
+    const user = userEvent.setup()
+    renderLeaderboard()
+    await screen.findByText('bia#9012')
+
+    const biaRow = screen.getByText('bia#9012').closest('li') as HTMLLIElement
+    await user.click(within(biaRow).getByRole('button', { name: 'Adicionar bia#9012 como amigo' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByText('Solicitação de amizade enviada!')).toBeInTheDocument()
+  })
+
+  it('envia solicitação de amizade a partir do modal e atualiza a linha', async () => {
+    const user = userEvent.setup()
+    renderLeaderboard()
+    await screen.findByText('bia#9012')
+
+    const biaRow = screen.getByText('bia#9012').closest('li') as HTMLLIElement
+    await user.click(within(biaRow).getByText('bia#9012'))
+    const dialog = await screen.findByRole('dialog', { name: 'Bia' })
+
+    await user.click(within(dialog).getByRole('button', { name: '+ Adicionar Amigo' }))
+
+    await waitFor(() => {
+      expect(within(dialog).getByRole('button', { name: 'Solicitação Enviada' })).toBeInTheDocument()
+    })
+
+    expect(
+      within(biaRow).getByRole('button', { name: 'Solicitação enviada para bia#9012' }),
+    ).toBeDisabled()
   })
 })

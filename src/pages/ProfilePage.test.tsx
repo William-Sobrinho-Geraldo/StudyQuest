@@ -30,6 +30,19 @@ interface ProfileRow {
   avatar_id: string | null
   equipped_title: string | null
   unlocked_titles: string[]
+  study_goal: string | null
+  bio: string | null
+}
+
+interface InventoryRowMock {
+  item_category: string
+  item_level: number
+  enhancement_level: number
+  rarity: string | null
+}
+
+interface SessionRowMock {
+  duration_minutes: number
 }
 
 const USER_ID = 'user-123'
@@ -77,29 +90,51 @@ function fullProfile(overrides: Partial<ProfileRow> = {}): ProfileRow {
     avatar_id: null,
     equipped_title: null,
     unlocked_titles: [],
+    study_goal: null,
+    bio: null,
     ...overrides,
   }
 }
 
 let profileValue: ProfileRow
+let inventoryRows: InventoryRowMock[]
+let sessionRows: SessionRowMock[]
+let questClaimRows: { id: string }[]
+
+function queryable<T>(value: { data: T; error: unknown }) {
+  const promise = Promise.resolve(value)
+  return Object.assign(promise, {
+    eq: () => queryable(value),
+    maybeSingle: () => Promise.resolve(value),
+  })
+}
 
 function mockProfiles() {
-  const select = vi.fn((columns: string) => {
-    if (columns === '*') {
-      return {
-        eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: profileValue, error: null }),
-        }),
-      }
-    }
-    return { eq: vi.fn(), maybeSingle: vi.fn() }
-  })
   const update = vi.fn((patch: Record<string, unknown>) => {
     Object.assign(profileValue, patch)
     return { eq: vi.fn().mockResolvedValue({ error: null }) }
   })
-  from.mockReturnValue({ select, update })
-  return { select, update }
+
+  from.mockImplementation((table: string) => {
+    if (table === 'profiles') {
+      return {
+        select: vi.fn((_columns: string) => queryable({ data: profileValue, error: null })),
+        update,
+      }
+    }
+    if (table === 'inventory') {
+      return { select: vi.fn(() => queryable({ data: inventoryRows, error: null })) }
+    }
+    if (table === 'study_sessions') {
+      return { select: vi.fn(() => queryable({ data: sessionRows, error: null })) }
+    }
+    if (table === 'quest_claims') {
+      return { select: vi.fn(() => queryable({ data: questClaimRows, error: null })) }
+    }
+    return { select: vi.fn(() => queryable({ data: [], error: null })) }
+  })
+
+  return { update }
 }
 
 function renderProfile() {
@@ -116,6 +151,9 @@ function renderProfile() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  inventoryRows = []
+  sessionRows = []
+  questClaimRows = []
 })
 
 describe('ProfilePage', () => {
@@ -212,7 +250,12 @@ describe('ProfilePage', () => {
     await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }))
 
     await waitFor(() => {
-      expect(update).toHaveBeenCalledWith({ display_name: 'NovoNome', avatar_id: 'warrior' })
+      expect(update).toHaveBeenCalledWith({
+        display_name: 'NovoNome',
+        avatar_id: 'warrior',
+        study_goal: null,
+        bio: null,
+      })
     })
     expect(await screen.findByRole('heading', { name: 'NovoNome' })).toBeInTheDocument()
     expect(screen.getByTestId('hero-avatar-preset')).toBeInTheDocument()
@@ -241,5 +284,101 @@ describe('ProfilePage', () => {
       'O nome do herói deve ter entre 3 e 15 caracteres.',
     )
     expect(update).not.toHaveBeenCalled()
+  })
+
+  it('exibe objetivo de estudo e bio quando preenchidos', async () => {
+    mockSession()
+    profileValue = fullProfile({
+      study_goal: 'Concurso / OAB',
+      bio: 'Foco total, sem distrações.',
+    })
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(screen.getByTestId('study-goal-badge')).toHaveTextContent('Concurso / OAB')
+    expect(screen.getByText('Foco total, sem distrações.')).toBeInTheDocument()
+  })
+
+  it('exibe placeholders quando objetivo e bio estão vazios', async () => {
+    mockSession()
+    profileValue = fullProfile({})
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(screen.queryByTestId('study-goal-badge')).not.toBeInTheDocument()
+    expect(screen.getByText('Definir objetivo de estudo')).toBeInTheDocument()
+  })
+
+  it('calcula e exibe os status somados dos equipamentos', async () => {
+    mockSession()
+    profileValue = fullProfile({})
+    inventoryRows = [
+      { item_category: 'weapon', item_level: 10, enhancement_level: 0, rarity: 'common' },
+      { item_category: 'helmet', item_level: 10, enhancement_level: 0, rarity: 'common' },
+      { item_category: 'chest', item_level: 10, enhancement_level: 0, rarity: 'common' },
+      { item_category: 'boots', item_level: 10, enhancement_level: 0, rarity: 'common' },
+    ]
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(await screen.findByTestId('combat-attack')).toHaveTextContent('20')
+    expect(screen.getByTestId('combat-defense')).toHaveTextContent('30')
+    expect(screen.getByTestId('combat-hp')).toHaveTextContent('100')
+  })
+
+  it('exibe métricas de foco calculadas das sessões e quests', async () => {
+    mockSession()
+    profileValue = fullProfile({ current_streak: 7 })
+    sessionRows = [
+      { duration_minutes: 60 },
+      { duration_minutes: 30 },
+      { duration_minutes: 40 },
+    ]
+    questClaimRows = [{ id: 'q1' }, { id: 'q2' }, { id: 'q3' }, { id: 'q4' }, { id: 'q5' }]
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(await screen.findByTestId('focus-total-time')).toHaveTextContent('2h 10m')
+    expect(screen.getByTestId('focus-sessions')).toHaveTextContent('3')
+    expect(screen.getByTestId('focus-streak')).toHaveTextContent('7 dias')
+    expect(screen.getByTestId('focus-quests')).toHaveTextContent('5')
+  })
+
+  it('Editar Herói salva objetivo de estudo e bio', async () => {
+    const user = userEvent.setup()
+    mockSession()
+    profileValue = fullProfile({ display_name: 'Heroi', avatar_id: 'warrior' })
+    const { update } = mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Heroi' })
+
+    await user.click(screen.getByRole('button', { name: /editar herói/i }))
+    const dialog = screen.getByRole('dialog', { name: /editar herói/i })
+
+    const goalInput = within(dialog).getByLabelText(/objetivo de estudo/i)
+    await user.type(goalInput, 'Dev Pleno')
+
+    const bioInput = within(dialog).getByLabelText(/^bio$/i)
+    await user.type(bioInput, 'Codando até virar lenda.')
+
+    await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }))
+
+    await waitFor(() => {
+      expect(update).toHaveBeenCalledWith({
+        display_name: 'Heroi',
+        avatar_id: 'warrior',
+        study_goal: 'Dev Pleno',
+        bio: 'Codando até virar lenda.',
+      })
+    })
   })
 })

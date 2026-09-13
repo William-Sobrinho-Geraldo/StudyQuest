@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Hammer, LayoutDashboard, LogOut, Sparkles, Swords, Trophy, Users } from 'lucide-react'
+import { Backpack, Home, LogOut, Sparkles, Swords, Trophy, Users } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { useSocialBadge } from '../features/social/context/SocialContext'
 
 const NAV_LINKS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/forge', label: 'Forge', icon: Hammer, end: false },
+  { to: '/', label: 'Home', icon: Home, end: true },
+  { to: '/forge', label: 'Equips', icon: Backpack, end: false },
   { to: '/quests', label: 'Quests', icon: Swords, end: false },
   { to: '/ranking', label: 'Ranking', icon: Trophy, end: false },
 ]
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`
                 }
               >
-                <Icon className="h-5 w-5" aria-hidden="true" />
+                <Icon className="h-6 w-6" aria-hidden="true" />
                 {label}
               </NavLink>
             ))}

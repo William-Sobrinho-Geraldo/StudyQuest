@@ -17,6 +17,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_id: string | null
+          bio: string | null
           created_at: string
           current_streak: number
           current_xp: number
@@ -29,10 +30,12 @@ export type Database = {
           last_streak_date: string | null
           level: number
           player_tag: string | null
+          study_goal: string | null
           unlocked_titles: string[]
         }
         Insert: {
           avatar_id?: string | null
+          bio?: string | null
           created_at?: string
           current_streak?: number
           current_xp?: number
@@ -45,10 +48,12 @@ export type Database = {
           last_streak_date?: string | null
           level?: number
           player_tag?: string | null
+          study_goal?: string | null
           unlocked_titles?: string[]
         }
         Update: {
           avatar_id?: string | null
+          bio?: string | null
           created_at?: string
           current_streak?: number
           current_xp?: number
@@ -61,6 +66,7 @@ export type Database = {
           last_streak_date?: string | null
           level?: number
           player_tag?: string | null
+          study_goal?: string | null
           unlocked_titles?: string[]
         }
         Relationships: []
@@ -917,6 +923,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_public_profile: {
+        Args: { p_target_user_id: string }
+        Returns: Json
       }
       get_pending_invites: {
         Args: Record<string, never>
