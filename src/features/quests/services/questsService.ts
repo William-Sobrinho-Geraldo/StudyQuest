@@ -21,7 +21,17 @@ export interface QuestProgressRow {
   claimed: boolean
 }
 
+export async function syncUserQuests(): Promise<void> {
+  const { error } = await supabase.rpc('sync_user_quests')
+
+  if (error) {
+    console.error('Falha ao sincronizar reset das quests:', error.message)
+  }
+}
+
 export async function fetchQuestProgress(): Promise<QuestProgressRow[]> {
+  await syncUserQuests()
+
   const { data, error } = await supabase.rpc('quest_progress')
 
   if (error) {

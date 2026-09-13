@@ -991,6 +991,10 @@ export type Database = {
           status: string
         }
       }
+      sync_user_quests: {
+        Args: { p_user_id?: string | null }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
