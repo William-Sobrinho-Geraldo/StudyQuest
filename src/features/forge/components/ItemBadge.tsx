@@ -20,20 +20,20 @@ export function ItemBadge({ item, vertical = false, blocked = false }: ItemBadge
           : 'flex min-w-0 items-center gap-2.5'
       }
     >
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-800 ${
-          blocked ? 'opacity-50' : ''
-        }`}
-      >
-        {blocked ? (
-          <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
-        ) : (
-          <img
-            src={getItemImage(item.name, item.slot)}
-            alt=""
+      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-800">
+        <img
+          src={getItemImage(item.name, item.slot)}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className={`pointer-events-none h-full w-full select-none object-contain p-1.5 drop-shadow-sm ${
+            blocked ? 'brightness-50 grayscale' : ''
+          }`}
+        />
+        {blocked && (
+          <Lock
+            className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 text-slate-300"
             aria-hidden="true"
-            draggable={false}
-            className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
           />
         )}
       </span>

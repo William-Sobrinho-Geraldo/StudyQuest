@@ -38,7 +38,7 @@ export function ItemCard({
   const cardClasses = [
     'relative flex items-center justify-center overflow-hidden rounded-xl border-2 bg-slate-800/90 touch-manipulation select-none transition-transform',
     blocked
-      ? 'cursor-not-allowed border-slate-700/80 opacity-50'
+      ? 'cursor-pointer active:scale-95 border-slate-700/80'
       : `cursor-pointer active:scale-95 ${border} ${glow}`,
     selected && !blocked ? 'ring-2 ring-indigo-500/40' : '',
     className,
@@ -63,25 +63,25 @@ export function ItemCard({
         }}
         className={cardClasses}
       >
-        {blocked ? (
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-800 opacity-50">
-            <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
-          </span>
-        ) : (
-          <>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 m-auto h-3/4 w-3/4 rounded-full blur-lg"
-              style={{ backgroundColor: getRarityGlowColor(item.rarity) }}
-            />
-            <img
-              src={getItemImage(item.name, item.slot)}
-              alt=""
-              aria-hidden="true"
-              draggable={false}
-              className="pointer-events-none relative z-10 h-full w-full select-none object-contain p-1.5 drop-shadow-sm"
-            />
-          </>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 m-auto h-3/4 w-3/4 rounded-full blur-lg"
+          style={{ backgroundColor: getRarityGlowColor(item.rarity) }}
+        />
+        <img
+          src={getItemImage(item.name, item.slot)}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className={`pointer-events-none relative z-10 h-full w-full select-none object-contain p-1.5 drop-shadow-sm ${
+            blocked ? 'brightness-50 grayscale' : ''
+          }`}
+        />
+        {blocked && (
+          <Lock
+            className="absolute left-1/2 top-1/2 z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-slate-300"
+            aria-hidden="true"
+          />
         )}
 
         {item.itemLevel > 0 && (

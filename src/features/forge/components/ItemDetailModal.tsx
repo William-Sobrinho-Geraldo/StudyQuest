@@ -10,6 +10,7 @@ import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
 interface ItemDetailModalProps {
   item: ForgeItem
   isEquipped: boolean
+  canEquip: boolean
   onClose: () => void
   onEquip: (itemId: string, slot: EquipmentSlot) => void
   onSendToAnvil: (itemId: string) => void
@@ -19,6 +20,7 @@ interface ItemDetailModalProps {
 export function ItemDetailModal({
   item,
   isEquipped,
+  canEquip,
   onClose,
   onEquip,
   onSendToAnvil,
@@ -110,11 +112,12 @@ export function ItemDetailModal({
           {!isEquipped && (
             <button
               type="button"
+              disabled={!canEquip}
               onClick={() => {
                 onEquip(item.id, item.slot)
                 onClose()
               }}
-              className="touch-manipulation active:scale-95 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              className="touch-manipulation active:scale-95 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:opacity-50 disabled:hover:bg-slate-600"
             >
               <Swords className="h-4 w-4" aria-hidden="true" />
               Equipar
@@ -145,6 +148,12 @@ export function ItemDetailModal({
             </button>
           )}
         </div>
+
+        {!isEquipped && !canEquip && (
+          <p className="mt-3 text-center text-xs font-semibold text-red-400">
+            Requer Nível {item.itemLevel} para equipar.
+          </p>
+        )}
 
         {!isEquipped && !item.isInForge && (
           <button

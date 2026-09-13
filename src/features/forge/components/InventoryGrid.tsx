@@ -17,17 +17,15 @@ function InventoryCell({ item, selected, blocked, onDetail }: InventoryCellProps
       selected={selected}
       blocked={blocked}
       role="button"
-      tabIndex={blocked ? -1 : 0}
+      tabIndex={0}
       data-testid={`inventory-item-${item.id}`}
       aria-label={
         blocked
-          ? `Item ${item.name} bloqueado (requer Nível ${item.itemLevel})`
-          : `Refinar ${item.name} de +${item.enhancementLevel}`
+          ? `Item ${item.name} bloqueado para equipar (requer Nível ${item.itemLevel})`
+          : `Ver detalhes de ${item.name}`
       }
       title={blocked ? `Requer personagem Nível ${item.itemLevel}` : undefined}
-      onClick={() => {
-        if (!blocked) onDetail(item.id)
-      }}
+      onClick={() => onDetail(item.id)}
       className="aspect-square p-2"
     />
   )

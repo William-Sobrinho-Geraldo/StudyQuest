@@ -12,7 +12,7 @@ import { SupplyChests } from '../features/forge/components/SupplyChests'
 import { useForge } from '../features/forge/hooks/useForge'
 import { INVENTORY_CAPACITY } from '../features/forge/lib/forgeItems'
 import { type ForgeItem } from '../features/forge/lib/forgeItems'
-import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
+import { canEquip, type EquipmentSlot } from '../features/forge/lib/forgeRules'
 import { CHEST_TIER_META, isQuestChestTier } from '../features/quests/lib/chestTiers'
 import { calculateTotalStats } from '../utils/statsCalculator'
 import { getItemSalePrice } from '../utils/pricing'
@@ -182,6 +182,10 @@ export function ForgePage() {
         <ItemDetailModal
           item={detailItem}
           isEquipped={Object.values(forge.equipped).some((i) => i?.id === detailItem.id)}
+          canEquip={
+            forge.characterLevel !== null &&
+            canEquip(detailItem.itemLevel, forge.characterLevel)
+          }
           onClose={() => setDetailItem(null)}
           onEquip={handleEquip}
           onSendToAnvil={handleSendToAnvil}

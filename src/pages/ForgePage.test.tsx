@@ -577,6 +577,27 @@ describe('ForgePage', () => {
     expect(screen.queryByTestId('anvil-selected-item')).not.toBeInTheDocument()
   })
 
+  it('item acima do nível abre detalhes com Equipar bloqueado e Vender liberado', async () => {
+    characterLevelValue = 15
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('spare-high-0', 'weapon', 'Machado de Guerra', 0, false, 30),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    tapCard(screen.getByTestId('inventory-item-spare-high-0'))
+
+    expect(screen.getByRole('heading', { name: 'Machado de Guerra' })).toBeInTheDocument()
+    expect(screen.getByText('Requer Nível 30 para equipar.')).toBeInTheDocument()
+
+    const equipButton = screen.getByRole('button', { name: /Equipar/ })
+    expect(equipButton).toBeDisabled()
+
+    const sellButton = screen.getByRole('button', { name: /Vender por/ })
+    expect(sellButton).toBeEnabled()
+  })
+
   it('abre um baú, consome a quantidade e adiciona o equipamento ao inventário', async () => {
     inventoryRows = [...forgeRows(), makeChest('chest-rare-1', 'rare', 2)]
     openChestResult = [
