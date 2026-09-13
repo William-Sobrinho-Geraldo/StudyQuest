@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Check, Crown, Loader2, Pencil, Sparkles, X } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { UserAvatar } from '../components/UserAvatar'
 import { useAuth } from '../features/auth/AuthContext'
+import { AvatarPicker } from '../features/profile/components/AvatarPicker'
 import { supabase } from '../lib/supabase'
-import { AVATAR_PRESETS, getAvatarPreset } from '../lib/avatarPresets'
+import { AVATARS, DEFAULT_UNLOCKED_AVATARS } from '../utils/avatars'
 import { getLevelProgress } from '../utils/leveling'
 import {
   computeCombatTotals,
@@ -30,6 +32,7 @@ interface EditHeroModalProps {
   currentAvatar: string | null
   currentGoal: string | null
   currentBio: string | null
+  unlockedAvatars: readonly string[]
   onClose: () => void
   onSaved: () => void
 }
@@ -39,6 +42,7 @@ function EditHeroModal({
   currentAvatar,
   currentGoal,
   currentBio,
+  unlockedAvatars,
   onClose,
   onSaved,
 }: EditHeroModalProps) {
@@ -192,37 +196,15 @@ function EditHeroModal({
             <legend className="mb-2 block text-sm font-medium text-slate-300">
               Avatar
             </legend>
-            <div className="grid grid-cols-2 gap-3">
-              {AVATAR_PRESETS.map(({ id, label, icon: Icon }) => {
-                const isSelected = selectedAvatar === id
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    onClick={() => { setSelectedAvatar(id); if (error) setError(null) }}
-                    aria-label={`Avatar ${label}`}
-                    className={`relative flex min-h-[96px] touch-manipulation select-none flex-col items-center justify-center gap-2 rounded-xl border p-3 text-sm font-medium transition active:scale-95 ${
-                      isSelected
-                        ? 'border-indigo-500 bg-indigo-500/10 text-white ring-2 ring-indigo-500/40'
-                        : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200'
-                    }`}
-                  >
-                    <Icon
-                      className={`h-7 w-7 ${isSelected ? 'text-indigo-400' : 'text-slate-500'}`}
-                      aria-hidden="true"
-                    />
-                    {label}
-                    {isSelected && (
-                      <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-indigo-500">
-                        <Check className="h-3 w-3 text-white" aria-hidden="true" />
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+            <AvatarPicker
+              avatars={AVATARS}
+              selectedId={selectedAvatar}
+              unlockedIds={unlockedAvatars}
+              onSelect={(id) => {
+                setSelectedAvatar(id)
+                if (error) setError(null)
+              }}
+            />
           </fieldset>
 
           {error && (
@@ -342,10 +324,6 @@ export function ProfilePage() {
 
   const totals = useMemo(() => computeCombatTotals(equippedItems), [equippedItems])
 
-  const preset = getAvatarPreset(profile?.avatar_id)
-  const IconComponent = preset?.icon
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?'
-
   const { level, xpIntoLevel, xpForNextLevel, progress } = getLevelProgress(
     profile?.current_xp ?? 0,
   )
@@ -375,21 +353,11 @@ export function ProfilePage() {
     <AppShell>
       <div className="flex flex-col">
         <section className="flex flex-col items-center gap-3 pt-4">
-          {IconComponent ? (
-            <div
-              data-testid="hero-avatar-preset"
-              className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg ring-4 ring-indigo-500/30"
-            >
-              <IconComponent className="h-12 w-12 text-white" aria-hidden="true" />
-            </div>
-          ) : (
-            <div
-              data-testid="hero-avatar-fallback"
-              className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-3xl font-bold text-white shadow-lg ring-4 ring-indigo-500/30"
-            >
-              {initial}
-            </div>
-          )}
+          <UserAvatar
+            avatarId={profile?.avatar_id}
+            name={displayName}
+            className="h-24 w-24 rounded-full shadow-lg ring-4 ring-indigo-500/30"
+          />
 
           <h1 className="text-2xl font-bold">{displayName}</h1>
 
@@ -552,6 +520,7 @@ export function ProfilePage() {
           currentAvatar={profile?.avatar_id ?? null}
           currentGoal={profile?.study_goal ?? null}
           currentBio={profile?.bio ?? null}
+          unlockedAvatars={profile?.unlocked_avatars ?? DEFAULT_UNLOCKED_AVATARS}
           onClose={() => setEditOpen(false)}
           onSaved={async () => {
             await refreshProfile()

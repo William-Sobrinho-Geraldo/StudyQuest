@@ -38,6 +38,7 @@ export interface PublicProfile {
 export interface GlobalRankingEntry {
   minutes: number
   player_tag: string | null
+  avatar_id: string | null
   pos: number
   relation: RankingRelation
   user_id: string
@@ -85,6 +86,7 @@ export async function fetchGlobalRanking(
   if (error) throw new Error(error.message)
   return (data ?? []).map((entry) => ({
     ...entry,
+    avatar_id: typeof entry.avatar_id === 'string' ? entry.avatar_id : null,
     relation: normalizeRelation(entry.relation),
   }))
 }

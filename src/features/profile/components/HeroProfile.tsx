@@ -6,7 +6,7 @@ import { onStudySessionSaved } from '../../study/lib/studyEvents'
 import { getLevelProgress } from '../../../utils/leveling'
 import { useAuth } from '../../auth/AuthContext'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
-import { getAvatarPreset } from '../../../lib/avatarPresets'
+import { UserAvatar } from '../../../components/UserAvatar'
 
 interface ProfileStats {
   level: number
@@ -62,9 +62,6 @@ export function HeroProfile() {
   const { level, xpIntoLevel, xpForNextLevel: nextLevelXp, progress } = getLevelProgress(xp)
   const percent = Math.round(progress * 100)
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'Aventureiro'
-  const preset = getAvatarPreset(profile?.avatar_id)
-  const AvatarIcon = preset?.icon
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?'
 
   return (
     <Link
@@ -72,21 +69,11 @@ export function HeroProfile() {
       className="block rounded-xl border border-slate-800 bg-slate-900 p-5 transition hover:border-slate-700 hover:bg-slate-800/80 active:scale-[0.99] cursor-pointer"
     >
       <div className="flex items-center gap-4">
-        {AvatarIcon ? (
-          <div
-            data-testid="hero-avatar-preset"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600"
-          >
-            <AvatarIcon className="h-7 w-7 text-white" aria-hidden="true" />
-          </div>
-        ) : (
-          <div
-            data-testid="hero-avatar-fallback"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 text-xl font-bold text-white"
-          >
-            {initial}
-          </div>
-        )}
+        <UserAvatar
+          avatarId={profile?.avatar_id}
+          name={displayName}
+          className="h-14 w-14 shrink-0 rounded-full"
+        />
         <div>
           <p className="text-lg font-bold">{displayName}</p>
           <p data-testid="hero-level" className="text-sm font-medium text-indigo-400">

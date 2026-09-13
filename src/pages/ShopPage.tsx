@@ -5,7 +5,7 @@ import { useAuth } from '../features/auth/AuthContext'
 import { ShopCard } from '../features/shop/components/ShopCard'
 import { ShopItemModal } from '../features/shop/components/ShopItemModal'
 import { useShop } from '../features/shop/hooks/useShop'
-import { SHOWCASE_SLOT_INDEX, type ShopSlot } from '../features/shop/lib/shopItems'
+import { isAvatarSlot, type ShopSlot } from '../features/shop/lib/shopItems'
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
@@ -130,14 +130,17 @@ export function ShopPage() {
     [shop.gold],
   )
 
-  const showcaseSlot = shop.slots.find((slot) => slot.slot === SHOWCASE_SLOT_INDEX)
-  const regularSlots = shop.slots.filter((slot) => slot.slot !== SHOWCASE_SLOT_INDEX)
-
   const handleBuy = useCallback(
     async (slotNumber: number) => {
+      const target = shop.slots.find((slot) => slot.slot === slotNumber)
+      const isAvatar = target ? isAvatarSlot(target) : false
       const success = await shop.buy(slotNumber)
       setToast(
-        success ? 'Item adicionado ao seu inventário!' : shop.error ?? 'Não foi possível comprar.',
+        success
+          ? isAvatar
+            ? 'Avatar desbloqueado!'
+            : 'Item adicionado ao seu inventário!'
+          : shop.error ?? 'Não foi possível comprar.',
       )
       window.setTimeout(() => setToast(null), 2500)
     },
@@ -243,38 +246,22 @@ export function ShopPage() {
           </button>
         </div>
       ) : (
-        <>
-          {showcaseSlot && (
-            <section aria-label="Vitrine Especial" className="mt-6">
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-300">
-                Vitrine Especial
-              </h2>
-              <ShopCard
-                slot={showcaseSlot}
-                gold={shop.gold}
-                busy={shop.busy}
-                expired={shop.expired}
-                canAfford={canAfford(showcaseSlot.price)}
-                onBuy={(slotNumber) => void handleBuy(slotNumber)}
-                onDetail={setSelected}
-              />
-            </section>
-          )}
-
-          <div className="mt-6">
-            <div className="mb-2 flex items-baseline justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Estoque
-              </h2>
-              {shop.characterLevel !== null && (
-                <span className="text-[11px] text-slate-500">
-                  Nível {shop.characterLevel} · brackets de item{' '}
-                  {(Math.floor(shop.characterLevel / 10) * 10).toString()}
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {regularSlots.map((slot) => (
+        <div className="mt-6">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Estoque
+            </h2>
+            {shop.characterLevel !== null && (
+              <span className="text-[11px] text-slate-500">
+                Nível {shop.characterLevel} · brackets de item{' '}
+                {(Math.floor(shop.characterLevel / 10) * 10).toString()}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3 pb-6">
+            {[...shop.slots]
+              .sort((a, b) => a.slot - b.slot)
+              .map((slot, index) => (
                 <ShopCard
                   key={slot.slot}
                   slot={slot}
@@ -282,13 +269,13 @@ export function ShopPage() {
                   busy={shop.busy}
                   expired={shop.expired}
                   canAfford={canAfford(slot.price)}
+                  isSpecial={index === 0}
                   onBuy={(slotNumber) => void handleBuy(slotNumber)}
                   onDetail={setSelected}
                 />
               ))}
-            </div>
           </div>
-        </>
+        </div>
       )}
 
       {selected && selectedMeta && (

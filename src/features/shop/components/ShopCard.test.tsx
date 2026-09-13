@@ -40,12 +40,22 @@ describe('ShopCard', () => {
     expect(screen.getByText('240')).toBeInTheDocument()
   })
 
-  it('shows Vitrine Especial label for slot 6', () => {
-    const slot = makeSlot({ slot: 6, rarity: 'epic' })
+  it('shows the Avatar badge and rarity for the avatar slot', () => {
+    const slot = makeSlot({
+      slot: 6,
+      item_category: 'avatar',
+      name: 'lendario_1',
+      rarity: 'legendary',
+      item_level: 0,
+      attack: 0,
+      defense: 0,
+      hp: 0,
+      price: 3600,
+    })
     render(
       <ShopCard
         slot={slot}
-        gold={1000}
+        gold={5000}
         busy={false}
         expired={false}
         canAfford={true}
@@ -53,8 +63,8 @@ describe('ShopCard', () => {
         onDetail={vi.fn()}
       />,
     )
-    expect(screen.getByText('Vitrine Especial')).toBeInTheDocument()
-    expect(screen.getByText('Épico')).toBeInTheDocument()
+    expect(screen.getByText('Avatar')).toBeInTheDocument()
+    expect(screen.getByText('Lendário')).toBeInTheDocument()
   })
 
   it('calls onBuy with slot number when buy button is clicked', async () => {
@@ -125,6 +135,52 @@ describe('ShopCard', () => {
     )
     const btn = screen.getByRole('button')
     expect(btn).toBeDisabled()
+  })
+
+  it('renders the avatar image for avatar slots', () => {
+    const slot = makeSlot({
+      slot: 6,
+      item_category: 'avatar',
+      name: 'epico_6',
+      rarity: 'epic',
+      item_level: 0,
+      attack: 0,
+      defense: 0,
+      hp: 0,
+      price: 840,
+    })
+    render(
+      <ShopCard
+        slot={slot}
+        gold={1000}
+        busy={false}
+        expired={false}
+        canAfford={true}
+        onBuy={vi.fn()}
+        onDetail={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Estrategista')).toBeInTheDocument()
+    expect(screen.getByText('Avatar Premium')).toBeInTheDocument()
+    const img = screen.getByRole('img', { name: 'Estrategista' })
+    expect(img).toHaveAttribute('src', '/assets/avatars/epico_6.webp')
+  })
+
+  it('shows the Especial badge on the special slot', () => {
+    const slot = makeSlot({ slot: 1, rarity: 'epic' })
+    render(
+      <ShopCard
+        slot={slot}
+        gold={1000}
+        busy={false}
+        expired={false}
+        canAfford={true}
+        isSpecial
+        onBuy={vi.fn()}
+        onDetail={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/especial/i)).toBeInTheDocument()
   })
 })
 

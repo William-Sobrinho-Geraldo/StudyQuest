@@ -31,6 +31,7 @@ export type Database = {
           level: number
           player_tag: string | null
           study_goal: string | null
+          unlocked_avatars: string[]
           unlocked_titles: string[]
         }
         Insert: {
@@ -49,6 +50,7 @@ export type Database = {
           level?: number
           player_tag?: string | null
           study_goal?: string | null
+          unlocked_avatars?: string[]
           unlocked_titles?: string[]
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           level?: number
           player_tag?: string | null
           study_goal?: string | null
+          unlocked_avatars?: string[]
           unlocked_titles?: string[]
         }
         Relationships: []
@@ -546,6 +549,7 @@ export type Database = {
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          unlocked_avatars: string[]
           unlocked_titles: string[]
         }[]
         SetofOptions: {
@@ -570,6 +574,7 @@ export type Database = {
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          unlocked_avatars: string[]
           unlocked_titles: string[]
         }[]
         SetofOptions: {
@@ -594,6 +599,7 @@ export type Database = {
           last_chest_claim: string
           last_streak_date: string | null
           level: number
+          unlocked_avatars: string[]
           unlocked_titles: string[]
         }[]
         SetofOptions: {
@@ -836,7 +842,7 @@ export type Database = {
         Returns: {
           shop_slot: number
           shop_bought: boolean
-          inventory_id: string
+          inventory_id: string | null
           inventory_name: string
           inventory_item_category: string
           inventory_rarity: string
@@ -898,6 +904,7 @@ export type Database = {
       get_global_ranking: {
         Args: { p_period: string; p_limit?: number }
         Returns: {
+          avatar_id: string | null
           minutes: number
           player_tag: string | null
           pos: number

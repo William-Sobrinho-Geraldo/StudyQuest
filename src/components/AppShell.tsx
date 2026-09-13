@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { Backpack, Home, LogOut, Sparkles, Swords, Trophy, Users } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { useSocialBadge } from '../features/social/context/SocialContext'
+import { ForcedAvatarModal } from '../features/profile/components/ForcedAvatarModal'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -93,6 +94,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </div>
         </nav>
+
+        <ForcedAvatarModal />
       </div>
     </div>
   )

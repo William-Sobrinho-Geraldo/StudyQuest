@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Check, Crown, Loader2, Trophy, UserCheck, UserPlus } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { UserAvatar } from '../components/UserAvatar'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../features/auth/AuthContext'
 import { useGlobalRanking } from '../features/ranking/hooks/useGlobalRanking'
@@ -14,10 +15,6 @@ import {
 } from '../features/ranking/services/rankingService'
 import { PublicProfileModal } from '../features/ranking/components/PublicProfileModal'
 import { formatMinutes } from '../utils/formatMinutes'
-
-function getInitial(playerTag: string | null): string {
-  return playerTag?.charAt(0).toUpperCase() ?? '?'
-}
 
 interface FriendRequestButtonProps {
   relation: RankingRelation
@@ -165,13 +162,13 @@ function PodiumCard({
           {entry.pos}
         </span>
       )}
-      <div
-        className={`grid h-14 w-14 place-items-center rounded-full bg-indigo-500 text-xl font-bold text-white ${
+      <UserAvatar
+        avatarId={entry.avatar_id}
+        name={entry.player_tag}
+        className={`h-14 w-14 rounded-xl border border-slate-700 shadow-sm ${
           leading ? 'ring-4 ring-amber-500/40' : ''
         }`}
-      >
-        {getInitial(entry.player_tag)}
-      </div>
+      />
       <div className="min-w-0">
         <p className="truncate text-[13px] font-semibold">
           {entry.player_tag ?? 'Jogador'}
@@ -348,9 +345,11 @@ export function LeaderboardPage() {
                       <span className="w-7 shrink-0 select-none text-center text-sm font-bold text-slate-400">
                         {entry.pos}
                       </span>
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-700/60 bg-indigo-600/30 text-base font-bold text-indigo-300 shadow-sm">
-                        {getInitial(entry.player_tag)}
-                      </div>
+                      <UserAvatar
+                        avatarId={entry.avatar_id}
+                        name={entry.player_tag}
+                        className="h-11 w-11 shrink-0 rounded-xl border border-slate-700 shadow-sm"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold text-slate-100">
                           {entry.player_tag ?? 'Jogador'}

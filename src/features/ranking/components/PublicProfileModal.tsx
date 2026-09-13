@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Clock, Loader2, UserPlus, X } from 'lucide-react'
 import { useAuth } from '../../../features/auth/AuthContext'
-import { getAvatarPreset } from '../../../lib/avatarPresets'
+import { UserAvatar } from '../../../components/UserAvatar'
 import { computeCombatTotals, formatStudyDuration } from '../../../utils/equippedStats'
 import type { ForgeRarity } from '../../../features/forge/lib/forgeItems'
 import type { EquipmentSlot } from '../../../features/forge/lib/forgeRules'
@@ -15,14 +15,6 @@ interface PublicProfileModalProps {
   userId: string
   onClose: () => void
   onSendRequest: (userId: string) => Promise<boolean>
-}
-
-function getInitial(profile: PublicProfile | null): string {
-  return (
-    profile?.display_name?.charAt(0).toUpperCase() ??
-    profile?.player_tag?.charAt(0).toUpperCase() ??
-    '?'
-  )
 }
 
 export function PublicProfileModal({ userId, onClose, onSendRequest }: PublicProfileModalProps) {
@@ -69,8 +61,6 @@ export function PublicProfileModal({ userId, onClose, onSendRequest }: PublicPro
     )
   }, [profile])
 
-  const preset = getAvatarPreset(profile?.avatar_id)
-  const AvatarIcon = preset?.icon
   const isSelf = profile?.relation === 'self' || userId === user?.id
 
   async function handleAddFriend() {
@@ -122,15 +112,11 @@ export function PublicProfileModal({ userId, onClose, onSendRequest }: PublicPro
                 <X className="h-6 w-6" aria-hidden="true" />
               </button>
 
-              {AvatarIcon ? (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg ring-4 ring-indigo-500/30">
-                  <AvatarIcon className="h-10 w-10 text-white" aria-hidden="true" />
-                </div>
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-2xl font-bold text-white shadow-lg ring-4 ring-indigo-500/30">
-                  {getInitial(profile)}
-                </div>
-              )}
+              <UserAvatar
+                avatarId={profile?.avatar_id}
+                name={profile?.display_name ?? profile?.player_tag ?? undefined}
+                className="h-20 w-20 rounded-xl border border-slate-700 shadow-lg ring-4 ring-indigo-500/30"
+              />
 
               <h2 id="public-profile-title" className="mt-1 text-xl font-bold">
                 {profile?.display_name ?? profile?.player_tag ?? 'Jogador'}

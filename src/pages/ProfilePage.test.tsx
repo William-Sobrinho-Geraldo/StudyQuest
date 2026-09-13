@@ -161,7 +161,7 @@ describe('ProfilePage', () => {
     mockSession()
     profileValue = fullProfile({
       display_name: 'Heroi',
-      avatar_id: 'warrior',
+      avatar_id: 'comum_1',
       equipped_title: 'Novato',
       unlocked_titles: ['Novato', 'Veterano'],
     })
@@ -170,8 +170,8 @@ describe('ProfilePage', () => {
     renderProfile()
     await screen.findByRole('heading', { name: 'Heroi' })
 
-    expect(screen.getByTestId('hero-avatar-preset')).toBeInTheDocument()
-    expect(screen.queryByTestId('hero-avatar-fallback')).not.toBeInTheDocument()
+    expect(screen.getByTestId('user-avatar-image')).toBeInTheDocument()
+    expect(screen.queryByTestId('user-avatar-fallback')).not.toBeInTheDocument()
     expect(screen.getByTestId('equipped-title-badge')).toHaveTextContent('Novato')
 
     const novatoButton = screen.getByRole('button', { name: /novato/i, pressed: true })
@@ -188,8 +188,8 @@ describe('ProfilePage', () => {
     renderProfile()
     await screen.findByRole('heading', { name: 'Aventureiro' })
 
-    expect(screen.getByTestId('hero-avatar-fallback')).toHaveTextContent('H')
-    expect(screen.queryByTestId('hero-avatar-preset')).not.toBeInTheDocument()
+    expect(screen.getByTestId('user-avatar-fallback')).toHaveTextContent('A')
+    expect(screen.queryByTestId('user-avatar-image')).not.toBeInTheDocument()
     expect(screen.queryByTestId('equipped-title-badge')).not.toBeInTheDocument()
   })
 
@@ -246,19 +246,19 @@ describe('ProfilePage', () => {
     await user.clear(nameInput)
     await user.type(nameInput, 'NovoNome')
 
-    await user.click(within(dialog).getByRole('radio', { name: /avatar guerreiro/i }))
+    await user.click(within(dialog).getByRole('radio', { name: /avatar aventureiro/i }))
     await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }))
 
     await waitFor(() => {
       expect(update).toHaveBeenCalledWith({
         display_name: 'NovoNome',
-        avatar_id: 'warrior',
+        avatar_id: 'comum_1',
         study_goal: null,
         bio: null,
       })
     })
     expect(await screen.findByRole('heading', { name: 'NovoNome' })).toBeInTheDocument()
-    expect(screen.getByTestId('hero-avatar-preset')).toBeInTheDocument()
+    expect(screen.getByTestId('user-avatar-image')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: /editar herói/i })).not.toBeInTheDocument()
   })
 
@@ -355,7 +355,7 @@ describe('ProfilePage', () => {
   it('Editar Herói salva objetivo de estudo e bio', async () => {
     const user = userEvent.setup()
     mockSession()
-    profileValue = fullProfile({ display_name: 'Heroi', avatar_id: 'warrior' })
+    profileValue = fullProfile({ display_name: 'Heroi', avatar_id: 'comum_1' })
     const { update } = mockProfiles()
 
     renderProfile()
@@ -375,7 +375,7 @@ describe('ProfilePage', () => {
     await waitFor(() => {
       expect(update).toHaveBeenCalledWith({
         display_name: 'Heroi',
-        avatar_id: 'warrior',
+        avatar_id: 'comum_1',
         study_goal: 'Dev Pleno',
         bio: 'Codando até virar lenda.',
       })

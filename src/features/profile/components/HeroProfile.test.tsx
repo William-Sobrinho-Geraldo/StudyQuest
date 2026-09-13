@@ -110,7 +110,7 @@ describe('HeroProfile', () => {
 
     expect(screen.getByText('Nível 1')).toBeInTheDocument()
     expect(screen.getByText('Aventureiro')).toBeInTheDocument()
-    expect(screen.getByTestId('hero-avatar-fallback')).toHaveTextContent('A')
+    expect(screen.getByTestId('user-avatar-fallback')).toHaveTextContent('A')
     expect(screen.getByRole('link', { name: /aventureiro/i })).toHaveAttribute('href', '/profile')
 
     expect(eq).toHaveBeenCalledWith('id', 'user-123')

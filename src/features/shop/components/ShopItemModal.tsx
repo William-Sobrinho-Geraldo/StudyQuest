@@ -1,9 +1,10 @@
 import { Check, Coins, Loader2, X } from 'lucide-react'
 import { getItemImage } from '../../../utils/itemVisuals'
+import { getAvatarDefinition } from '../../../utils/avatars'
 import { RARITY_LABELS, rarityStyle } from '../../forge/lib/rarityStyles'
-import { SLOT_LABELS } from '../../forge/lib/forgeRules'
+import { SLOT_LABELS, type EquipmentSlot } from '../../forge/lib/forgeRules'
 import { ShopStats } from './ShopCard'
-import type { ShopSlot } from '../lib/shopItems'
+import { isAvatarSlot, type ShopSlot } from '../lib/shopItems'
 
 interface ShopItemModalProps {
   slot: ShopSlot
@@ -23,7 +24,9 @@ export function ShopItemModal({
   onClose,
 }: ShopItemModalProps) {
   const { text: textColor } = rarityStyle(slot.rarity)
-  const isShowcase = slot.slot === 6
+  const isAvatar = isAvatarSlot(slot)
+  const avatar = isAvatar ? getAvatarDefinition(slot.name) : undefined
+  const displayName = avatar?.name ?? slot.name
 
   return (
     <div
@@ -38,17 +41,25 @@ export function ShopItemModal({
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-800">
               <img
-                src={getItemImage(slot.name, slot.item_category)}
-                alt=""
-                aria-hidden="true"
+                src={avatar ? avatar.imagePath : getItemImage(slot.name, slot.item_category)}
+                alt={isAvatar ? displayName : ''}
+                aria-hidden={!isAvatar}
                 draggable={false}
-                className="pointer-events-none w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
+                className={`pointer-events-none w-full h-full select-none drop-shadow-sm ${
+                  avatar ? 'object-cover rounded-full' : 'object-contain p-1.5'
+                }`}
               />
             </span>
             <div>
-              <h2 className={`text-lg font-bold ${textColor}`}>{slot.name}</h2>
+              <h2 className={`text-lg font-bold ${textColor}`}>{displayName}</h2>
               <p className="text-xs text-slate-400">
-                {SLOT_LABELS[slot.item_category]} · Nível {slot.item_level}
+                {isAvatar ? (
+                  'Avatar Premium'
+                ) : (
+                  <>
+                    {SLOT_LABELS[slot.item_category as EquipmentSlot]} · Nível {slot.item_level}
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -61,14 +72,14 @@ export function ShopItemModal({
           </button>
         </div>
 
-        {isShowcase && (
-          <span className="mt-3 inline-block rounded-full border border-amber-400/40 bg-slate-950 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
-            Vitrine Especial
+        {isAvatar && (
+          <span className="mt-3 inline-block rounded-full border border-purple-400/40 bg-slate-950 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-300">
+            Avatar
           </span>
         )}
 
         <div className="mt-4 space-y-2">
-          <ShopStats slot={slot} />
+          {!isAvatar && <ShopStats slot={slot} />}
         </div>
 
         <p className={`mt-4 text-center text-xs font-bold uppercase ${textColor}`}>

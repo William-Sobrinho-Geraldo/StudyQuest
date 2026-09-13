@@ -4,14 +4,14 @@ import type { ForgeRarity } from '../../forge/lib/forgeItems'
 // Raridades dos slots regulares (1-5) do mercado. Máximo é Épico.
 export const SHOP_RARITIES: ForgeRarity[] = ['common', 'rare', 'epic']
 
-// Slot 6 (Vitrine Especial): categoria aleatória e raridade Épico ou
-// Lendário — o sorteio acontece em refresh_shop (banco).
-export const SHOWCASE_SLOT_INDEX = 6
+// Um slot do mercado pode ser equipamento ou avatar premium.
+// No banco, avatares usam item_category = 'avatar' e name = id do avatar.
+export type ShopItemCategory = EquipmentSlot | 'avatar'
 
 export interface ShopSlot {
   slot: number
   rarity: ForgeRarity
-  item_category: EquipmentSlot
+  item_category: ShopItemCategory
   item_level: number
   name: string
   attack: number
@@ -19,6 +19,10 @@ export interface ShopSlot {
   hp: number
   price: number
   bought: boolean
+}
+
+export function isAvatarSlot(slot: ShopSlot): boolean {
+  return slot.item_category === 'avatar'
 }
 
 export interface ShopData {

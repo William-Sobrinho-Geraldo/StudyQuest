@@ -1,9 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Loader2, Sparkles } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
+import { AvatarPicker } from '../features/profile/components/AvatarPicker'
 import { supabase } from '../lib/supabase'
-import { AVATAR_PRESETS } from '../lib/avatarPresets'
+import { AVATARS } from '../utils/avatars'
+
+const COMMON_AVATARS = AVATARS.filter((avatar) => avatar.rarity === 'comum')
+const COMMON_IDS = COMMON_AVATARS.map((avatar) => avatar.id)
 
 const NAME_MIN = 3
 const NAME_MAX = 15
@@ -101,37 +105,12 @@ export function SetupHeroPage() {
             <legend className="mb-2 block text-sm font-medium text-slate-300">
               Escolha seu Avatar
             </legend>
-            <div className="grid grid-cols-2 gap-3">
-              {AVATAR_PRESETS.map(({ id, label, icon: Icon }) => {
-                const isSelected = selectedAvatar === id
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    onClick={() => handleAvatarSelect(id)}
-                    aria-label={`Avatar ${label}`}
-                    className={`relative flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-xl border p-4 text-sm font-medium transition ${
-                      isSelected
-                        ? 'border-indigo-500 bg-indigo-500/10 text-white ring-2 ring-indigo-500/40'
-                        : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200'
-                    }`}
-                  >
-                    <Icon
-                      className={`h-8 w-8 ${isSelected ? 'text-indigo-400' : 'text-slate-500'}`}
-                      aria-hidden="true"
-                    />
-                    {label}
-                    {isSelected && (
-                      <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-indigo-500">
-                        <Check className="h-3 w-3 text-white" aria-hidden="true" />
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+            <AvatarPicker
+              avatars={COMMON_AVATARS}
+              selectedId={selectedAvatar}
+              unlockedIds={COMMON_IDS}
+              onSelect={handleAvatarSelect}
+            />
           </fieldset>
 
           {error && (

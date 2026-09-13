@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
-import type { EquipmentSlot } from '../../forge/lib/forgeRules'
-import { isShopSlot, type ShopData, type ShopSlot } from '../lib/shopItems'
+import {
+  isShopSlot,
+  type ShopData,
+  type ShopItemCategory,
+  type ShopSlot,
+} from '../lib/shopItems'
 
 interface RefreshShopRow {
   slot: number
@@ -22,7 +26,7 @@ interface RefreshShopRow {
 interface BuyShopItemRow {
   shop_slot: number
   shop_bought: boolean
-  inventory_id: string
+  inventory_id: string | null
   inventory_name: string
   inventory_item_category: string
   inventory_rarity: string
@@ -94,7 +98,7 @@ export function useShop() {
       .map((row) => ({
         slot: row.slot,
         rarity: row.rarity as ShopSlot['rarity'],
-        item_category: row.item_category as EquipmentSlot,
+        item_category: row.item_category as ShopItemCategory,
         item_level: row.item_level,
         name: row.name,
         attack: row.attack,
@@ -188,7 +192,7 @@ function shopFromRow(row: Record<string, unknown>): ShopData {
     slots.push({
       slot,
       rarity: rarity as ShopSlot['rarity'],
-      item_category: (row[`slot_${slot}_category`] ?? 'weapon') as EquipmentSlot,
+      item_category: (row[`slot_${slot}_category`] ?? 'weapon') as ShopItemCategory,
       item_level: (row[`slot_${slot}_level`] as number) ?? 10,
       name: (row[`slot_${slot}_name`] as string) ?? '',
       attack: (row[`slot_${slot}_attack`] as number) ?? 0,

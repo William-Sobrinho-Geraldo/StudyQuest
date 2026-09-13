@@ -71,13 +71,13 @@ function makeSlot(overrides: Record<string, unknown> = {}) {
     slot_5_price: 1200,
     slot_5_bought: false,
     slot_6_rarity: 'epic',
-    slot_6_category: 'chest',
-    slot_6_level: 50,
-    slot_6_name: 'Armadura Arcanista',
+    slot_6_category: 'avatar',
+    slot_6_level: 0,
+    slot_6_name: 'epico_6',
     slot_6_attack: 0,
     slot_6_defense: 0,
-    slot_6_hp: 500,
-    slot_6_price: 1260,
+    slot_6_hp: 0,
+    slot_6_price: 840,
     slot_6_bought: false,
     refreshes_today: 1,
     next_refresh_at: new Date(Date.now() + 86_400_000).toISOString(),
@@ -151,10 +151,10 @@ describe('ShopPage — fluxo de atualização do mercado', () => {
     })
   })
 
-  it('renderiza os 6 slots com a vitrine especial', async () => {
+  it('renderiza os 6 slots com a vitrine de avatar', async () => {
     renderShop()
     expect(await screen.findByText('Lâmina de Estudo')).toBeInTheDocument()
-    expect(screen.getAllByText('Vitrine Especial').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Avatar').length).toBeGreaterThan(0)
     expect(screen.getAllByTestId(/shop-slot-/).length).toBe(6)
   })
 
