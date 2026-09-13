@@ -1,9 +1,9 @@
 import { Hammer, Swords, X } from 'lucide-react'
 import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
+import { getItemStats } from '../../../utils/itemStats'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS, type EquipmentSlot } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
-import { calculateItemStats } from '../../../utils/statsCalculator'
 
 interface ItemDetailModalProps {
   item: ForgeItem
@@ -21,12 +21,7 @@ export function ItemDetailModal({
   onSendToAnvil,
 }: ItemDetailModalProps) {
   const { text: textColor, chip } = rarityStyle(item.rarity)
-  const stats = calculateItemStats(item)
-
-  const statLines: { label: string; value: number; color: string }[] = []
-  if (stats.attack > 0) statLines.push({ label: 'Ataque', value: stats.attack, color: 'text-red-400' })
-  if (stats.defense > 0) statLines.push({ label: 'Defesa', value: stats.defense, color: 'text-blue-400' })
-  if (stats.hp > 0) statLines.push({ label: 'HP', value: stats.hp, color: 'text-green-400' })
+  const stats = getItemStats(item.slot, item.itemLevel, item.rarity, item.enhancementLevel)
 
   return (
     <div
@@ -77,16 +72,33 @@ export function ItemDetailModal({
           )}
         </div>
 
-        {statLines.length > 0 && (
-          <div className="mt-6 space-y-2">
-            {statLines.map(({ label, value, color }) => (
-              <div key={label} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
-                <span className="text-xs text-slate-400">{label}</span>
-                <span className={`text-sm font-bold ${color}`}>{value}</span>
-              </div>
-            ))}
+        <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950 px-4 py-3">
+          <div className="flex justify-between text-sm text-gray-400">
+            <span>{stats.label} Base</span>
+            <span>{stats.baseValue}</span>
           </div>
-        )}
+
+          {stats.rarityBonusPercent > 0 && (
+            <div className="mt-1 flex justify-between text-sm text-gray-400">
+              <span>Bônus de Raridade</span>
+              <span className={textColor}>+{stats.rarityBonusPercent}%</span>
+            </div>
+          )}
+
+          {stats.refineBonusPercent > 0 && (
+            <div className="mt-1 flex justify-between text-sm text-gray-400">
+              <span>Bônus de Refino (+{item.enhancementLevel})</span>
+              <span className="text-emerald-400">+{stats.refineBonusPercent}%</span>
+            </div>
+          )}
+
+          <hr className="my-2 border-gray-700" />
+
+          <div className="flex justify-between text-base font-bold text-white">
+            <span>Total</span>
+            <span className="text-emerald-400">{stats.finalValue}</span>
+          </div>
+        </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           {!isEquipped && (

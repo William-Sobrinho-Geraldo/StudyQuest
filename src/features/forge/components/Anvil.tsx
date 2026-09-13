@@ -1,5 +1,6 @@
 import { Coins, Hammer, Loader2, X } from 'lucide-react'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
+import { getItemStats } from '../../../utils/itemStats'
 import { MAX_REFINE_LEVEL, SLOT_LABELS } from '../lib/forgeRules'
 import { formatDurationPreview } from '../lib/forgeTimers'
 import type { SelectedMeta } from '../hooks/useForge'
@@ -35,6 +36,24 @@ export function Anvil({
     selectedMeta.isMax ||
     !selectedMeta.canAfford ||
     selectedMeta.blockedByLevel
+
+  const currentStats = selectedMeta
+    ? getItemStats(
+        selectedMeta.item.slot,
+        selectedMeta.item.itemLevel,
+        selectedMeta.item.rarity,
+        selectedMeta.item.enhancementLevel,
+      )
+    : null
+  const nextStats =
+    selectedMeta && !selectedMeta.isMax
+      ? getItemStats(
+          selectedMeta.item.slot,
+          selectedMeta.item.itemLevel,
+          selectedMeta.item.rarity,
+          selectedMeta.item.enhancementLevel + 1,
+        )
+      : null
 
   return (
     <section
@@ -99,6 +118,14 @@ export function Anvil({
                   {formatDurationPreview(selectedMeta.durationSeconds)}
                 </span>
               </p>
+              {currentStats && nextStats && (
+                <p className="mt-1">
+                  {currentStats.label}:{' '}
+                  <span className="font-semibold text-white">{currentStats.finalValue}</span>
+                  <span className="text-slate-500"> → </span>
+                  <span className="font-semibold text-green-400">{nextStats.finalValue}</span>
+                </p>
+              )}
               {selectedMeta.isMax && (
                 <p className="mt-1 text-xs text-amber-400">Refino máximo atingido.</p>
               )}

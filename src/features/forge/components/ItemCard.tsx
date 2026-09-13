@@ -1,6 +1,7 @@
 import { Lock } from 'lucide-react'
 import { useState, type ComponentPropsWithoutRef } from 'react'
 import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
+import { getItemStats } from '../../../utils/itemStats'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
@@ -32,6 +33,7 @@ export function ItemCard({
   const { 'data-testid': dataTestId, onFocus, onBlur, ...divProps } = rest
   const [showTooltip, setShowTooltip] = useState(false)
   const { border, glow, text } = rarityStyle(item.rarity)
+  const itemStat = getItemStats(item.slot, item.itemLevel, item.rarity, item.enhancementLevel)
 
   const cardClasses = [
     'relative flex items-center justify-center overflow-hidden rounded-xl border-2 bg-slate-800/90 touch-manipulation select-none transition-transform',
@@ -115,6 +117,9 @@ export function ItemCard({
             {SLOT_LABELS[item.slot]} · Lv. {item.itemLevel}
           </span>
           <span className="text-xs text-slate-300">Refino +{item.enhancementLevel}</span>
+          <span className="text-xs text-slate-300">
+            {itemStat.label}: <span className="font-semibold text-slate-100">{itemStat.finalValue}</span>
+          </span>
           {blocked && (
             <span className="text-xs font-semibold text-red-400">
               Requer Nível {item.itemLevel}
