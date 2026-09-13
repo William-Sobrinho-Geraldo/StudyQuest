@@ -106,18 +106,21 @@ function FriendRequestButton({
 
 const PODIUM_STYLES = {
   gold: {
-    medal: 'bg-amber-500/20 text-amber-300',
-    ring: 'border-amber-500/60',
+    medal: 'bg-amber-500 text-amber-950',
+    ring: 'ring-4 ring-amber-500',
+    glow: 'shadow-[0_0_24px_rgba(245,158,11,0.45)]',
     label: 'Ouro',
   },
   silver: {
-    medal: 'bg-slate-400/20 text-slate-300',
-    ring: 'border-slate-400/40',
+    medal: 'bg-slate-400 text-slate-950',
+    ring: 'ring-4 ring-slate-400',
+    glow: '',
     label: 'Prata',
   },
   bronze: {
-    medal: 'bg-orange-600/20 text-orange-400',
-    ring: 'border-orange-700/50',
+    medal: 'bg-amber-700 text-amber-100',
+    ring: 'ring-4 ring-amber-700',
+    glow: '',
     label: 'Bronze',
   },
 } as const
@@ -149,34 +152,40 @@ function PodiumCard({
   return (
     <div
       onClick={() => onOpen(entry.user_id)}
-      className={`flex cursor-pointer touch-manipulation flex-col items-center gap-2 rounded-xl border bg-slate-900 p-3 text-center transition-colors active:bg-slate-800/50 ${
-        style.ring
-      } ${leading ? 'pt-6' : ''}`}
+      className={`flex cursor-pointer touch-manipulation select-none flex-col items-center gap-2 px-1 text-center ${
+        leading ? '-translate-y-2' : 'translate-y-1'
+      }`}
     >
-      {leading ? (
-        <Crown className="h-6 w-6 text-amber-400" aria-hidden="true" />
-      ) : (
+      <div className="relative">
+        {leading && (
+          <Crown
+            className="absolute -top-7 left-1/2 z-10 h-7 w-7 -translate-x-1/2 text-amber-400 drop-shadow-[0_2px_6px_rgba(245,158,11,0.65)]"
+            aria-hidden="true"
+          />
+        )}
+        <UserAvatar
+          avatarId={entry.avatar_id}
+          name={entry.player_tag}
+          className={`${leading ? 'h-24 w-24' : 'h-16 w-16'} rounded-full object-cover ${style.ring} ${
+            style.glow
+          }`}
+        />
         <span
-          className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${style.medal}`}
+          className={`absolute -bottom-1.5 left-1/2 z-10 grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full text-[11px] font-bold ring-2 ring-slate-900 ${style.medal}`}
         >
           {entry.pos}
         </span>
-      )}
-      <UserAvatar
-        avatarId={entry.avatar_id}
-        name={entry.player_tag}
-        className={`h-14 w-14 rounded-xl border border-slate-700 shadow-sm ${
-          leading ? 'ring-4 ring-amber-500/40' : ''
-        }`}
-      />
+      </div>
       <div className="min-w-0">
-        <p className="truncate text-[13px] font-semibold">
+        <p className="truncate text-[13px] font-bold text-slate-100">
           {entry.player_tag ?? 'Jogador'}
           {isOwn && (
             <span className="ml-1 text-[11px] font-medium text-indigo-400">(Você)</span>
           )}
         </p>
-        <p className="mt-0.5 text-xs font-medium text-amber-300/90">{style.label}</p>
+        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300/90">
+          {style.label}
+        </p>
         <p className="mt-0.5 text-xs text-slate-400">{formatMinutes(entry.minutes)}</p>
       </div>
       <FriendRequestButton
@@ -336,22 +345,20 @@ export function LeaderboardPage() {
                     <li
                       key={entry.user_id}
                       onClick={() => openProfile(entry.user_id)}
-                      className={`flex cursor-pointer touch-manipulation items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors active:bg-slate-800/50 ${
-                        isOwn
-                          ? 'border-indigo-500/40 bg-indigo-500/10'
-                          : 'border-slate-800 bg-slate-900'
+                      className={`flex cursor-pointer touch-manipulation items-center gap-4 rounded-xl border border-slate-700/50 p-3 transition-colors hover:bg-slate-800/60 active:bg-slate-800/70 ${
+                        isOwn ? 'border-indigo-500/40 bg-indigo-500/10' : 'bg-slate-800/40'
                       }`}
                     >
-                      <span className="w-7 shrink-0 select-none text-center text-sm font-bold text-slate-400">
+                      <span className="w-6 shrink-0 select-none text-center text-sm font-bold text-slate-400">
                         {entry.pos}
                       </span>
                       <UserAvatar
                         avatarId={entry.avatar_id}
                         name={entry.player_tag}
-                        className="h-11 w-11 shrink-0 rounded-xl border border-slate-700 shadow-sm"
+                        className="h-16 w-16 shrink-0 rounded-2xl object-cover"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-slate-100">
+                        <p className="truncate font-bold text-slate-100">
                           {entry.player_tag ?? 'Jogador'}
                           {isOwn && (
                             <span className="ml-1.5 text-xs font-medium text-indigo-400">
