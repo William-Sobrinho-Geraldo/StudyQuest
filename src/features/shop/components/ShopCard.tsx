@@ -37,7 +37,7 @@ export function ShopCard({
     <div
       data-testid={`shop-slot-${slot.slot}`}
       onClick={() => onDetail(slot)}
-      className={`group relative flex cursor-pointer flex-col rounded-xl border-2 bg-slate-800/90 p-4 transition hover:bg-slate-800 ${
+      className={`group relative flex cursor-pointer flex-col items-center text-center rounded-xl border-2 bg-slate-800/90 p-4 transition hover:bg-slate-800 ${
         isSpecial
           ? 'border-amber-400/60 bg-gradient-to-b from-slate-800 to-amber-950/30 ring-2 ring-amber-500/50 shadow-lg shadow-amber-500/10'
           : isAvatar
@@ -75,37 +75,38 @@ export function ShopCard({
           >
             {slot.rarity ? RARITY_LABELS[slot.rarity] : 'Desconhecido'}
           </span>
-          <p className="mt-2 truncate text-center text-sm font-bold text-slate-100">
+          <p className="mt-2 w-full truncate text-center text-sm font-bold text-slate-100">
             {displayName}
           </p>
           <p className="mt-0.5 text-center text-xs text-slate-400">Avatar Premium</p>
         </>
       ) : (
         <>
-          <div className="flex items-start justify-between">
-            <span className="relative flex h-10 w-10 overflow-hidden items-center justify-center rounded-lg bg-slate-900">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 m-auto h-3/4 w-3/4 rounded-full blur-lg"
-                style={{ backgroundColor: getRarityGlowColor(slot.rarity) }}
-              />
-              <img
-                src={getItemImage(slot.name, slot.item_category)}
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-                className="pointer-events-none relative z-10 w-full h-full select-none object-contain p-1.5 drop-shadow-sm"
-              />
-            </span>
-            <span
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${style.chip}`}
-            >
-              {slot.rarity ? RARITY_LABELS[slot.rarity] : 'Desconhecido'}
-            </span>
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 m-auto h-20 w-20 rounded-full blur-xl"
+              style={{ backgroundColor: getRarityGlowColor(slot.rarity) }}
+            />
+            <img
+              src={getItemImage(slot.name, slot.item_category)}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="relative z-10 h-24 w-24 select-none object-contain drop-shadow-md"
+            />
           </div>
 
-          <p className="mt-3 truncate text-sm font-bold text-slate-100">{slot.name}</p>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <span
+            className={`mx-auto mt-3 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${style.chip}`}
+          >
+            {slot.rarity ? RARITY_LABELS[slot.rarity] : 'Desconhecido'}
+          </span>
+
+          <p className="mt-2 w-full truncate text-center text-base font-bold text-slate-100">
+            {slot.name}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
             {SLOT_LABELS[slot.item_category as EquipmentSlot]} ·{' '}
             <span className="font-semibold text-slate-300">Nível {slot.item_level}</span>
           </p>
@@ -114,10 +115,10 @@ export function ShopCard({
         </>
       )}
 
-      <div className="mt-auto">
+      <div className="mt-auto w-full">
         <div className="mt-2 flex items-center justify-center gap-1">
-          <Coins className={`h-3.5 w-3.5 ${style.text}`} aria-hidden="true" />
-          <span className={`text-sm font-bold ${style.text}`}>{slot.price}</span>
+          <Coins className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+          <span className="text-sm font-bold text-amber-400">{slot.price}</span>
         </div>
 
         {slot.bought ? (
@@ -179,7 +180,7 @@ export function ShopStats({ slot }: { slot: ShopSlot }) {
   if (stats.hp) lines.push({ label: 'HP', value: stats.hp, color: 'text-green-400' })
 
   return (
-    <div className="mt-2 flex gap-2">
+    <div className="mx-auto my-2 flex flex-wrap items-center justify-center gap-2">
       {lines.map(({ label, value, color }) => (
         <span
           key={label}

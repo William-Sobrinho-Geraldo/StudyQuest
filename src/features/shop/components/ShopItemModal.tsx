@@ -87,8 +87,8 @@ export function ShopItemModal({
         </p>
 
         <div className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
-          <Coins className={`h-4 w-4 ${textColor}`} aria-hidden="true" />
-          <span className={`text-lg font-bold ${textColor}`}>{slot.price}</span>
+          <Coins className="h-4 w-4 text-amber-400" aria-hidden="true" />
+          <span className="text-lg font-bold text-amber-400">{slot.price}</span>
           <span className="text-xs text-slate-500">Gold</span>
         </div>
 
