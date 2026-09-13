@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CheckCircle2,
   Coins,
@@ -31,6 +31,13 @@ export function VictoryModal() {
   const [collecting, setCollecting] = useState(false)
 
   const result = timer.lastResult
+
+  useEffect(() => {
+    setAdLoading(false)
+    setMultiplier(1)
+    setCollecting(false)
+  }, [result])
+
   if (!timer.isCompleted || !result) return null
 
   const displayXp = result.xp * multiplier
