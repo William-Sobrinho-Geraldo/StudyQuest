@@ -25,14 +25,16 @@ export async function saveStudySession(
     throw new Error('Usuário não autenticado')
   }
 
+  const durationMinutes = Number.isFinite(summary.durationMinutes)
+    ? Math.max(1, Math.floor(summary.durationMinutes))
+    : 1
+
   const record: StudySessionRecord = {
     user_id: userData.user.id,
-    duration_minutes: summary.durationMinutes,
+    duration_minutes: durationMinutes,
     xp: summary.xp,
     gold: summary.gold,
-    started_at: new Date(
-      Date.now() - summary.durationMinutes * 60_000,
-    ).toISOString(),
+    started_at: new Date(Date.now() - durationMinutes * 60_000).toISOString(),
     completed_at: new Date().toISOString(),
   }
 

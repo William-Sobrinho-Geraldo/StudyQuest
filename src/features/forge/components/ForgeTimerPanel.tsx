@@ -1,10 +1,13 @@
-import { Coins, Hammer, Loader2 } from 'lucide-react'
+import { Coins, Hammer, Loader2, Smartphone } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
 import { useCountdown } from '../hooks/useCountdown'
+
+const isNative = Capacitor.isNativePlatform()
 
 interface ForgeTimerPanelProps {
   item: ForgeItem
@@ -98,22 +101,35 @@ export function ForgeTimerPanel({
             >
               {formatted}
             </p>
-            <button
-              type="button"
-              data-testid="forge-watch-ad-button"
-              onClick={onWatchAd}
-              disabled={!isAdReady}
-              className="touch-manipulation mt-1 flex min-h-[48px] w-full max-w-xs items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-amber-950 transition-transform active:scale-95 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isAdReady ? (
-                <>📺 Assistir Anúncio (-25% tempo)</>
-              ) : (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  Carregando anúncio...
-                </>
-              )}
-            </button>
+            {isNative ? (
+              <button
+                type="button"
+                data-testid="forge-watch-ad-button"
+                onClick={onWatchAd}
+                disabled={!isAdReady}
+                className="touch-manipulation mt-1 flex min-h-[48px] w-full max-w-xs items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-amber-950 transition-transform active:scale-95 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isAdReady ? (
+                  <>📺 Assistir Anúncio (-25% tempo)</>
+                ) : (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Carregando anúncio...
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="flex items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-left">
+                <Smartphone
+                  className="h-5 w-5 shrink-0 text-indigo-400"
+                  aria-hidden="true"
+                />
+                <p className="text-xs leading-relaxed text-slate-400">
+                  O recurso de anúncios para acelerar o tempo está disponível apenas no aplicativo
+                  Android (iOS em breve).
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>

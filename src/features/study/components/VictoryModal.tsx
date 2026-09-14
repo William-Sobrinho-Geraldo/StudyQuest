@@ -4,9 +4,11 @@ import {
   Coins,
   Loader2,
   MonitorPlay,
+  Smartphone,
   Sparkles,
   Trophy,
 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { supabase } from '../../../lib/supabase'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { useToast } from '../../../components/Toast'
@@ -29,6 +31,8 @@ export function VictoryModal() {
 
   const [multiplier, setMultiplier] = useState(1)
   const [collecting, setCollecting] = useState(false)
+
+  const isNative = Capacitor.isNativePlatform()
 
   const result = timer.lastResult
 
@@ -137,39 +141,49 @@ export function VictoryModal() {
         </div>
 
         <footer className="mt-6 flex flex-col gap-2.5">
-          {multiplier > 1 ? (
-            <button
-              type="button"
-              disabled
-              className={`${PRIMARY_BUTTON} opacity-60`}
-            >
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              Anúncio já assistido
-            </button>
+          {isNative ? (
+            multiplier > 1 ? (
+              <button
+                type="button"
+                disabled
+                className={`${PRIMARY_BUTTON} opacity-60`}
+              >
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                Anúncio já assistido
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleWatchAd}
+                disabled={isBusy || !isAdReady}
+                className={PRIMARY_BUTTON}
+              >
+                {collecting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Salvando...
+                  </>
+                ) : isAdReady ? (
+                  <>
+                    <MonitorPlay className="h-4 w-4" aria-hidden="true" />
+                    Assistir Vídeo (Dobrar Ganhos) 🎬
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Carregando anúncio...
+                  </>
+                )}
+              </button>
+            )
           ) : (
-            <button
-              type="button"
-              onClick={handleWatchAd}
-              disabled={isBusy || !isAdReady}
-              className={PRIMARY_BUTTON}
-            >
-              {collecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  Salvando...
-                </>
-              ) : isAdReady ? (
-                <>
-                  <MonitorPlay className="h-4 w-4" aria-hidden="true" />
-                  Assistir Vídeo (Dobrar Ganhos) 🎬
-                </>
-              ) : (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  Carregando anúncio...
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-left">
+              <Smartphone className="h-5 w-5 shrink-0 text-indigo-400" aria-hidden="true" />
+              <p className="text-xs leading-relaxed text-slate-400">
+                Dobre suas recompensas assistindo a anúncios na nossa versão para Android (iOS em
+                breve).
+              </p>
+            </div>
           )}
           <button
             type="button"

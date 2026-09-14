@@ -48,7 +48,7 @@ export function isInventoryFullError(error: string | undefined): boolean {
 }
 
 export function useShop() {
-  const { user } = useAuth()
+  const { user, refreshProfile } = useAuth()
   const [shop, setShop] = useState<ShopData | null>(null)
   const [gold, setGold] = useState<number | null>(null)
   const [characterLevel, setCharacterLevel] = useState<number | null>(null)
@@ -162,9 +162,10 @@ export function useShop() {
             }
           : previous,
       )
+      await refreshProfile()
       return { success: true }
     },
-    [busy, shop, user],
+    [busy, shop, user, refreshProfile],
   )
 
   const canAfford = useMemo(() => {

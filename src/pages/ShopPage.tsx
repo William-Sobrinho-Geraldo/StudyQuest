@@ -1,5 +1,6 @@
-import { AlertTriangle, Loader2, PlayCircle, RefreshCw, Sparkles, Store, Video, X } from 'lucide-react'
+import { AlertTriangle, Loader2, PlayCircle, RefreshCw, Smartphone, Sparkles, Store, Video, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
 import { useRewardedAd } from '../hooks/useRewardedAd'
@@ -11,6 +12,8 @@ import { isAvatarSlot, type ShopSlot } from '../features/shop/lib/shopItems'
 
 const INVENTORY_FULL_MESSAGE =
   'Inventário cheio! Venda os itens que não estiver usando para liberar espaço.'
+
+const isNative = Capacitor.isNativePlatform()
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
@@ -91,24 +94,34 @@ function SkipWaitModal({
         </p>
 
         <div className="mt-6 flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={onWatchAd}
-            disabled={busy || !adReady}
-            className="flex min-h-12 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {adReady ? (
-              <>
-                <PlayCircle className="h-5 w-5" aria-hidden="true" />
-                Assistir Vídeo (Atualizar Loja) 🎬
-              </>
-            ) : (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Carregando anúncio...
-              </>
-            )}
-          </button>
+          {isNative ? (
+            <button
+              type="button"
+              onClick={onWatchAd}
+              disabled={busy || !adReady}
+              className="flex min-h-12 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {adReady ? (
+                <>
+                  <PlayCircle className="h-5 w-5" aria-hidden="true" />
+                  Assistir Vídeo (Atualizar Loja) 🎬
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Carregando anúncio...
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-left">
+              <Smartphone className="h-5 w-5 shrink-0 text-indigo-400" aria-hidden="true" />
+              <p className="text-xs leading-relaxed text-slate-400">
+                O recurso de anúncios para acelerar o tempo está disponível apenas no aplicativo
+                Android (iOS em breve).
+              </p>
+            </div>
+          )}
           <button
             type="button"
             onClick={onClose}

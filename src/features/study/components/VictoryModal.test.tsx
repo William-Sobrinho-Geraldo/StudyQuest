@@ -42,6 +42,16 @@ vi.mock('../../../hooks/useRewardedAd', () => ({
   }),
 }))
 
+const capacitorMocks = vi.hoisted(() => ({
+  isNative: true,
+}))
+
+vi.mock('@capacitor/core', () => ({
+  Capacitor: {
+    isNativePlatform: () => capacitorMocks.isNative,
+  },
+}))
+
 let timerRef: { current: StudyTimerValue | null } = { current: null }
 
 function Harness() {
@@ -84,6 +94,7 @@ beforeEach(() => {
   rewardedAd.isAdReady = true
   rewardedAd.showAd.mockClear()
   rewardedAd.loadAd.mockClear()
+  capacitorMocks.isNative = true
   timerRef.current = null
 })
 
@@ -173,5 +184,20 @@ describe('VictoryModal', () => {
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('dialog', { name: /sessão concluída/i })).toBeInTheDocument()
     expect(screen.getByTestId('timer-status')).toHaveTextContent('completed')
+  })
+
+  it('na Web não exibe botão de anúncio e mostra aviso de download', async () => {
+    capacitorMocks.isNative = false
+    renderModal()
+    await finishSession()
+
+    expect(screen.queryByRole('button', { name: /assistir vídeo/i })).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /Dobre suas recompensas assistindo a anúncios na nossa versão para Android \(iOS em breve\)\./i,
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /coletar e sair/i })).toBeInTheDocument()
+    expect(rewardedAd.showAd).not.toHaveBeenCalled()
   })
 })

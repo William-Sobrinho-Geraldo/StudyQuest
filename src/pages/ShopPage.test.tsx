@@ -36,6 +36,12 @@ vi.mock('../hooks/useRewardedAd', () => ({
   }),
 }))
 
+vi.mock('@capacitor/core', () => ({
+  Capacitor: {
+    isNativePlatform: () => true,
+  },
+}))
+
 const USER_ID = 'user-1'
 
 function makeSlot(overrides: Record<string, unknown> = {}) {
