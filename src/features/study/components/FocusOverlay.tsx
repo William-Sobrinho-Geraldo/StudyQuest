@@ -1,5 +1,6 @@
-import { BookOpen, Pause, Play, X } from 'lucide-react'
+import { Ban, BookOpen, Pause, Play, X } from 'lucide-react'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
+import { MAX_PAUSES } from '../lib/studyRules'
 import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 
 const PAUSE_BUTTON =
@@ -11,6 +12,8 @@ export function FocusOverlay() {
   useModalBackHandler(timer.closeFocusMode, timer.isFocusMode)
 
   if (!timer.isFocusMode) return null
+
+  const remainingPauses = Math.max(0, MAX_PAUSES - timer.pausesUsed)
 
   const handleFinish = () => {
     void timer.finish()
@@ -75,8 +78,16 @@ export function FocusOverlay() {
               disabled={!timer.canPause}
               className={PAUSE_BUTTON}
             >
-              <Pause className="h-5 w-5" aria-hidden="true" />
-              Pausar
+              {remainingPauses > 0 ? (
+                <Pause className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Ban className="h-5 w-5" aria-hidden="true" />
+              )}
+              {remainingPauses > 0
+                ? `Pausar (${remainingPauses} ${
+                    remainingPauses === 1 ? 'restante' : 'restantes'
+                  })`
+                : 'Pausas Esgotadas'}
             </button>
           ) : timer.isPaused ? (
             <button type="button" onClick={timer.resume} className={PAUSE_BUTTON}>

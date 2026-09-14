@@ -1,4 +1,5 @@
 import {
+  Ban,
   ChevronLeft,
   ChevronRight,
   Pause,
@@ -44,6 +45,7 @@ export function StudyTimer() {
   }
 
   const inSession = timer.status !== 'idle'
+  const remainingPauses = Math.max(0, MAX_PAUSES - timer.pausesUsed)
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
@@ -151,8 +153,16 @@ export function StudyTimer() {
             disabled={!timer.canPause}
             className={PRIMARY_BUTTON}
           >
-            <Pause className="h-4 w-4" aria-hidden="true" />
-            Pausar
+            {remainingPauses > 0 ? (
+              <Pause className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Ban className="h-4 w-4" aria-hidden="true" />
+            )}
+            {remainingPauses > 0
+              ? `Pausar (${remainingPauses} ${
+                  remainingPauses === 1 ? 'restante' : 'restantes'
+                })`
+              : 'Pausas Esgotadas'}
           </button>
         )}
 

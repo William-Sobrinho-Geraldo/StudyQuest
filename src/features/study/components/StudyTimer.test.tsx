@@ -118,7 +118,7 @@ describe('StudyTimer — UI', () => {
     expect(screen.getByTestId('pauses-indicator')).toHaveTextContent('0/2')
 
     fireEvent.click(screen.getByRole('button', { name: /retomar/i }))
-    expect(screen.getByRole('button', { name: /pausar/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /pausas esgotadas/i })).toBeDisabled()
   })
 
   it('abre o Modo Foco Total ao iniciar a sessão', () => {
