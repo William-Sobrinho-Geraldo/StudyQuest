@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  CalendarDays,
-  Coins,
-  Gift,
-  ScrollText,
-  Sparkles,
-  Sun,
-  type LucideIcon,
-} from 'lucide-react'
+import { CalendarDays, ScrollText, Sun, type LucideIcon } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
-import { FloatingReward } from '../components/ui/FloatingReward'
+import { QuestCard, type FloatingRewardState } from '../features/quests/components/QuestCard'
+import { QuestTrailAccordion } from '../features/quests/components/QuestTrailAccordion'
 import {
   claimQuest,
   fetchQuestProgress,
@@ -18,7 +11,7 @@ import {
   type QuestProgressRow,
 } from '../features/quests/services/questsService'
 import { CHEST_TIER_META } from '../features/quests/lib/chestTiers'
-import { REWARD_COLORS } from '../lib/rewardColors'
+import { countClaimableQuests, sortQuestsByStatus } from '../features/quests/lib/sortQuests'
 
 const CATEGORIES: {
   id: QuestCategoryId
@@ -50,22 +43,10 @@ const CATEGORIES: {
   },
 ]
 
-const METRIC_UNIT: Record<string, string> = {
-  sessions: 'sessões',
-  minutes: 'min',
-  single_session_minutes: 'min',
-  gold_earned: 'Gold',
-  daily_quests_claimed: 'quests diárias',
-  study_days_30: 'dias',
-  level: 'nível',
-  gold_total: 'Gold',
-  minutes_total: 'min',
-  sessions_total: 'sessões',
-}
-
 interface QuestGroup {
   trail: string | null
   quests: QuestProgressRow[]
+  claimableCount: number
 }
 
 export function QuestsPage() {
@@ -76,11 +57,7 @@ export function QuestsPage() {
   const [error, setError] = useState<string | null>(null)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [claimError, setClaimError] = useState<string | null>(null)
-  const [floatingReward, setFloatingReward] = useState<{
-    id: string
-    xp: number
-    gold: number
-  } | null>(null)
+  const [floatingReward, setFloatingReward] = useState<FloatingRewardState | null>(null)
   const floatTimerRef = useRef<number | null>(null)
 
   const selectedCategory = CATEGORIES.find(({ id }) => id === selectedId) ?? CATEGORIES[2]
@@ -148,14 +125,20 @@ export function QuestsPage() {
   )
 
   const selectedQuests = useMemo(
-    () => quests.filter((quest) => quest.category === selectedId),
+    () => sortQuestsByStatus(quests.filter((quest) => quest.category === selectedId)),
     [quests, selectedId],
   )
 
   const groups = useMemo<QuestGroup[]>(() => {
     const hasTrails = selectedQuests.some((quest) => quest.trail)
     if (!hasTrails) {
-      return [{ trail: null, quests: selectedQuests }]
+      return [
+        {
+          trail: null,
+          quests: selectedQuests,
+          claimableCount: countClaimableQuests(selectedQuests),
+        },
+      ]
     }
     const byTrail = new Map<string, QuestProgressRow[]>()
     for (const quest of selectedQuests) {
@@ -164,7 +147,11 @@ export function QuestsPage() {
       trailQuests.push(quest)
       byTrail.set(trail, trailQuests)
     }
-    return Array.from(byTrail, ([trail, quests]) => ({ trail, quests }))
+    return Array.from(byTrail, ([trail, quests]) => ({
+      trail,
+      quests,
+      claimableCount: countClaimableQuests(quests),
+    }))
   }, [selectedQuests])
 
   return (
@@ -229,95 +216,32 @@ export function QuestsPage() {
                 Nenhuma quest disponível nesta categoria.
               </p>
             ) : (
-              <div className="space-y-8">
-                {groups.map(({ trail, quests }) => (
-                  <section key={trail ?? 'outras'} aria-label={trail ?? selectedCategory.label}>
-                    {trail ? (
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
-                        {trail}
-                      </h3>
-                    ) : null}
-                    <div className="mt-3 space-y-4">
-                      {quests.map((quest) => {
-                        const unit = METRIC_UNIT[quest.metric]
-                        return (
-                          <div
-                            key={quest.id}
-                            className="rounded-xl border border-slate-800 bg-slate-900 p-5"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-medium text-slate-100">{quest.title}</p>
-                                <p className="mt-1 text-sm text-slate-400">{quest.description}</p>
-                                {unit ? (
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    {quest.current_value}/{Math.round(quest.target)} {unit}
-                                    {quest.completed && (
-                                      <span className="ms-2 text-emerald-400">Concluída</span>
-                                    )}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-                              <span
-                                className={`flex items-center gap-1.5 font-medium ${REWARD_COLORS.xp}`}
-                              >
-                                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                                {quest.reward_xp} XP
-                              </span>
-                              <span
-                                className={`flex items-center gap-1.5 font-medium ${REWARD_COLORS.gold}`}
-                              >
-                                <Coins className="h-4 w-4" aria-hidden="true" />
-                                {quest.reward_gold} Gold
-                              </span>
-                              {quest.reward_chest_tier ? (
-                                <span
-                                  data-testid={`quest-chest-${quest.id}`}
-                                  className={`flex items-center gap-1.5 font-medium ${
-                                    CHEST_TIER_META[quest.reward_chest_tier].textColor
-                                  }`}
-                                >
-                                  <Gift className="h-4 w-4" aria-hidden="true" />
-                                  Baú {CHEST_TIER_META[quest.reward_chest_tier].label}
-                                </span>
-                              ) : null}
-                              <div className="relative ms-auto">
-                                {floatingReward?.id === quest.id && (
-                                  <FloatingReward xp={floatingReward.xp} gold={floatingReward.gold} />
-                                )}
-                                <button
-                                  type="button"
-                                  disabled={
-                                    !quest.completed ||
-                                    quest.claimed ||
-                                    claimingId === quest.id ||
-                                    floatingReward?.id === quest.id
-                                  }
-                                  onClick={() => void handleClaim(quest)}
-                                  className={`flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
-                                    floatingReward?.id === quest.id
-                                      ? 'bg-green-600'
-                                      : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
-                                  }`}
-                                >
-                                  {floatingReward?.id === quest.id
-                                    ? 'Coletado!'
-                                    : quest.claimed
-                                      ? 'Reivindicado'
-                                      : claimingId === quest.id
-                                        ? 'Reivindicando...'
-                                        : 'Reivindicar'}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
+              <div className="space-y-4">
+                {groups.map(({ trail, quests, claimableCount }) =>
+                  trail ? (
+                    <QuestTrailAccordion
+                      key={trail}
+                      title={trail}
+                      quests={quests}
+                      claimableCount={claimableCount}
+                      claimingId={claimingId}
+                      floatingReward={floatingReward}
+                      onClaim={handleClaim}
+                    />
+                  ) : (
+                    <div key="sem-trilha" className="space-y-4">
+                      {quests.map((quest) => (
+                        <QuestCard
+                          key={quest.id}
+                          quest={quest}
+                          claimingId={claimingId}
+                          floatingReward={floatingReward}
+                          onClaim={handleClaim}
+                        />
+                      ))}
                     </div>
-                  </section>
-                ))}
+                  ),
+                )}
               </div>
             )}
           </div>
