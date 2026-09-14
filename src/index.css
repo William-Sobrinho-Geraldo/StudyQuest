@@ -38,3 +38,24 @@ textarea {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Remove outline e tap highlight de todo o ecossistema do Recharts */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-responsive-container {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Remove foco agressivo de SVGs genéricos e paths dentro da área do gráfico */
+.recharts-wrapper svg,
+.recharts-wrapper * {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Remove a borda pontilhada/amarela nativa em elementos com :focus ou :active */
+.recharts-wrapper *:focus,
+.recharts-wrapper *:active {
+  outline: none !important;
+}

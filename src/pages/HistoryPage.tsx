@@ -282,7 +282,7 @@ function StudyHistoryPanel() {
           )}
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 outline-none focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent' }}>
           {loading ? (
             <div role="status" className="py-12 text-center text-sm text-slate-400">
               Carregando histórico...
@@ -296,8 +296,13 @@ function StudyHistoryPanel() {
               Nenhuma sessão registrada neste período.
             </p>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={chartData} margin={{ top: 0, right: 8, left: -16, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={260} style={{ outline: 'none' }}>
+              <BarChart
+                data={chartData}
+                margin={{ top: 0, right: 8, left: -16, bottom: 0 }}
+                style={{ outline: 'none' }}
+                accessibilityLayer={false}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                 <XAxis
                   dataKey="label"
