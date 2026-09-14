@@ -12,6 +12,7 @@ export interface Friend {
   peer_tag: string | null
   peer_level: number
   peer_xp: number
+  peer_avatar_id: string | null
   created_at: string
 }
 

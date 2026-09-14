@@ -23,8 +23,11 @@ export type Database = {
           current_xp: number
           daily_goal_minutes: number
           display_name: string | null
+          duels_lost: number
+          duels_won: number
           equipped_title: string | null
           gold: number
+          honor_points: number
           id: string
           last_chest_claim: string
           last_streak_date: string | null
@@ -42,8 +45,11 @@ export type Database = {
           current_xp?: number
           daily_goal_minutes?: number
           display_name?: string | null
+          duels_lost?: number
+          duels_won?: number
           equipped_title?: string | null
           gold?: number
+          honor_points?: number
           id: string
           last_chest_claim?: string
           last_streak_date?: string | null
@@ -61,8 +67,11 @@ export type Database = {
           current_xp?: number
           daily_goal_minutes?: number
           display_name?: string | null
+          duels_lost?: number
+          duels_won?: number
           equipped_title?: string | null
           gold?: number
+          honor_points?: number
           id?: string
           last_chest_claim?: string
           last_streak_date?: string | null
@@ -899,6 +908,7 @@ export type Database = {
           peer_tag: string | null
           peer_level: number
           peer_xp: number
+          peer_avatar_id: string | null
           created_at: string
         }[]
         SetofOptions: {
@@ -990,6 +1000,10 @@ export type Database = {
           start_date: string
           status: string
         }
+      }
+      execute_duel: {
+        Args: { p_attacker_id: string; p_defender_id: string }
+        Returns: Json
       }
       sync_user_quests: {
         Args: { p_user_id?: string | null }

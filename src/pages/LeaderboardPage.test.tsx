@@ -203,6 +203,7 @@ describe('LeaderboardPage', () => {
     expect(within(dialog).getByText('Foco total')).toBeInTheDocument()
     expect(within(dialog).getByTestId('public-profile-level')).toHaveTextContent('Nível 5')
     expect(within(dialog).getByRole('button', { name: '+ Adicionar Amigo' })).toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: /desafiar para duelo/i })).not.toBeInTheDocument()
   })
 
   it('não abre o modal ao clicar no botão de adicionar da linha', async () => {

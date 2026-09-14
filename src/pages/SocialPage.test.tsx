@@ -39,6 +39,7 @@ let friendsValue: {
   peer_tag: string | null
   peer_level: number
   peer_xp: number
+  peer_avatar_id: string | null
   created_at: string
 }[]
 let pendingInvitesValue: {
@@ -49,6 +50,7 @@ let pendingInvitesValue: {
   sender_xp: number
   created_at: string
 }[]
+let publicProfileValue: Record<string, unknown>
 
 function setupChannel(callbacks: ChannelCallbacks) {
   const channelObj = {
@@ -70,6 +72,7 @@ function mockRpc() {
       pendingInvitesValue = []
       return Promise.resolve({ data: { success: true }, error: null })
     }
+    if (fn === 'get_public_profile') return Promise.resolve({ data: publicProfileValue, error: null })
     return Promise.resolve({ data: null, error: null })
   })
 }
@@ -100,9 +103,28 @@ beforeEach(() => {
       peer_tag: 'ana#1234',
       peer_level: 5,
       peer_xp: 120,
+      peer_avatar_id: null,
       created_at: new Date().toISOString(),
     },
   ]
+  publicProfileValue = {
+    id: 'user-2',
+    display_name: 'Ana',
+    player_tag: 'ana#1234',
+    avatar_id: null,
+    study_goal: 'Concurso',
+    bio: 'Foco total',
+    level: 5,
+    current_xp: 120,
+    current_streak: 3,
+    honor_points: 0,
+    duels_won: 0,
+    duels_lost: 0,
+    total_minutes: 130,
+    session_count: 4,
+    relation: 'accepted',
+    equipped: [],
+  }
   pendingInvitesValue = [
     {
       friendship_id: 'inv-1',
@@ -199,6 +221,28 @@ describe('SocialPage', () => {
     expect(screen.getByText('ana#1234')).toBeInTheDocument()
   })
 
+  it('abre o perfil público ao clicar no card do amigo', async () => {
+    const user = userEvent.setup()
+    await renderReady()
+
+    await user.click(screen.getByText('ana#1234'))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ana' })
+    expect(within(dialog).getByText('Foco: Concurso')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /desafiar para duelo/i })).toBeInTheDocument()
+  })
+
+  it('não abre o perfil público ao clicar na lixeira de remoção', async () => {
+    const user = userEvent.setup()
+    await renderReady()
+
+    await user.click(screen.getByRole('button', { name: /remover ana#1234 da lista de amigos/i }))
+
+    expect(screen.getByRole('dialog', { name: /remover amigo/i })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Ana' })).not.toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalledWith('get_public_profile', expect.anything())
+  })
+
   it('reage ao Realtime: amizade aceita sai dos pendentes sem recarregar', async () => {
     await renderReady()
 
@@ -213,6 +257,7 @@ describe('SocialPage', () => {
         peer_tag: 'caio#5678',
         peer_level: 3,
         peer_xp: 80,
+        peer_avatar_id: null,
         created_at: new Date().toISOString(),
       },
     ]

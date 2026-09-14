@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Check, Copy, Loader2, Share2, Trash2, UserCheck, UserPlus, UserX, Users } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
+import { UserAvatar } from '../components/UserAvatar'
 import { useSocial } from '../features/social/hooks/useSocial'
 import {
   acceptInvite as acceptInviteRpc,
@@ -10,6 +11,11 @@ import {
   type Friend,
 } from '../features/social/services/socialService'
 import { RemoveFriendModal } from '../features/social/components/RemoveFriendModal'
+import { PublicProfileModal } from '../features/ranking/components/PublicProfileModal'
+import {
+  friendRequestErrorMessage,
+  sendFriendRequest,
+} from '../features/ranking/services/rankingService'
 import {
   copyInviteLink,
   ShareAbortedError,
@@ -71,17 +77,23 @@ function TagDisplay({ playerTag }: { playerTag: string | null }) {
 }
 
 interface FriendRowProps {
-  friend: { peer_id: string; peer_tag: string | null; peer_level: number }
+  friend: Friend
+  onOpen: () => void
   onRemove: () => void
 }
 
-function FriendRow({ friend, onRemove }: FriendRowProps) {
+function FriendRow({ friend, onOpen, onRemove }: FriendRowProps) {
   return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
+    <li
+      onClick={onOpen}
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 transition-all hover:bg-slate-800/80 active:scale-[0.98]"
+    >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600/20">
-          <UserCheck className="h-5 w-5 text-indigo-400" aria-hidden="true" />
-        </div>
+        <UserAvatar
+          avatarId={friend.peer_avatar_id}
+          name={friend.peer_tag ?? undefined}
+          className="h-10 w-10 shrink-0 rounded-lg"
+        />
         <div className="min-w-0">
           <p className="truncate font-mono text-sm font-semibold text-white">
             {friend.peer_tag ?? 'Tag indisponível'}
@@ -91,7 +103,10 @@ function FriendRow({ friend, onRemove }: FriendRowProps) {
       </div>
       <button
         type="button"
-        onClick={onRemove}
+        onClick={(event) => {
+          event.stopPropagation()
+          onRemove()
+        }}
         aria-label={`Remover ${friend.peer_tag ?? 'amigo'} da lista de amigos`}
         className="grid min-h-[44px] w-11 shrink-0 place-items-center rounded-lg border border-red-500/40 bg-red-500/15 text-red-300 transition hover:bg-red-500/25"
       >
@@ -162,6 +177,8 @@ export function SocialPage() {
   const [sharing, setSharing] = useState(false)
   const [friendPendingRemoval, setFriendPendingRemoval] = useState<Friend | null>(null)
   const [removingFriend, setRemovingFriend] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
 
   const handleAccept = useCallback(
     async (friendshipId: string): Promise<void> => {
@@ -257,6 +274,29 @@ export function SocialPage() {
       setRemovingFriend(false)
     }
   }, [friendPendingRemoval, removeFriend, showToast])
+
+  const handleOpenProfile = useCallback((userId: string) => {
+    setSelectedUserId(userId)
+    setIsProfileModalOpen(true)
+  }, [])
+
+  const handleCloseProfile = useCallback(() => {
+    setIsProfileModalOpen(false)
+    setSelectedUserId(null)
+  }, [])
+
+  const handleSendRequest = useCallback(
+    async (userId: string): Promise<boolean> => {
+      const result = await sendFriendRequest(userId)
+      if (!result.success) {
+        showToast(friendRequestErrorMessage(result.error), 'error')
+        return false
+      }
+      showToast('Solicitação de amizade enviada!', 'success')
+      return true
+    },
+    [showToast],
+  )
 
   const activeTabLabel = TAB_ITEMS.find((item) => item.id === tab)?.label ?? ''
 
@@ -359,6 +399,7 @@ export function SocialPage() {
                   <FriendRow
                     key={friend.friendship_id}
                     friend={friend}
+                    onOpen={() => handleOpenProfile(friend.peer_id)}
                     onRemove={() => setFriendPendingRemoval(friend)}
                   />
                 ))}
@@ -392,6 +433,14 @@ export function SocialPage() {
           onCancel={() => {
             if (!removingFriend) setFriendPendingRemoval(null)
           }}
+        />
+      )}
+
+      {isProfileModalOpen && selectedUserId && (
+        <PublicProfileModal
+          userId={selectedUserId}
+          onClose={handleCloseProfile}
+          onSendRequest={handleSendRequest}
         />
       )}
     </AppShell>

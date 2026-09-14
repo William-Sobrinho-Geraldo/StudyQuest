@@ -29,6 +29,9 @@ export interface PublicProfile {
   level: number
   current_xp: number
   current_streak: number
+  honor_points: number
+  duels_won: number
+  duels_lost: number
   total_minutes: number
   session_count: number
   relation: PublicProfileRelation
@@ -147,6 +150,9 @@ export async function fetchPublicProfile(targetUserId: string): Promise<PublicPr
     level: typeof raw.level === 'number' ? raw.level : 1,
     current_xp: typeof raw.current_xp === 'number' ? raw.current_xp : 0,
     current_streak: typeof raw.current_streak === 'number' ? raw.current_streak : 0,
+    honor_points: typeof raw.honor_points === 'number' ? raw.honor_points : 0,
+    duels_won: typeof raw.duels_won === 'number' ? raw.duels_won : 0,
+    duels_lost: typeof raw.duels_lost === 'number' ? raw.duels_lost : 0,
     total_minutes: typeof raw.total_minutes === 'number' ? raw.total_minutes : 0,
     session_count: typeof raw.session_count === 'number' ? raw.session_count : 0,
     relation: normalizePublicRelation(raw.relation),

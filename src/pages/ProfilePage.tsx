@@ -14,6 +14,8 @@ import {
 } from '../utils/equippedStats'
 import type { ForgeRarity } from '../features/forge/lib/forgeItems'
 import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
+import { ArenaHistorySection } from '../features/pvp/components/ArenaHistorySection'
+import { getDuelTitle } from '../features/pvp/lib/duelStats'
 
 const NAME_MIN = 3
 const NAME_MAX = 15
@@ -350,6 +352,7 @@ export function ProfilePage() {
   }
 
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'Aventureiro'
+  const duelTitle = getDuelTitle(profile?.duels_won ?? 0)
 
   return (
     <AppShell>
@@ -362,6 +365,13 @@ export function ProfilePage() {
           />
 
           <h1 className="text-2xl font-bold">{displayName}</h1>
+
+          <p
+            data-testid="profile-duel-title"
+            className={`text-xs font-semibold uppercase tracking-wider ${duelTitle.className}`}
+          >
+            {duelTitle.label}
+          </p>
 
           {profile?.equipped_title && (
             <span
@@ -474,6 +484,15 @@ export function ProfilePage() {
               testId="focus-quests"
             />
           </div>
+        </section>
+
+        <section className="mt-4 w-full">
+          <h2 className="mb-2 text-lg font-bold">Histórico de Arena</h2>
+          <ArenaHistorySection
+            honorPoints={profile?.honor_points ?? 0}
+            duelsWon={profile?.duels_won ?? 0}
+            duelsLost={profile?.duels_lost ?? 0}
+          />
         </section>
 
         <section className="mt-6">
