@@ -430,7 +430,7 @@ export function ProfilePage() {
               <span className="text-xs text-slate-500">Definir objetivo de estudo</span>
             )}
           </div>
-          <p className="mt-2 px-4 text-center text-sm italic text-gray-300">
+          <p className="mt-2 whitespace-pre-wrap px-4 text-center text-sm italic text-gray-300">
             {profile?.bio || 'Sem apresentação. Toque em Editar Herói para adicionar uma bio.'}
           </p>
         </section>

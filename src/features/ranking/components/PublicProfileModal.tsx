@@ -159,7 +159,7 @@ export function PublicProfileModal({ userId, onClose, onSendRequest }: PublicPro
                     <span className="text-xs text-slate-500">Objetivo de estudo não definido</span>
                   )}
                 </div>
-                <p className="mt-2 px-4 text-center text-sm italic text-gray-300">
+                <p className="mt-2 whitespace-pre-wrap px-4 text-center text-sm italic text-gray-300">
                   {profile?.bio || 'Sem bio por enquanto.'}
                 </p>
               </section>
