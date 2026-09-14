@@ -5,14 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../features/auth/AuthContext'
 import { ProfilePage } from './ProfilePage'
 
-const { getSession, onAuthStateChange, from } = vi.hoisted(() => ({
+const { getSession, onAuthStateChange, from, updateUser } = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   from: vi.fn(),
+  updateUser: vi.fn(),
 }))
 
 vi.mock('../lib/supabase', () => ({
-  supabase: { auth: { getSession, onAuthStateChange }, from },
+  supabase: { auth: { getSession, onAuthStateChange, updateUser }, from },
 }))
 
 interface ProfileRow {
@@ -72,6 +73,7 @@ function mockSession(email = 'hero@studyquest.dev') {
     data: { subscription: { unsubscribe: vi.fn() } },
     error: null,
   })
+  updateUser.mockResolvedValue({ data: { user: null }, error: null })
 }
 
 function fullProfile(overrides: Partial<ProfileRow> = {}): ProfileRow {
@@ -202,6 +204,43 @@ describe('ProfilePage', () => {
     expect(screen.getByTestId('user-avatar-fallback')).toHaveTextContent('A')
     expect(screen.queryByTestId('user-avatar-image')).not.toBeInTheDocument()
     expect(screen.queryByTestId('equipped-title-badge')).not.toBeInTheDocument()
+  })
+
+  it('edita o nome e reflete imediatamente na UI', async () => {
+    const user = userEvent.setup()
+    mockSession()
+    profileValue = fullProfile({})
+    const { update } = mockProfiles()
+
+    updateUser.mockResolvedValue({
+      data: {
+        user: {
+          id: USER_ID,
+          email: 'hero@studyquest.dev',
+          user_metadata: { full_name: 'Maria da Silva' },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      },
+      error: null,
+    })
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(screen.getByTestId('profile-full-name')).toHaveTextContent('Adicionar nome real')
+
+    await user.click(screen.getByRole('button', { name: /editar nome/i }))
+    await user.type(screen.getByLabelText(/^nome$/i), 'Maria da Silva')
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }))
+
+    await waitFor(() => {
+      expect(updateUser).toHaveBeenCalledWith({ data: { full_name: 'Maria da Silva' } })
+    })
+    expect(update).toHaveBeenCalledWith({ full_name: 'Maria da Silva' })
+
+    expect(await screen.findByTestId('profile-full-name')).toHaveTextContent('Maria da Silva')
   })
 
   it('exibe empty state quando não há títulos desbloqueados', async () => {

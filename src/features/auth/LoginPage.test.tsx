@@ -30,6 +30,12 @@ vi.mock('../../lib/supabase', () => ({
 
 const credentials = { email: 'hero@studyquest.dev', password: 'senha-secreta' }
 
+const signUpPayload = {
+  email: credentials.email,
+  password: credentials.password,
+  options: { data: { full_name: 'Hero' } },
+}
+
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {
     access_token: 'access-token',
@@ -173,6 +179,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
   async function fillRegister(email: string, password: string) {
     const user = userEvent.setup()
     const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText(/nome/i), 'Hero')
     if (email) {
       await user.type(within(dialog).getByLabelText(/email/i), email)
     }
@@ -201,7 +208,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
     await fillRegister(credentials.email, credentials.password)
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
-    expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
+    expect(authMocks.signUp).toHaveBeenCalledWith(signUpPayload)
     expect(screen.getByText('Heroi')).toBeInTheDocument()
   })
 
@@ -217,7 +224,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('User already registered')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
+    expect(authMocks.signUp).toHaveBeenCalledWith(signUpPayload)
   })
 
   it('mostra aviso de confirmação de email quando não há sessão', async () => {
@@ -229,7 +236,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
       'Confirme seu email para ativar a conta',
     )
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(authMocks.signUp).toHaveBeenCalledWith(credentials)
+    expect(authMocks.signUp).toHaveBeenCalledWith(signUpPayload)
   })
 
   it('valida senha com menos de 6 caracteres', async () => {
@@ -240,6 +247,20 @@ describe('RegisterModal — fluxo de cadastro', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'A senha deve ter pelo menos 6 caracteres',
     )
+    expect(authMocks.signUp).not.toHaveBeenCalled()
+  })
+
+  it('exige nome antes de cadastrar', async () => {
+    renderApp('/login')
+    await openRegister()
+
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText(/email/i), credentials.email)
+    await user.type(within(dialog).getByLabelText(/senha/i), credentials.password)
+    await user.click(within(dialog).getByRole('button', { name: /criar conta/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Informe seu nome.')
     expect(authMocks.signUp).not.toHaveBeenCalled()
   })
 

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { Loader2, Lock, Mail, Sparkles } from 'lucide-react'
+import { Loader2, Lock, Mail, Sparkles, User } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { useToast } from '../components/Toast'
 import { completeSignupWithInvite } from '../features/social/lib/inviteFlow'
@@ -11,6 +11,7 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +27,12 @@ export function RegisterPage() {
     setError(null)
     setInfo(null)
 
+    const trimmedName = name.trim()
     const normalizedEmail = email.trim().toLowerCase()
+    if (!trimmedName) {
+      setError('Informe seu nome.')
+      return
+    }
     if (!normalizedEmail || !password) {
       setError('Informe seu email e senha.')
       return
@@ -42,7 +48,7 @@ export function RegisterPage() {
 
     setSubmitting(true)
     try {
-      const result = await signUp(normalizedEmail, password)
+      const result = await signUp(normalizedEmail, password, trimmedName)
       if (result.error) {
         setError(translateAuthEmailError(result.error) ?? result.error)
         return
@@ -80,6 +86,29 @@ export function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <div>
+            <label htmlFor="register-name" className="mb-1.5 block text-sm font-medium text-slate-300">
+              Nome
+            </label>
+            <div className="relative">
+              <User
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                aria-hidden="true"
+              />
+              <input
+                id="register-name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                enterKeyHint="next"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Seu nome"
+                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+              />
+            </div>
+          </div>
+
           <div>
             <label htmlFor="register-email" className="mb-1.5 block text-sm font-medium text-slate-300">
               Email

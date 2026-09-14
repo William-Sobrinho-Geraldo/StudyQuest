@@ -26,6 +26,7 @@ export type Database = {
           duels_lost: number
           duels_won: number
           equipped_title: string | null
+          full_name: string | null
           gold: number
           honor_points: number
           id: string
@@ -48,6 +49,7 @@ export type Database = {
           duels_lost?: number
           duels_won?: number
           equipped_title?: string | null
+          full_name?: string | null
           gold?: number
           honor_points?: number
           id: string
@@ -70,6 +72,7 @@ export type Database = {
           duels_lost?: number
           duels_won?: number
           equipped_title?: string | null
+          full_name?: string | null
           gold?: number
           honor_points?: number
           id?: string
@@ -537,6 +540,47 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_feedbacks: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          status: string
+          type: string
+          user_email: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          status?: string
+          type: string
+          user_email?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          status?: string
+          type?: string
+          user_email?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feedbacks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]

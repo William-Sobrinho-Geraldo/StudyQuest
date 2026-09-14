@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Check, Crown, Loader2, Pencil, Sparkles, X } from 'lucide-react'
+import { Check, Crown, Edit2, LifeBuoy, Loader2, Pencil, Sparkles, X } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { UserAvatar } from '../components/UserAvatar'
 import { useAuth } from '../features/auth/AuthContext'
@@ -16,6 +16,7 @@ import type { ForgeRarity } from '../features/forge/lib/forgeItems'
 import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
 import { ArenaHistorySection } from '../features/pvp/components/ArenaHistorySection'
 import { getDuelTitle } from '../features/pvp/lib/duelStats'
+import { FeedbackModal } from '../features/feedback/FeedbackModal'
 
 const NAME_MIN = 3
 const NAME_MAX = 15
@@ -273,8 +274,13 @@ function FocusMetricCard({
 }
 
 export function ProfilePage() {
-  const { profile, profileLoading, refreshProfile, user } = useAuth()
+  const { profile, profileLoading, refreshProfile, updateUserName, user } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameError, setNameError] = useState<string | null>(null)
 
   const [equippedItems, setEquippedItems] = useState<EquippedItemStatInput[]>([])
   const [totalMinutes, setTotalMinutes] = useState(0)
@@ -345,6 +351,44 @@ export function ProfilePage() {
     await refreshProfile()
   }
 
+  function startEditName() {
+    setNameDraft(fullName ?? '')
+    setNameError(null)
+    setEditingName(true)
+  }
+
+  function cancelEditName() {
+    setEditingName(false)
+    setNameError(null)
+    setNameDraft('')
+  }
+
+  async function handleSaveName() {
+    if (!user) return
+    const newName = nameDraft.trim()
+    if (!newName) {
+      setNameError('Informe seu nome.')
+      return
+    }
+
+    setNameSaving(true)
+    setNameError(null)
+    try {
+      const result = await updateUserName(newName)
+      if (result.error) {
+        setNameError('Não foi possível salvar o nome. Tente novamente.')
+        return
+      }
+      await supabase.from('profiles').update({ full_name: newName }).eq('id', user.id)
+      setEditingName(false)
+      setNameDraft('')
+    } catch {
+      setNameError('Não foi possível salvar o nome. Tente novamente.')
+    } finally {
+      setNameSaving(false)
+    }
+  }
+
   if (profileLoading) {
     return (
       <AppShell>
@@ -357,6 +401,8 @@ export function ProfilePage() {
 
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'Aventureiro'
   const duelTitle = getDuelTitle(profile?.duels_won ?? 0)
+  const fullName =
+    typeof user?.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : null
 
   return (
     <AppShell>
@@ -368,14 +414,81 @@ export function ProfilePage() {
             className="h-24 w-24 rounded-full shadow-lg ring-4 ring-indigo-500/30"
           />
 
-          <h1 className="text-2xl font-bold">{displayName}</h1>
+          <div className="flex flex-col items-center">
+            <h1 className="mb-0.5 text-2xl font-bold text-white">{displayName}</h1>
 
-          <p
-            data-testid="profile-duel-title"
-            className={`text-xs font-semibold uppercase tracking-wider ${duelTitle.className}`}
-          >
-            {duelTitle.label}
-          </p>
+            {editingName ? (
+              <div className="mb-2 flex w-full max-w-xs flex-col gap-2">
+                <input
+                  type="text"
+                  value={nameDraft}
+                  onChange={(event) => {
+                    setNameDraft(event.target.value)
+                    if (nameError) setNameError(null)
+                  }}
+                  maxLength={50}
+                  autoComplete="name"
+                  aria-label="Nome"
+                  placeholder="Seu nome"
+                  className="h-10 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                />
+                {nameError && (
+                  <p
+                    role="alert"
+                    className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm text-red-400"
+                  >
+                    {nameError}
+                  </p>
+                )}
+                <div className="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={nameSaving}
+                    className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
+                  >
+                    {nameSaving && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    )}
+                    {nameSaving ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelEditName}
+                    disabled={nameSaving}
+                    className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-60"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={startEditName}
+                aria-label="Editar nome"
+                className="group mb-2 flex items-center gap-1.5"
+              >
+                <span
+                  data-testid="profile-full-name"
+                  className="text-sm text-slate-400 transition-colors group-hover:text-slate-300"
+                >
+                  {fullName || 'Adicionar nome real'}
+                </span>
+                <Edit2
+                  className="h-3 w-3 text-slate-500 transition-colors group-hover:text-slate-300"
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+
+            <p
+              data-testid="profile-duel-title"
+              className={`text-xs font-semibold uppercase tracking-wider ${duelTitle.className}`}
+            >
+              {duelTitle.label}
+            </p>
+          </div>
 
           {profile?.equipped_title && (
             <span
@@ -390,9 +503,9 @@ export function ProfilePage() {
           <button
             type="button"
             onClick={() => setEditOpen(true)}
-            className="mt-1 flex min-h-[44px] touch-manipulation select-none items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white active:scale-95"
+            className="mt-1 flex items-center gap-2 rounded-md border border-slate-700 bg-transparent px-3 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
           >
-            <Pencil className="h-4 w-4" aria-hidden="true" />
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
             Editar Herói
           </button>
 
@@ -500,6 +613,17 @@ export function ProfilePage() {
         </section>
 
         <section className="mt-6">
+          <button
+            type="button"
+            onClick={() => setFeedbackOpen(true)}
+            className="flex min-h-[48px] w-full touch-manipulation select-none items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white active:scale-95"
+          >
+            <LifeBuoy className="h-4 w-4" aria-hidden="true" />
+            Enviar Feedback
+          </button>
+        </section>
+
+        <section className="mt-6">
           <h2 className="mb-3 text-lg font-bold">Títulos</h2>
           {(!profile?.unlocked_titles || profile.unlocked_titles.length === 0) ? (
             <p className="rounded-xl border border-slate-800 bg-slate-900 p-5 text-sm text-slate-500">
@@ -553,6 +677,8 @@ export function ProfilePage() {
           }}
         />
       )}
+
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
     </AppShell>
   )
 }

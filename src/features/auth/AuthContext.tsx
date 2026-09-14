@@ -30,7 +30,8 @@ export interface AuthContextValue {
   profileLoading: boolean
   refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<SignInResult>
-  signUp: (email: string, password: string) => Promise<SignInResult>
+  signUp: (email: string, password: string, name: string) => Promise<SignInResult>
+  updateUserName: (name: string) => Promise<{ error?: string }>
   signOut: () => Promise<void>
   setProcessPendingInvite: (fn: () => void) => void
   processPendingInvite: () => void
@@ -120,18 +121,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {}
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string): Promise<SignInResult> => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) {
-      return { error: error.message }
-    }
-    if (data.session) {
-      setUser(data.session.user)
-      setStatus('authenticated')
-      return {}
-    }
-    return { needsEmailConfirmation: true }
-  }, [])
+  const signUp = useCallback(
+    async (email: string, password: string, name: string): Promise<SignInResult> => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } },
+      })
+      if (error) {
+        return { error: error.message }
+      }
+      if (data.session) {
+        setUser(data.session.user)
+        setStatus('authenticated')
+        return {}
+      }
+      return { needsEmailConfirmation: true }
+    },
+    [],
+  )
 
   const signOut = useCallback(async (): Promise<void> => {
     const { error } = await supabase.auth.signOut()
@@ -139,6 +147,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setStatus('unauthenticated')
     }
+  }, [])
+
+  const updateUserName = useCallback(async (name: string) => {
+    const { data, error } = await supabase.auth.updateUser({ data: { full_name: name } })
+    if (error) {
+      return { error: error.message }
+    }
+    if (data.user) {
+      setUser(data.user)
+    }
+    return {}
   }, [])
 
   const setProcessPendingInvite = useCallback((fn: () => void) => {
@@ -161,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      updateUserName,
       setProcessPendingInvite,
       processPendingInvite,
     }),
@@ -173,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      updateUserName,
       setProcessPendingInvite,
       processPendingInvite,
     ],
