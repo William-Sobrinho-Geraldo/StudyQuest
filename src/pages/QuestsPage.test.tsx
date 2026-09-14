@@ -226,7 +226,10 @@ describe('QuestsPage', () => {
     expect(
       await screen.findByText('Você recebeu um Baú Raro! Verifique seu inventário.'),
     ).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: 'Reivindicado' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Coletado!' })).toBeDisabled()
+    expect(
+      await screen.findByRole('button', { name: 'Reivindicado' }, { timeout: 3000 }),
+    ).toBeDisabled()
     expect(screen.getByText(/100 XP/)).toBeInTheDocument()
   })
 

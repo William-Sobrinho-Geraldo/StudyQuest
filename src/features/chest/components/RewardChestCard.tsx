@@ -1,5 +1,6 @@
 import { Clock, Coins, Gift, Loader2, Sparkles } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { FloatingReward } from '../../../components/ui/FloatingReward'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import {
   CHEST_MAX_GOLD,
@@ -22,7 +23,9 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [floatingReward, setFloatingReward] = useState<{ xp: number; gold: number } | null>(null)
   const [, setTick] = useState(0)
+  const floatTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -56,6 +59,14 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
     return () => window.clearInterval(intervalId)
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (floatTimerRef.current !== null) {
+        window.clearTimeout(floatTimerRef.current)
+      }
+    }
+  }, [])
+
   const rewards = getIdleRewards(lastClaim)
   const canClaim = lastClaim !== null && rewards.elapsedMinutes >= 1 && !loading && !claiming
 
@@ -68,11 +79,18 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
     if (claimError) {
       setError(claimError.message)
     } else {
-      setLastClaim(new Date().toISOString())
-      onClaimed?.()
+      setFloatingReward({ xp: rewards.currentXp, gold: rewards.currentGold })
+      if (floatTimerRef.current !== null) {
+        window.clearTimeout(floatTimerRef.current)
+      }
+      floatTimerRef.current = window.setTimeout(() => {
+        setFloatingReward(null)
+        setLastClaim(new Date().toISOString())
+        onClaimed?.()
+      }, 1500)
     }
     setClaiming(false)
-  }, [canClaim, claiming, onClaimed])
+  }, [canClaim, claiming, onClaimed, rewards])
 
   return (
     <div
@@ -136,15 +154,24 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
           </div>
 
           <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void handleClaim()}
-              disabled={!canClaim}
-              className="flex min-h-[48px] items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {claiming && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-              {claiming ? 'Reivindicando...' : 'Reivindicar'}
-            </button>
+            <div className="relative">
+              {floatingReward && (
+                <FloatingReward xp={floatingReward.xp} gold={floatingReward.gold} />
+              )}
+              <button
+                type="button"
+                onClick={() => void handleClaim()}
+                disabled={!canClaim || floatingReward !== null}
+                className={`flex min-h-[48px] items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${
+                  floatingReward
+                    ? 'bg-green-600'
+                    : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
+                }`}
+              >
+                {claiming && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                {floatingReward ? 'Coletado!' : claiming ? 'Reivindicando...' : 'Reivindicar'}
+              </button>
+            </div>
             {error && (
               <p role="alert" className="text-sm text-red-400">
                 {error}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarDays,
   Coins,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
+import { FloatingReward } from '../components/ui/FloatingReward'
 import {
   claimQuest,
   fetchQuestProgress,
@@ -75,6 +76,12 @@ export function QuestsPage() {
   const [error, setError] = useState<string | null>(null)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [claimError, setClaimError] = useState<string | null>(null)
+  const [floatingReward, setFloatingReward] = useState<{
+    id: string
+    xp: number
+    gold: number
+  } | null>(null)
+  const floatTimerRef = useRef<number | null>(null)
 
   const selectedCategory = CATEGORIES.find(({ id }) => id === selectedId) ?? CATEGORIES[2]
 
@@ -100,24 +107,45 @@ export function QuestsPage() {
     }
   }, [])
 
-  const handleClaim = useCallback(async (quest: QuestProgressRow) => {
-    setClaimingId(quest.id)
-    setClaimError(null)
-    try {
-      await claimQuest(quest.id)
-      if (quest.reward_chest_tier) {
-        showToast(
-          `Você recebeu um Baú ${CHEST_TIER_META[quest.reward_chest_tier].label}! Verifique seu inventário.`,
-        )
+  useEffect(() => {
+    return () => {
+      if (floatTimerRef.current !== null) {
+        window.clearTimeout(floatTimerRef.current)
       }
-      const rows = await fetchQuestProgress()
-      setQuests(rows)
-    } catch (err) {
-      setClaimError(err instanceof Error ? err.message : 'Falha ao reivindicar quest')
-    } finally {
-      setClaimingId(null)
     }
   }, [])
+
+  const handleClaim = useCallback(
+    async (quest: QuestProgressRow) => {
+      setClaimingId(quest.id)
+      setClaimError(null)
+      try {
+        await claimQuest(quest.id)
+        if (quest.reward_chest_tier) {
+          showToast(
+            `Você recebeu um Baú ${CHEST_TIER_META[quest.reward_chest_tier].label}! Verifique seu inventário.`,
+          )
+        }
+        setFloatingReward({ id: quest.id, xp: quest.reward_xp, gold: quest.reward_gold })
+        if (floatTimerRef.current !== null) {
+          window.clearTimeout(floatTimerRef.current)
+        }
+        floatTimerRef.current = window.setTimeout(() => {
+          setFloatingReward(null)
+          void fetchQuestProgress()
+            .then((rows) => setQuests(rows))
+            .catch((err) => {
+              setClaimError(err instanceof Error ? err.message : 'Falha ao reivindicar quest')
+            })
+        }, 1500)
+      } catch (err) {
+        setClaimError(err instanceof Error ? err.message : 'Falha ao reivindicar quest')
+      } finally {
+        setClaimingId(null)
+      }
+    },
+    [showToast],
+  )
 
   const selectedQuests = useMemo(
     () => quests.filter((quest) => quest.category === selectedId),
@@ -255,20 +283,34 @@ export function QuestsPage() {
                                   Baú {CHEST_TIER_META[quest.reward_chest_tier].label}
                                 </span>
                               ) : null}
-                              <button
-                                type="button"
-                                disabled={
-                                  !quest.completed || quest.claimed || claimingId === quest.id
-                                }
-                                onClick={() => void handleClaim(quest)}
-                                className="ms-auto flex min-h-[44px] items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
-                              >
-                                {quest.claimed
-                                  ? 'Reivindicado'
-                                  : claimingId === quest.id
-                                    ? 'Reivindicando...'
-                                    : 'Reivindicar'}
-                              </button>
+                              <div className="relative ms-auto">
+                                {floatingReward?.id === quest.id && (
+                                  <FloatingReward xp={floatingReward.xp} gold={floatingReward.gold} />
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={
+                                    !quest.completed ||
+                                    quest.claimed ||
+                                    claimingId === quest.id ||
+                                    floatingReward?.id === quest.id
+                                  }
+                                  onClick={() => void handleClaim(quest)}
+                                  className={`flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
+                                    floatingReward?.id === quest.id
+                                      ? 'bg-green-600'
+                                      : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
+                                  }`}
+                                >
+                                  {floatingReward?.id === quest.id
+                                    ? 'Coletado!'
+                                    : quest.claimed
+                                      ? 'Reivindicado'
+                                      : claimingId === quest.id
+                                        ? 'Reivindicando...'
+                                        : 'Reivindicar'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )

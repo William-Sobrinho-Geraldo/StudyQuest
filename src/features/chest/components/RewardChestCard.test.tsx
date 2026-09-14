@@ -149,10 +149,16 @@ describe('RewardChestCard', () => {
     await flush()
 
     expect(rpc).toHaveBeenCalledWith('claim_chest_reward')
+    expect(screen.getByRole('button', { name: 'Coletado!' })).toBeDisabled()
+
+    act(() => {
+      vi.advanceTimersByTime(1500)
+    })
+    await flush()
+
     expect(screen.getByTestId('chest-xp')).toHaveTextContent('0 / 1.000 XP')
     expect(screen.getByTestId('chest-gold')).toHaveTextContent('0 / 300 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('0s')
-    expect(screen.getByRole('button', { name: 'Reivindicar' })).toBeDisabled()
   })
 
   it('chama onClaimed após reivindicar com sucesso', async () => {
@@ -164,6 +170,11 @@ describe('RewardChestCard', () => {
     await flush()
 
     fireEvent.click(screen.getByRole('button', { name: 'Reivindicar' }))
+    await flush()
+
+    act(() => {
+      vi.advanceTimersByTime(1500)
+    })
     await flush()
 
     expect(onClaimed).toHaveBeenCalledTimes(1)
