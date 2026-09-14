@@ -279,7 +279,7 @@ export function ProfilePage() {
   const [equippedItems, setEquippedItems] = useState<EquippedItemStatInput[]>([])
   const [totalMinutes, setTotalMinutes] = useState(0)
   const [sessionCount, setSessionCount] = useState(0)
-  const [questsCompleted, setQuestsCompleted] = useState(0)
+  const [mainQuestsCompleted, setMainQuestsCompleted] = useState(0)
 
   useEffect(() => {
     if (!user) return
@@ -294,7 +294,11 @@ export function ProfilePage() {
           .eq('user_id', userId)
           .eq('equipped', true),
         supabase.from('study_sessions').select('duration_minutes').eq('user_id', userId),
-        supabase.from('quest_claims').select('quest_id').eq('user_id', userId),
+        supabase
+          .from('quest_claims')
+          .select('quest_id')
+          .eq('user_id', userId)
+          .like('quest_id', 'main-%'),
       ])
 
       if (!active) return
@@ -311,12 +315,12 @@ export function ProfilePage() {
 
       const sessions = (sessionsResult.data ?? []) as { duration_minutes: number }[]
       const total = sessions.reduce((acc, session) => acc + (session.duration_minutes ?? 0), 0)
-      const quests = (questsResult.data ?? []) as { quest_id: string }[]
+      const mainQuests = (questsResult.data ?? []) as { quest_id: string }[]
 
       setEquippedItems(equipped)
       setTotalMinutes(total)
       setSessionCount(sessions.length)
-      setQuestsCompleted(quests.length)
+      setMainQuestsCompleted(mainQuests.length)
     }
 
     void load()
@@ -479,8 +483,8 @@ export function ProfilePage() {
             />
             <FocusMetricCard
               icon="🎯"
-              label="Quests Concluídas"
-              value={String(questsCompleted)}
+              label="Quests Principais"
+              value={String(mainQuestsCompleted)}
               testId="focus-quests"
             />
           </div>

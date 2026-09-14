@@ -99,12 +99,13 @@ function fullProfile(overrides: Partial<ProfileRow> = {}): ProfileRow {
 let profileValue: ProfileRow
 let inventoryRows: InventoryRowMock[]
 let sessionRows: SessionRowMock[]
-let questClaimRows: { id: string }[]
+let questClaimRows: { quest_id: string }[]
 
 function queryable<T>(value: { data: T; error: unknown }) {
   const promise = Promise.resolve(value)
   return Object.assign(promise, {
     eq: () => queryable(value),
+    like: () => queryable(value),
     maybeSingle: () => Promise.resolve(value),
   })
 }
@@ -129,7 +130,17 @@ function mockProfiles() {
       return { select: vi.fn(() => queryable({ data: sessionRows, error: null })) }
     }
     if (table === 'quest_claims') {
-      return { select: vi.fn(() => queryable({ data: questClaimRows, error: null })) }
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            like: vi.fn((_column: string, pattern: string) => {
+              const regex = new RegExp(`^${pattern.replace(/%/g, '.*')}$`)
+              const filtered = questClaimRows.filter((row) => regex.test(row.quest_id))
+              return Promise.resolve({ data: filtered, error: null })
+            }),
+          })),
+        })),
+      }
     }
     return { select: vi.fn(() => queryable({ data: [], error: null })) }
   })
@@ -340,7 +351,13 @@ describe('ProfilePage', () => {
       { duration_minutes: 30 },
       { duration_minutes: 40 },
     ]
-    questClaimRows = [{ id: 'q1' }, { id: 'q2' }, { id: 'q3' }, { id: 'q4' }, { id: 'q5' }]
+    questClaimRows = [
+      { quest_id: 'main-level-1' },
+      { quest_id: 'main-time-1' },
+      { quest_id: 'daily-1' },
+      { quest_id: 'main-sessions-1' },
+      { quest_id: 'weekly-1' },
+    ]
     mockProfiles()
 
     renderProfile()
@@ -349,7 +366,8 @@ describe('ProfilePage', () => {
     expect(await screen.findByTestId('focus-total-time')).toHaveTextContent('2h 10m')
     expect(screen.getByTestId('focus-sessions')).toHaveTextContent('3')
     expect(screen.getByTestId('focus-streak')).toHaveTextContent('7 dias')
-    expect(screen.getByTestId('focus-quests')).toHaveTextContent('5')
+    expect(screen.getByText('Quests Principais')).toBeInTheDocument()
+    expect(screen.getByTestId('focus-quests')).toHaveTextContent('3')
   })
 
   it('Editar Herói salva objetivo de estudo e bio', async () => {
