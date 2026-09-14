@@ -10,7 +10,7 @@ interface ForgeTimerPanelProps {
   item: ForgeItem
   endsAt: string | null
   gold: number | null
-  adBusy: boolean
+  isAdReady: boolean
   error: string | null
   onWatchAd: () => void
   onCollect: () => void
@@ -20,7 +20,7 @@ export function ForgeTimerPanel({
   item,
   endsAt,
   gold,
-  adBusy,
+  isAdReady,
   error,
   onWatchAd,
   onCollect,
@@ -102,16 +102,16 @@ export function ForgeTimerPanel({
               type="button"
               data-testid="forge-watch-ad-button"
               onClick={onWatchAd}
-              disabled={adBusy}
+              disabled={!isAdReady}
               className="touch-manipulation mt-1 flex min-h-[48px] w-full max-w-xs items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-amber-950 transition-transform active:scale-95 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {adBusy ? (
+              {isAdReady ? (
+                <>📺 Assistir Anúncio (-25% tempo)</>
+              ) : (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Carregando anúncio...
                 </>
-              ) : (
-                <>📺 Assistir Anúncio (-25% tempo)</>
               )}
             </button>
           </>

@@ -77,7 +77,6 @@ export function useForge() {
   const [gold, setGold] = useState<number | null>(null)
   const [characterLevel, setCharacterLevel] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
-  const [adBusy, setAdBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -229,7 +228,7 @@ export function useForge() {
 
   // Paga o Gold e inicia o refino temporizado (a Bigorna fica ocupada).
   const startForge = useCallback(async () => {
-    if (!user || gold === null || busy || adBusy || !selectedItem) return
+    if (!user || gold === null || busy || !selectedItem) return
     if (selectedItem.isInForge) return
     if (selectedItem.enhancementLevel >= MAX_REFINE_LEVEL) return
 
@@ -261,22 +260,20 @@ export function useForge() {
     }
     setSelectedItemId(null)
     setBusy(false)
-  }, [applyAuthoritativeItem, busy, adBusy, gold, selectedItem, user])
+  }, [applyAuthoritativeItem, busy, gold, selectedItem, user])
 
-  // Anúncio (mockado): 2s de "vídeo" e corta 25% do tempo RESTANTE.
+  // Anúncio premiado: corta 25% do tempo RESTANTE. Disparado apenas no
+  // callback de sucesso do showAd (usuário assistiu o vídeo até o fim).
   const reduceForgeTime = useCallback(async () => {
-    if (!user || busy || adBusy || !activeForgeItem) return
+    if (!user || busy || !activeForgeItem) return
     setError(null)
-    setAdBusy(true)
-
-    // Mock do vídeo do anúncio.
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    setBusy(true)
 
     const { data, error: rpcError } = await supabase.rpc('reduce_forge_time_ad', {
       p_inventory_id: activeForgeItem.id,
     })
 
-    setAdBusy(false)
+    setBusy(false)
     if (rpcError) {
       setError(rpcError.message)
       return
@@ -286,11 +283,11 @@ export function useForge() {
     if (row) {
       applyAuthoritativeItem(gearRowToForgeItem(row))
     }
-  }, [activeForgeItem, applyAuthoritativeItem, busy, adBusy, user])
+  }, [activeForgeItem, applyAuthoritativeItem, busy, user])
 
   // Coleta o item refina e libera a Bigorna (+1 de refino).
   const collectForged = useCallback(async () => {
-    if (!user || busy || adBusy || !activeForgeItem) return
+    if (!user || busy || !activeForgeItem) return
     setError(null)
     setBusy(true)
 
@@ -308,11 +305,11 @@ export function useForge() {
     if (row) {
       applyAuthoritativeItem(gearRowToForgeItem(row))
     }
-  }, [activeForgeItem, applyAuthoritativeItem, busy, adBusy, user])
+  }, [activeForgeItem, applyAuthoritativeItem, busy, user])
 
   // Atalho discreto: conclui o refino imediatamente (ignora o timer).
   const completeForge = useCallback(async () => {
-    if (!user || busy || adBusy || !activeForgeItem) return
+    if (!user || busy || !activeForgeItem) return
     setError(null)
     setBusy(true)
 
@@ -330,7 +327,7 @@ export function useForge() {
     if (row) {
       applyAuthoritativeItem(gearRowToForgeItem(row))
     }
-  }, [activeForgeItem, applyAuthoritativeItem, busy, adBusy, user])
+  }, [activeForgeItem, applyAuthoritativeItem, busy, user])
 
   const equipFromInventory = useCallback(
     async (itemId: string, slot: EquipmentSlot) => {
@@ -471,7 +468,6 @@ export function useForge() {
     gold,
     characterLevel,
     busy,
-    adBusy,
     loading,
     error,
     activeForgeItem,

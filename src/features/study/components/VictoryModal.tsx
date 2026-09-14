@@ -12,8 +12,8 @@ import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { useToast } from '../../../components/Toast'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { emitStudySessionSaved } from '../lib/studyEvents'
+import { useRewardedAd } from '../../../hooks/useRewardedAd'
 
-const AD_DELAY_MS = 2_000
 const AD_MULTIPLIER = 2
 
 const PRIMARY_BUTTON =
@@ -25,15 +25,14 @@ const SECONDARY_BUTTON =
 export function VictoryModal() {
   const timer = useStudyTimerContext()
   const { showToast } = useToast()
+  const { isAdReady, showAd } = useRewardedAd()
 
-  const [adLoading, setAdLoading] = useState(false)
   const [multiplier, setMultiplier] = useState(1)
   const [collecting, setCollecting] = useState(false)
 
   const result = timer.lastResult
 
   useEffect(() => {
-    setAdLoading(false)
     setMultiplier(1)
     setCollecting(false)
   }, [result])
@@ -42,7 +41,7 @@ export function VictoryModal() {
 
   const displayXp = result.xp * multiplier
   const displayGold = result.gold * multiplier
-  const isBusy = adLoading || collecting
+  const isBusy = collecting
 
   const finalizeCollection = async (xp: number, gold: number, message: string) => {
     setCollecting(true)
@@ -73,21 +72,16 @@ export function VictoryModal() {
     )
   }
 
-  const handleWatchAd = async () => {
-    if (isBusy) return
-    setAdLoading(true)
-    await new Promise((resolve) => window.setTimeout(resolve, AD_DELAY_MS))
-    if (!result || !timer.isCompleted) {
-      setAdLoading(false)
-      return
-    }
-    setAdLoading(false)
-    setMultiplier(AD_MULTIPLIER)
-    void finalizeCollection(
-      result.xp * AD_MULTIPLIER,
-      result.gold * AD_MULTIPLIER,
-      `Anúncio concluído! Recompensas dobradas: +${result.xp * AD_MULTIPLIER} XP e +${result.gold * AD_MULTIPLIER} Gold`,
-    )
+  const handleWatchAd = () => {
+    if (isBusy || !isAdReady) return
+    void showAd(() => {
+      setMultiplier(AD_MULTIPLIER)
+      void finalizeCollection(
+        result.xp * AD_MULTIPLIER,
+        result.gold * AD_MULTIPLIER,
+        `Anúncio concluído! Recompensas dobradas: +${result.xp * AD_MULTIPLIER} XP e +${result.gold * AD_MULTIPLIER} Gold`,
+      )
+    })
   }
 
   return (
@@ -142,60 +136,50 @@ export function VictoryModal() {
           </div>
         </div>
 
-        {adLoading ? (
-          <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 px-4 py-3">
-            <p className="flex items-center justify-center gap-2 text-sm font-medium text-slate-300">
-              <MonitorPlay
-                className="h-4 w-4 animate-pulse text-indigo-400"
-                aria-hidden="true"
-              />
-              Reproduzindo anúncio (mock)...
-            </p>
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-              <div className="h-full w-1/3 animate-pulse rounded-full bg-indigo-500" />
-            </div>
-          </div>
-        ) : (
-          <footer className="mt-6 flex flex-col gap-2.5">
-            {multiplier > 1 ? (
-              <button
-                type="button"
-                disabled
-                className={`${PRIMARY_BUTTON} opacity-60`}
-              >
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                Anúncio já assistido
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleWatchAd()}
-                disabled={isBusy}
-                className={PRIMARY_BUTTON}
-              >
-                {collecting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <MonitorPlay className="h-4 w-4" aria-hidden="true" />
-                    Assistir Anúncio (2x Recompensas)
-                  </>
-                )}
-              </button>
-            )}
+        <footer className="mt-6 flex flex-col gap-2.5">
+          {multiplier > 1 ? (
             <button
               type="button"
-              onClick={handleCollectAndExit}
-              disabled={isBusy}
-              className={SECONDARY_BUTTON}
+              disabled
+              className={`${PRIMARY_BUTTON} opacity-60`}
             >
-              Coletar e Sair
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Anúncio já assistido
             </button>
-          </footer>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={handleWatchAd}
+              disabled={isBusy || !isAdReady}
+              className={PRIMARY_BUTTON}
+            >
+              {collecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Salvando...
+                </>
+              ) : isAdReady ? (
+                <>
+                  <MonitorPlay className="h-4 w-4" aria-hidden="true" />
+                  Assistir Vídeo (Dobrar Ganhos) 🎬
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Carregando anúncio...
+                </>
+              )}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleCollectAndExit}
+            disabled={isBusy}
+            className={SECONDARY_BUTTON}
+          >
+            Coletar e Sair
+          </button>
+        </footer>
       </div>
     </div>
   )

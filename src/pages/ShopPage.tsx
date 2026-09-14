@@ -2,6 +2,7 @@ import { AlertTriangle, Loader2, PlayCircle, RefreshCw, Sparkles, Store, Video, 
 import { useCallback, useEffect, useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
+import { useRewardedAd } from '../hooks/useRewardedAd'
 import { useAuth } from '../features/auth/AuthContext'
 import { ShopCard } from '../features/shop/components/ShopCard'
 import { ShopItemModal } from '../features/shop/components/ShopItemModal'
@@ -54,10 +55,12 @@ function SkipWaitModal({
   onWatchAd,
   onClose,
   busy,
+  adReady,
 }: {
   onWatchAd: () => void
   onClose: () => void
   busy: boolean
+  adReady: boolean
 }) {
   return (
     <div
@@ -91,15 +94,20 @@ function SkipWaitModal({
           <button
             type="button"
             onClick={onWatchAd}
-            disabled={busy}
+            disabled={busy || !adReady}
             className="flex min-h-12 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            {adReady ? (
+              <>
+                <PlayCircle className="h-5 w-5" aria-hidden="true" />
+                Assistir Vídeo (Atualizar Loja) 🎬
+              </>
             ) : (
-              <PlayCircle className="h-5 w-5" aria-hidden="true" />
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Carregando anúncio...
+              </>
             )}
-            Assistir Vídeo
           </button>
           <button
             type="button"
@@ -118,6 +126,7 @@ export function ShopPage() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const shop = useShop()
+  const { isAdReady, showAd } = useRewardedAd()
   const [selected, setSelected] = useState<ShopSlot | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [showSkipModal, setShowSkipModal] = useState(false)
@@ -167,10 +176,12 @@ export function ShopPage() {
     }
   }, [shop.expired, shop.slots.length, handleRefresh])
 
-  const handleSkipAd = useCallback(async () => {
+  const handleSkipAd = useCallback(() => {
     setShowSkipModal(false)
-    await handleRefresh()
-  }, [handleRefresh])
+    void showAd(() => {
+      void handleRefresh()
+    })
+  }, [handleRefresh, showAd])
 
   const selectedMeta = selected
     ? {
@@ -295,9 +306,10 @@ export function ShopPage() {
 
       {showSkipModal && (
         <SkipWaitModal
-          onWatchAd={() => void handleSkipAd()}
+          onWatchAd={() => handleSkipAd()}
           onClose={() => setShowSkipModal(false)}
           busy={shop.busy}
+          adReady={isAdReady}
         />
       )}
     </AppShell>

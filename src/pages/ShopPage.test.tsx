@@ -21,6 +21,21 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+const rewardedAd = vi.hoisted(() => ({
+  isAdReady: true,
+  showAd: vi.fn(),
+  loadAd: vi.fn(),
+}))
+
+vi.mock('../hooks/useRewardedAd', () => ({
+  useRewardedAd: () => ({
+    isAdReady: rewardedAd.isAdReady,
+    isLoading: false,
+    showAd: rewardedAd.showAd,
+    loadAd: rewardedAd.loadAd,
+  }),
+}))
+
 const USER_ID = 'user-1'
 
 function makeSlot(overrides: Record<string, unknown> = {}) {
@@ -139,6 +154,7 @@ describe('ShopPage — fluxo de atualização do mercado', () => {
   beforeEach(() => {
     shopRow = makeSlot()
     refreshRows = [makeSlot({ next_refresh_at: new Date(Date.now() + 86_400_000).toISOString() })]
+    rpc.mockClear()
     mockSupabase()
     setupRpc()
     getSession.mockResolvedValue({
@@ -149,6 +165,9 @@ describe('ShopPage — fluxo de atualização do mercado', () => {
       data: { subscription: { unsubscribe: vi.fn() } },
       error: null,
     })
+    rewardedAd.isAdReady = true
+    rewardedAd.showAd.mockClear()
+    rewardedAd.loadAd.mockClear()
   })
 
   it('renderiza os 6 slots com a vitrine de avatar', async () => {
@@ -186,6 +205,9 @@ describe('ShopPage — fluxo de atualização do mercado', () => {
   })
 
   it('"Assistir Vídeo" fecha o modal e executa refresh_shop', async () => {
+    rewardedAd.showAd.mockImplementationOnce((onSuccess: () => void) => {
+      onSuccess()
+    })
     const user = userEvent.setup()
     renderShop()
     await screen.findByText('Lâmina de Estudo')
@@ -195,6 +217,19 @@ describe('ShopPage — fluxo de atualização do mercado', () => {
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('refresh_shop', { p_player_level: 35 }))
     expect(screen.queryByText(/ainda está em rotação/i)).not.toBeInTheDocument()
+  })
+
+  it('desabilita o botão do modal e mostra carregando quando o anúncio não está pronto', async () => {
+    rewardedAd.isAdReady = false
+    const user = userEvent.setup()
+    renderShop()
+    await screen.findByText('Lâmina de Estudo')
+
+    await user.click(screen.getByRole('button', { name: /pular espera/i }))
+
+    const button = screen.getByRole('button', { name: /carregando anúncio/i })
+    expect(button).toBeDisabled()
+    expect(rpc).not.toHaveBeenCalledWith('refresh_shop', expect.anything())
   })
 
   it('executa a rotação diretamente quando o timer já expirou', async () => {

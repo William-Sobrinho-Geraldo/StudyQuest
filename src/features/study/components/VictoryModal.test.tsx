@@ -27,6 +27,21 @@ vi.mock('../../../lib/supabase', () => ({
   },
 }))
 
+const rewardedAd = vi.hoisted(() => ({
+  isAdReady: true,
+  showAd: vi.fn(),
+  loadAd: vi.fn(),
+}))
+
+vi.mock('../../../hooks/useRewardedAd', () => ({
+  useRewardedAd: () => ({
+    isAdReady: rewardedAd.isAdReady,
+    isLoading: false,
+    showAd: rewardedAd.showAd,
+    loadAd: rewardedAd.loadAd,
+  }),
+}))
+
 let timerRef: { current: StudyTimerValue | null } = { current: null }
 
 function Harness() {
@@ -66,6 +81,9 @@ beforeEach(() => {
   saveStudySessionMock.mockClear()
   rpc.mockClear()
   rpc.mockResolvedValue({ data: null, error: null })
+  rewardedAd.isAdReady = true
+  rewardedAd.showAd.mockClear()
+  rewardedAd.loadAd.mockClear()
   timerRef.current = null
 })
 
@@ -112,26 +130,34 @@ describe('VictoryModal', () => {
     expect(timerRef.current?.status).toBe('idle')
   })
 
-  it('Assistir Anúncio exibe loading e dobra as recompensas', async () => {
+  it('Assistir Vídeo chama o showAd e dobra as recompensas', async () => {
+    rewardedAd.showAd.mockImplementationOnce((onSuccess: () => void) => {
+      onSuccess()
+    })
     const { getByRole } = renderModal()
     await finishSession()
 
-    act(() => {
-      getByRole('button', { name: /assistir anúncio/i }).click()
-    })
-
-    expect(screen.getByText(/reproduzindo anúncio \(mock\)/i)).toBeInTheDocument()
-
     await act(async () => {
-      vi.advanceTimersByTime(2_000)
+      getByRole('button', { name: /assistir vídeo/i }).click()
       await Promise.resolve()
       await Promise.resolve()
     })
 
+    expect(rewardedAd.showAd).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 500, p_gold: 100 })
     expect(screen.queryByRole('dialog', { name: /sessão concluída/i })).not.toBeInTheDocument()
     expect(timerRef.current?.status).toBe('idle')
+  })
+
+  it('exibe "Carregando anúncio..." e desabilita o botão quando o anúncio não está pronto', async () => {
+    rewardedAd.isAdReady = false
+    renderModal()
+    await finishSession()
+
+    const button = screen.getByRole('button', { name: /carregando anúncio/i })
+    expect(button).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /assistir vídeo/i })).not.toBeInTheDocument()
   })
 
   it('erro no add_xp exibe toast e mantém o modal aberto', async () => {

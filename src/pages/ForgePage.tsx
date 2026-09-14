@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
+import { useRewardedAd } from '../hooks/useRewardedAd'
 import { Anvil } from '../features/forge/components/Anvil'
 import { ForgeTimerPanel } from '../features/forge/components/ForgeTimerPanel'
 import { InventoryGrid } from '../features/forge/components/InventoryGrid'
@@ -20,6 +21,7 @@ import { getItemSalePrice } from '../utils/pricing'
 export function ForgePage() {
   const forge = useForge()
   const { showToast } = useToast()
+  const { isAdReady, showAd } = useRewardedAd()
   const [detailItem, setDetailItem] = useState<ForgeItem | null>(null)
   const [sellItem, setSellItem] = useState<ForgeItem | null>(null)
 
@@ -71,7 +73,9 @@ export function ForgePage() {
   }
 
   const handleWatchAd = () => {
-    void forge.reduceForgeTime()
+    void showAd(() => {
+      void forge.reduceForgeTime()
+    })
   }
 
   const handleCollect = () => {
@@ -123,7 +127,7 @@ export function ForgePage() {
             item={forge.activeForgeItem}
             endsAt={forge.activeForgeEndsAt}
             gold={forge.gold}
-            adBusy={forge.adBusy}
+            isAdReady={isAdReady}
             error={forge.error}
             onWatchAd={handleWatchAd}
             onCollect={handleCollect}

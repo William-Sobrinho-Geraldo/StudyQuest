@@ -22,6 +22,21 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+const rewardedAd = vi.hoisted(() => ({
+  isAdReady: true,
+  showAd: vi.fn(),
+  loadAd: vi.fn(),
+}))
+
+vi.mock('../hooks/useRewardedAd', () => ({
+  useRewardedAd: () => ({
+    isAdReady: rewardedAd.isAdReady,
+    isLoading: false,
+    showAd: rewardedAd.showAd,
+    loadAd: rewardedAd.loadAd,
+  }),
+}))
+
 const USER_ID = 'user-1'
 
 let goldValue: number
@@ -242,6 +257,9 @@ describe('ForgePage', () => {
     startForgeResult = null
     reduceForgeResult = null
     collectForgeResult = null
+    rewardedAd.isAdReady = true
+    rewardedAd.showAd.mockClear()
+    rewardedAd.loadAd.mockClear()
   })
 
   afterEach(() => {
@@ -360,6 +378,9 @@ describe('ForgePage', () => {
   })
 
   it('assistir anúncio reduz o tempo restante via reduce_forge_time_ad', async () => {
+    rewardedAd.showAd.mockImplementationOnce((onSuccess: () => void) => {
+      onSuccess()
+    })
     inventoryRows = [
       ...forgeRows(),
       makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 0, false, 10, {
@@ -379,6 +400,23 @@ describe('ForgePage', () => {
         }),
       { timeout: 3000 },
     )
+  })
+
+  it('desabilita o botão de anúncio e mostra carregando quando o anúncio não está pronto', async () => {
+    rewardedAd.isAdReady = false
+    inventoryRows = [
+      ...forgeRows(),
+      makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 0, false, 10, {
+        is_in_forge: true,
+        forge_ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      }),
+    ]
+    setupSut(emptyCapture())
+    await renderReadyForge()
+
+    const button = screen.getByTestId('forge-watch-ad-button')
+    expect(button).toBeDisabled()
+    expect(button).toHaveTextContent('Carregando anúncio...')
   })
 
   it('mostra Coletar Item quando o tempo acaba e libera a bigorna ao coletar', async () => {
