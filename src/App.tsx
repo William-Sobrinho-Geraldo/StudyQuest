@@ -1,6 +1,4 @@
-import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { initNativeApp } from './utils/capacitorInit'
 import { ToastProvider } from './components/Toast'
 import { ConnectivityListener } from './components/ConnectivityListener'
 import { useNativeBackButton } from './hooks/useNativeBackButton'
@@ -28,10 +26,6 @@ import { SprintPage } from './pages/SprintPage'
 
 export function App() {
   useNativeBackButton()
-
-  useEffect(() => {
-    void initNativeApp()
-  }, [])
 
   return (
     <ToastProvider>
