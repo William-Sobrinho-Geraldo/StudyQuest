@@ -94,7 +94,7 @@ describe('AppShell — encerramento de sessão', () => {
     })
 
     renderApp('/')
-    await screen.findByRole('heading', { name: 'Dashboard' })
+    await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /sair/i }))

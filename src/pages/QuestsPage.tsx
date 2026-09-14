@@ -114,7 +114,7 @@ export function QuestsPage() {
             .catch((err) => {
               setClaimError(err instanceof Error ? err.message : 'Falha ao reivindicar quest')
             })
-        }, 1500)
+        }, 3000)
       } catch (err) {
         setClaimError(err instanceof Error ? err.message : 'Falha ao reivindicar quest')
       } finally {

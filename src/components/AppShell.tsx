@@ -41,10 +41,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={handleOpenSocial}
               aria-label="Amigos"
-              className="relative flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-800 hover:text-white"
+              title="Amigos"
+              className="relative p-2 rounded-md text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
-              <Users className="h-4 w-4" aria-hidden="true" />
-              Amigos
+              <Users className="h-5 w-5" aria-hidden="true" />
               {pendingInviteCount > 0 && (
                 <span
                   aria-label={`${pendingInviteCount} convites pendentes`}
@@ -57,10 +57,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-800 hover:text-white"
+              aria-label="Sair"
+              title="Sair"
+              className="shrink-0 p-2 rounded-md text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              Sair
+              <LogOut className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </header>

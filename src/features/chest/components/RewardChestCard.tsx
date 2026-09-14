@@ -87,7 +87,7 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
         setFloatingReward(null)
         setLastClaim(new Date().toISOString())
         onClaimed?.()
-      }, 1500)
+      }, 3000)
     }
     setClaiming(false)
   }, [canClaim, claiming, onClaimed, rewards])
@@ -156,7 +156,7 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
           <div className="mt-4 flex items-center gap-3">
             <div className="relative">
               {floatingReward && (
-                <FloatingReward xp={floatingReward.xp} gold={floatingReward.gold} />
+                <FloatingReward xp={floatingReward.xp} gold={floatingReward.gold} align="right" />
               )}
               <button
                 type="button"

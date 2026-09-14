@@ -14,7 +14,7 @@ export function CustomSplashScreen({ onComplete }: CustomSplashScreenProps) {
 
     const endTimer = setTimeout(() => {
       onComplete()
-    }, 2000)
+    }, 3400)
 
     return () => {
       clearTimeout(startTimer)
@@ -32,7 +32,7 @@ export function CustomSplashScreen({ onComplete }: CustomSplashScreenProps) {
       <div className="relative z-10 w-64">
         <div className="h-2 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50 backdrop-blur-sm">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-amber-500 rounded-full transition-all ease-out duration-[2000ms]"
+            className="h-full bg-gradient-to-r from-blue-500 to-amber-500 rounded-full transition-all ease-out duration-[3400ms]"
             style={{ width }}
           />
         </div>

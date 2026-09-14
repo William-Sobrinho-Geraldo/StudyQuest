@@ -17,18 +17,24 @@ export function DashboardPage() {
     setProfileEpoch((epoch) => epoch + 1)
   }, [])
 
+  const firstName =
+    typeof user?.user_metadata?.full_name === 'string' &&
+    user.user_metadata.full_name.trim().split(' ')[0]
+      ? user.user_metadata.full_name.trim().split(' ')[0]
+      : 'Herói'
+
   return (
     <AppShell>
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-xl font-bold text-white">Bem-vindo, {firstName}</h1>
       <p className="mt-1 text-sm text-slate-400">
-        Bem-vindo(a), {user?.email ?? 'explorador(a)'}.
+        O que vamos estudar hoje?
       </p>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <HeroProfile key={profileEpoch} />
       </div>
 
-      <div className="mt-6 grid gap-4">
+      <div className="mt-4 grid gap-3">
         <Link
           to="/shop"
           className="flex min-h-16 items-center justify-between rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 to-purple-600/15 px-5 transition hover:border-amber-400/50 hover:from-amber-500/20"
@@ -66,7 +72,7 @@ export function DashboardPage() {
         </Link>
 
         <RewardChestCard onClaimed={handleChestClaimed} />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <StreakCard />
           <DailyGoalCard />
         </div>

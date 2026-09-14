@@ -116,7 +116,7 @@ describe('LoginPage — fluxo de autenticação', () => {
     renderApp('/login')
     await fillAndSubmit(credentials.email, credentials.password)
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith(credentials)
     expect(screen.getByText('Heroi')).toBeInTheDocument()
   })
@@ -131,7 +131,7 @@ describe('LoginPage — fluxo de autenticação', () => {
     await fillAndSubmit(credentials.email, credentials.password)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid login credentials')
-    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bem-vindo, Herói' })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toHaveValue(credentials.email)
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith(credentials)
   })
@@ -155,7 +155,7 @@ describe('LoginPage — fluxo de autenticação', () => {
     renderApp('/login')
     await fillAndSubmit(credentials.email, credentials.password)
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Crie seu Herói' })).not.toBeInTheDocument()
   })
 
@@ -207,7 +207,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
     await openRegister()
     await fillRegister(credentials.email, credentials.password)
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
     expect(authMocks.signUp).toHaveBeenCalledWith(signUpPayload)
     expect(screen.getByText('Heroi')).toBeInTheDocument()
   })

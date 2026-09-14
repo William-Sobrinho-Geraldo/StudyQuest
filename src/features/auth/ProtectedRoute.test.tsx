@@ -113,7 +113,7 @@ describe('ProtectedRoute — barreira de rotas protegidas', () => {
     renderApp('/')
 
     expect(screen.getByRole('status')).toHaveTextContent('Carregando sessão...')
-    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bem-vindo, Herói' })).not.toBeInTheDocument()
   })
 
   it('redireciona usuário autenticado que visita /login para o dashboard', async () => {
@@ -124,7 +124,7 @@ describe('ProtectedRoute — barreira de rotas protegidas', () => {
 
     renderApp('/login')
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
   })
 
   it('permite o acesso à rota protegida mesmo sem display_name definido', async () => {
@@ -157,13 +157,13 @@ describe('ProtectedRoute — barreira de rotas protegidas', () => {
 
     renderApp('/rota-inexistente')
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
   })
 
   it('roteia URLs desconhecidas para /login quando não autenticado', async () => {
     renderApp('/rota-inexistente')
 
     expect(await screen.findByRole('heading', { name: 'StudyQuest' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bem-vindo, Herói' })).not.toBeInTheDocument()
   })
 })

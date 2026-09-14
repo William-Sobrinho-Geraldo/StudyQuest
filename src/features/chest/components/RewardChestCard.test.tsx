@@ -152,7 +152,7 @@ describe('RewardChestCard', () => {
     expect(screen.getByRole('button', { name: 'Coletado!' })).toBeDisabled()
 
     act(() => {
-      vi.advanceTimersByTime(1500)
+      vi.advanceTimersByTime(3000)
     })
     await flush()
 
@@ -173,7 +173,7 @@ describe('RewardChestCard', () => {
     await flush()
 
     act(() => {
-      vi.advanceTimersByTime(1500)
+      vi.advanceTimersByTime(3000)
     })
     await flush()
 
