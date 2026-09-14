@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import {
-  MAX_PAUSES,
   MAX_STUDY_MINUTES,
   MIN_STUDY_MINUTES,
   calculateReward,
@@ -38,7 +37,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_MINUTES)
   const [remainingMs, setRemainingMs] = useState(DEFAULT_MINUTES * 60_000)
   const [status, setStatus] = useState<StudyTimerStatus>('idle')
-  const [pausesUsed, setPausesUsed] = useState(0)
   const [lastResult, setLastResult] = useState<StudyTimerResult | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -46,7 +44,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const [isFocusMode, setIsFocusMode] = useState(false)
 
   const statusRef = useRef<StudyTimerStatus>('idle')
-  const pausesUsedRef = useRef(0)
   const durationMinutesRef = useRef(DEFAULT_MINUTES)
   const baseRemainingRef = useRef(DEFAULT_MINUTES * 60_000)
   const endTimeRef = useRef<number | null>(null)
@@ -68,36 +65,39 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const openFocusMode = useCallback(() => setIsFocusMode(true), [])
   const closeFocusMode = useCallback(() => setIsFocusMode(false), [])
 
-  const finish = useCallback(async (): Promise<StudyTimerResult | null> => {
-    if (completedRef.current) return null
-    completedRef.current = true
-    endTimeRef.current = null
-    clearTimer()
+  const finish = useCallback(
+    async (minutesOverride?: number): Promise<StudyTimerResult | null> => {
+      if (completedRef.current) return null
+      completedRef.current = true
+      endTimeRef.current = null
+      clearTimer()
 
-    const minutes = durationMinutesRef.current
-    const reward = calculateReward(minutes)
-    const result: StudyTimerResult = { durationMinutes: minutes, ...reward }
+      const minutes = Math.max(1, minutesOverride ?? durationMinutesRef.current)
+      const reward = calculateReward(minutes)
+      const result: StudyTimerResult = { durationMinutes: minutes, ...reward }
 
-    setRemainingMs(0)
-    changeStatus('completed')
-    setLastResult(result)
-    setSaveError(null)
-    setIsSaving(true)
-    try {
-      await saveSession(result)
-      setSessionCompletedAt(Date.now())
-      emitStudySessionSaved()
-    } catch (error) {
-      setSaveError(
-        error instanceof Error
-          ? error.message
-          : 'Falha ao salvar a sessão no histórico.',
-      )
-    } finally {
-      setIsSaving(false)
-    }
-    return result
-  }, [changeStatus, clearTimer, saveSession])
+      setRemainingMs(0)
+      changeStatus('completed')
+      setLastResult(result)
+      setSaveError(null)
+      setIsSaving(true)
+      try {
+        await saveSession(result)
+        setSessionCompletedAt(Date.now())
+        emitStudySessionSaved()
+      } catch (error) {
+        setSaveError(
+          error instanceof Error
+            ? error.message
+            : 'Falha ao salvar a sessão no histórico.',
+        )
+      } finally {
+        setIsSaving(false)
+      }
+      return result
+    },
+    [changeStatus, clearTimer, saveSession],
+  )
 
   const tick = useCallback(() => {
     if (endTimeRef.current === null) return
@@ -120,12 +120,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     if (statusRef.current !== 'running') {
       return { ok: false, message: 'Só é possível pausar uma sessão em andamento.' }
     }
-    if (pausesUsedRef.current >= MAX_PAUSES) {
-      return {
-        ok: false,
-        message: `Você já usou as ${MAX_PAUSES} pausas de emergência disponíveis.`,
-      }
-    }
     if (endTimeRef.current === null) {
       return { ok: false, message: 'Sessão sem referência de tempo.' }
     }
@@ -136,9 +130,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     endTimeRef.current = null
     clearTimer()
 
-    const next = pausesUsedRef.current + 1
-    pausesUsedRef.current = next
-    setPausesUsed(next)
     changeStatus('paused')
     return { ok: true }
   }, [changeStatus, clearTimer])
@@ -171,7 +162,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     clearTimer()
     completedRef.current = false
     endTimeRef.current = null
-    pausesUsedRef.current = 0
 
     const minutes = Math.min(
       Math.max(durationMinutesRef.current, MIN_STUDY_MINUTES),
@@ -181,7 +171,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     durationMinutesRef.current = minutes
     baseRemainingRef.current = ms
 
-    setPausesUsed(0)
     setDurationMinutes(minutes)
     setRemainingMs(ms)
     setLastResult(null)
@@ -190,6 +179,29 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     setSessionCompletedAt(null)
     changeStatus('idle')
   }, [changeStatus, clearTimer])
+
+  const finishEarly = useCallback((): ActionResult => {
+    if (statusRef.current !== 'running' && statusRef.current !== 'paused') {
+      return { ok: false, message: 'Nenhuma sessão em andamento.' }
+    }
+
+    const remaining =
+      endTimeRef.current !== null
+        ? Math.max(0, endTimeRef.current - Date.now())
+        : baseRemainingRef.current
+    const totalMs = durationMinutesRef.current * 60_000
+    const elapsedMs = Math.max(0, totalMs - remaining)
+    const elapsedMinutes = Math.floor(elapsedMs / 60_000)
+
+    if (elapsedMinutes < 1) {
+      reset()
+      closeFocusMode()
+      return { ok: true }
+    }
+
+    void finish(elapsedMinutes)
+    return { ok: true }
+  }, [closeFocusMode, finish, reset])
 
   const formattedTime = useMemo(() => formatTime(remainingMs), [remainingMs])
 
@@ -201,9 +213,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     isRunning: status === 'running',
     isPaused: status === 'paused',
     isCompleted: status === 'completed',
-    canPause: status === 'running' && pausesUsed < MAX_PAUSES,
-    pausesUsed,
-    pausesRemaining: Math.max(0, MAX_PAUSES - pausesUsed),
+    canPause: status === 'running',
     lastResult,
     saveError,
     isSaving,
@@ -216,6 +226,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     pause,
     resume,
     finish,
+    finishEarly,
     reset,
   }
 }

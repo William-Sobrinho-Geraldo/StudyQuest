@@ -56,7 +56,7 @@ describe('FocusOverlay', () => {
     expect(screen.getByText('Farmando XP...')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /concluir sessão/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sair do foco/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /finalizar agora/i })).toBeInTheDocument()
   })
 
   it('pausa e retoma a sessão corretamente', () => {
@@ -110,7 +110,7 @@ describe('FocusOverlay', () => {
     })
   })
 
-  it('fecha o foco ao clicar em Sair do Foco', () => {
+  it('abandona a sessão ao clicar em Finalizar Agora antes de 1 minuto', () => {
     renderOverlay()
     act(() => {
       timerRef.current?.selectDuration(10)
@@ -121,9 +121,46 @@ describe('FocusOverlay', () => {
     expect(screen.getByTestId('focus-overlay')).toBeInTheDocument()
 
     act(() => {
-      timerRef.current?.closeFocusMode()
+      screen.getByRole('button', { name: /finalizar agora/i }).click()
     })
 
     expect(screen.queryByTestId('focus-overlay')).not.toBeInTheDocument()
+    expect(timerRef.current?.status).toBe('idle')
+    expect(timerRef.current?.formattedTime).toBe('10:00')
+    expect(saveStudySessionMock).not.toHaveBeenCalled()
+  })
+
+  it('salva o progresso parcial ao clicar em Finalizar Agora após 1 minuto', async () => {
+    renderOverlay()
+    act(() => {
+      timerRef.current?.selectDuration(60)
+      timerRef.current?.start()
+      timerRef.current?.openFocusMode()
+    })
+    act(() => {
+      vi.advanceTimersByTime(2 * 60_000 + 30_000)
+    })
+
+    act(() => {
+      screen.getByRole('button', { name: /finalizar agora/i }).click()
+    })
+
+    expect(timerRef.current?.status).toBe('completed')
+    expect(timerRef.current?.lastResult).toEqual({
+      durationMinutes: 2,
+      xp: 20,
+      gold: 4,
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(saveStudySessionMock).toHaveBeenCalledWith({
+      durationMinutes: 2,
+      xp: 20,
+      gold: 4,
+    })
   })
 })

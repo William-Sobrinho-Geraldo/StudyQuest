@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase'
+import { GOLD_PER_MINUTE, XP_PER_MINUTE } from '../lib/studyRules'
 
 export interface StudySessionSummary {
   durationMinutes: number
@@ -32,8 +33,8 @@ export async function saveStudySession(
   const record: StudySessionRecord = {
     user_id: userData.user.id,
     duration_minutes: durationMinutes,
-    xp: summary.xp,
-    gold: summary.gold,
+    xp: durationMinutes * XP_PER_MINUTE,
+    gold: durationMinutes * GOLD_PER_MINUTE,
     started_at: new Date(Date.now() - durationMinutes * 60_000).toISOString(),
     completed_at: new Date().toISOString(),
   }

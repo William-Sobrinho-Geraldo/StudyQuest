@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import {
-  MAX_PAUSES,
   MAX_STUDY_MINUTES,
   MIN_STUDY_MINUTES,
   STUDY_MINUTE_STEP,
@@ -47,7 +46,6 @@ describe('studyRules', () => {
     expect(MIN_STUDY_MINUTES).toBe(5)
     expect(MAX_STUDY_MINUTES).toBe(90)
     expect(STUDY_MINUTE_STEP).toBe(5)
-    expect(MAX_PAUSES).toBe(2)
   })
 
   it('gera opções de 5 a 90 minutos em incrementos de 5', () => {
@@ -120,8 +118,8 @@ describe('useStudyTimer — seleção de duração', () => {
   })
 })
 
-describe('useStudyTimer — pausas de emergência', () => {
-  it('permite no máximo 2 pausas e ignora a terceira', () => {
+describe('useStudyTimer — pausas', () => {
+  it('permite pausar e retomar quantas vezes for necessário', () => {
     const { result } = setupTimer()
 
     act(() => {
@@ -141,8 +139,6 @@ describe('useStudyTimer — pausas de emergência', () => {
     })
     expect(first.ok).toBe(true)
     expect(result.current.status).toBe('paused')
-    expect(result.current.pausesUsed).toBe(1)
-    expect(result.current.pausesRemaining).toBe(1)
 
     act(() => {
       result.current.resume()
@@ -155,7 +151,6 @@ describe('useStudyTimer — pausas de emergência', () => {
       second = result.current.pause()
     })
     expect(second.ok).toBe(true)
-    expect(result.current.pausesUsed).toBe(2)
     expect(result.current.canPause).toBe(false)
 
     act(() => {
@@ -168,9 +163,8 @@ describe('useStudyTimer — pausas de emergência', () => {
     act(() => {
       third = result.current.pause()
     })
-    expect(third.ok).toBe(false)
-    expect(result.current.pausesUsed).toBe(2)
-    expect(result.current.status).toBe('running')
+    expect(third.ok).toBe(true)
+    expect(result.current.status).toBe('paused')
   })
 
   it('não pausa uma sessão que não está em andamento', () => {
@@ -395,7 +389,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
 
     expect(result.current.status).toBe('idle')
     expect(result.current.lastResult).toBeNull()
-    expect(result.current.pausesUsed).toBe(0)
     expect(result.current.durationMinutes).toBe(5)
     expect(result.current.formattedTime).toBe('05:00')
   })
@@ -421,6 +414,70 @@ describe('useStudyTimer — conclusão e recompensas', () => {
 
     await flushAsync()
     expect(saveSession).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useStudyTimer — encerramento antecipado', () => {
+  it('abandona a sessão sem salvar quando o tempo estudado é menor que 1 minuto', () => {
+    const { result, saveSession } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+    })
+    act(() => {
+      result.current.start()
+      result.current.openFocusMode()
+    })
+    act(() => {
+      vi.advanceTimersByTime(30_000)
+    })
+
+    let outcome: ActionResult = { ok: false, message: '' }
+    act(() => {
+      outcome = result.current.finishEarly()
+    })
+
+    expect(outcome.ok).toBe(true)
+    expect(result.current.status).toBe('idle')
+    expect(result.current.isFocusMode).toBe(false)
+    expect(saveSession).not.toHaveBeenCalled()
+  })
+
+  it('encerra com sucesso parcial proporcional ao tempo estudado', async () => {
+    const { result, saveSession } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(60)
+    })
+    act(() => {
+      result.current.start()
+    })
+    act(() => {
+      vi.advanceTimersByTime(2 * 60_000 + 30_000)
+    })
+    act(() => {
+      result.current.pause()
+    })
+
+    let outcome: ActionResult = { ok: false, message: '' }
+    act(() => {
+      outcome = result.current.finishEarly()
+    })
+
+    expect(outcome.ok).toBe(true)
+    expect(result.current.status).toBe('completed')
+    expect(result.current.lastResult).toEqual({
+      durationMinutes: 2,
+      xp: 20,
+      gold: 4,
+    })
+
+    await flushAsync()
+    expect(saveSession).toHaveBeenCalledWith({
+      durationMinutes: 2,
+      xp: 20,
+      gold: 4,
+    })
   })
 })
 

@@ -1,6 +1,5 @@
-import { Ban, BookOpen, Pause, Play, X } from 'lucide-react'
+import { BookOpen, Flag, Pause, Play } from 'lucide-react'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
-import { MAX_PAUSES } from '../lib/studyRules'
 import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 
 const PAUSE_BUTTON =
@@ -9,11 +8,13 @@ const PAUSE_BUTTON =
 export function FocusOverlay() {
   const timer = useStudyTimerContext()
 
-  useModalBackHandler(timer.closeFocusMode, timer.isFocusMode)
+  const handleFinishEarly = () => {
+    void timer.finishEarly()
+  }
+
+  useModalBackHandler(handleFinishEarly, timer.isFocusMode)
 
   if (!timer.isFocusMode) return null
-
-  const remainingPauses = Math.max(0, MAX_PAUSES - timer.pausesUsed)
 
   const handleFinish = () => {
     void timer.finish()
@@ -31,11 +32,11 @@ export function FocusOverlay() {
         <header className="flex items-center justify-between gap-3 pt-12">
           <button
             type="button"
-            onClick={timer.closeFocusMode}
+            onClick={handleFinishEarly}
             className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 text-sm font-medium text-slate-400 transition hover:border-slate-700 hover:text-slate-200"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
-            Sair do Foco
+            <Flag className="h-4 w-4" aria-hidden="true" />
+            Finalizar Agora
           </button>
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400">
             Foco Total
@@ -75,19 +76,10 @@ export function FocusOverlay() {
               onClick={() => {
                 void timer.pause()
               }}
-              disabled={!timer.canPause}
               className={PAUSE_BUTTON}
             >
-              {remainingPauses > 0 ? (
-                <Pause className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <Ban className="h-5 w-5" aria-hidden="true" />
-              )}
-              {remainingPauses > 0
-                ? `Pausar (${remainingPauses} ${
-                    remainingPauses === 1 ? 'restante' : 'restantes'
-                  })`
-                : 'Pausas Esgotadas'}
+              <Pause className="h-5 w-5" aria-hidden="true" />
+              Pausar
             </button>
           ) : timer.isPaused ? (
             <button type="button" onClick={timer.resume} className={PAUSE_BUTTON}>

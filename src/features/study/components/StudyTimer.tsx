@@ -1,5 +1,4 @@
 import {
-  Ban,
   ChevronLeft,
   ChevronRight,
   Pause,
@@ -7,7 +6,6 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import {
-  MAX_PAUSES,
   MAX_STUDY_MINUTES,
   MIN_STUDY_MINUTES,
   STUDY_MINUTE_STEP,
@@ -45,7 +43,6 @@ export function StudyTimer() {
   }
 
   const inSession = timer.status !== 'idle'
-  const remainingPauses = Math.max(0, MAX_PAUSES - timer.pausesUsed)
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
@@ -130,12 +127,6 @@ export function StudyTimer() {
           </div>
         )}
 
-        <p className="mt-3 text-sm text-slate-400" data-testid="pauses-indicator">
-          Pausas disponíveis:{' '}
-          <span className="font-semibold text-white">
-            {timer.pausesRemaining}/{MAX_PAUSES}
-          </span>
-        </p>
       </div>
 
       <div className="flex justify-center">
@@ -150,19 +141,10 @@ export function StudyTimer() {
           <button
             type="button"
             onClick={timer.pause}
-            disabled={!timer.canPause}
             className={PRIMARY_BUTTON}
           >
-            {remainingPauses > 0 ? (
-              <Pause className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Ban className="h-4 w-4" aria-hidden="true" />
-            )}
-            {remainingPauses > 0
-              ? `Pausar (${remainingPauses} ${
-                  remainingPauses === 1 ? 'restante' : 'restantes'
-                })`
-              : 'Pausas Esgotadas'}
+            <Pause className="h-4 w-4" aria-hidden="true" />
+            Pausar
           </button>
         )}
 

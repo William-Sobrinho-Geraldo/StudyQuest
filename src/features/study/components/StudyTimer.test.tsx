@@ -48,12 +48,11 @@ afterEach(() => {
 })
 
 describe('StudyTimer — UI', () => {
-  it('renderiza o estado inicial com 25 min e 2 pausas disponíveis', () => {
+  it('renderiza o estado inicial com 25 min', () => {
     renderTimer()
 
     expect(screen.getByRole('timer')).toHaveTextContent('25:00')
     expect(screen.getByRole('button', { name: /iniciar/i })).toBeInTheDocument()
-    expect(screen.getByTestId('pauses-indicator')).toHaveTextContent('2/2')
     expect(screen.getByRole('button', { name: /diminuir 5 minutos/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /aumentar 5 minutos/i })).toBeInTheDocument()
     expect(screen.getByRole('slider')).toHaveValue('25')
@@ -105,20 +104,16 @@ describe('StudyTimer — UI', () => {
     expect(screen.getByRole('timer')).toHaveTextContent('25:00')
   })
 
-  it('bloqueia o botão de pausa após o limite de 2 pausas', () => {
+  it('permite pausar e retomar sem limite de pausas', () => {
     renderTimer()
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /pausar/i }))
-    expect(screen.getByTestId('pauses-indicator')).toHaveTextContent('1/2')
+    expect(screen.getByRole('button', { name: /retomar/i })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /retomar/i }))
-    fireEvent.click(screen.getByRole('button', { name: /pausar/i }))
-    expect(screen.getByTestId('pauses-indicator')).toHaveTextContent('0/2')
-
-    fireEvent.click(screen.getByRole('button', { name: /retomar/i }))
-    expect(screen.getByRole('button', { name: /pausas esgotadas/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
   })
 
   it('abre o Modo Foco Total ao iniciar a sessão', () => {
@@ -131,7 +126,7 @@ describe('StudyTimer — UI', () => {
 
     expect(focusRef.current?.isFocusMode).toBe(true)
     expect(screen.getByTestId('focus-overlay')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sair do foco/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /finalizar agora/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /concluir sessão/i })).toBeInTheDocument()
   })
 
