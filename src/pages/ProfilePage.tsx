@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Check, Crown, Edit2, LifeBuoy, Loader2, Pencil, Sparkles, X } from 'lucide-react'
+import { Check, Crown, Edit2, HelpCircle, LifeBuoy, Loader2, Pencil, Sparkles, Swords, X } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { UserAvatar } from '../components/UserAvatar'
 import { useAuth } from '../features/auth/AuthContext'
@@ -22,6 +22,13 @@ const NAME_MIN = 3
 const NAME_MAX = 15
 const GOAL_MAX = 50
 const BIO_MAX = 120
+
+const DUEL_TITLE_SCALE = [
+  { label: 'Lenda da Arena', requirement: '50+ vitórias', className: 'text-amber-400' },
+  { label: 'Gladiador do Foco', requirement: '20–49 vitórias', className: 'text-purple-400' },
+  { label: 'Desafiante', requirement: '5–19 vitórias', className: 'text-blue-400' },
+  { label: 'Iniciante', requirement: '0–4 vitórias', className: 'text-slate-400' },
+]
 
 interface EquippedRow {
   item_category: string
@@ -273,10 +280,76 @@ function FocusMetricCard({
   )
 }
 
+function DuelTitleInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="duel-title-info-title"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
+              <Swords className="h-5 w-5 text-white" aria-hidden="true" />
+            </div>
+            <h2 id="duel-title-info-title" className="text-xl font-bold">
+              Título de PvP
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Rank cosmético da Arena, definido pelo número de vitórias em duelos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="grid h-11 w-11 touch-manipulation select-none place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white active:scale-95"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <ul className="space-y-2">
+          {DUEL_TITLE_SCALE.map((tier) => (
+            <li
+              key={tier.label}
+              className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800/50 px-3 py-2"
+            >
+              <span className={`text-sm font-semibold ${tier.className}`}>{tier.label}</span>
+              <span className="text-xs text-slate-400">{tier.requirement}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-4 text-sm leading-relaxed text-slate-400">
+          Para subir de rank, vença duelos na Arena. Ao acumular{' '}
+          <span className="font-semibold text-amber-400">50 vitórias</span>, você alcança o
+          título de <span className="font-semibold text-amber-400">Lenda da Arena</span>.
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-5 flex min-h-[44px] w-full touch-manipulation select-none items-center justify-center rounded-lg bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-500 active:scale-95"
+        >
+          Entendi
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function ProfilePage() {
   const { profile, profileLoading, refreshProfile, updateUserName, user } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [rankInfoOpen, setRankInfoOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
@@ -482,12 +555,23 @@ export function ProfilePage() {
               </button>
             )}
 
-            <p
-              data-testid="profile-duel-title"
-              className={`text-xs font-semibold uppercase tracking-wider ${duelTitle.className}`}
-            >
-              {duelTitle.label}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500">Título de PvP:</span>
+              <p
+                data-testid="profile-duel-title"
+                className={`text-sm font-semibold uppercase tracking-wider ${duelTitle.className}`}
+              >
+                {duelTitle.label}
+              </p>
+              <button
+                type="button"
+                onClick={() => setRankInfoOpen(true)}
+                aria-label="Saiba mais sobre títulos de PvP"
+                className="grid h-5 w-5 touch-manipulation select-none place-items-center rounded-full text-slate-500 transition hover:bg-slate-800 hover:text-slate-300"
+              >
+                <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           {profile?.equipped_title && (
@@ -679,6 +763,8 @@ export function ProfilePage() {
       )}
 
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
+
+      {rankInfoOpen && <DuelTitleInfoModal onClose={() => setRankInfoOpen(false)} />}
     </AppShell>
   )
 }
