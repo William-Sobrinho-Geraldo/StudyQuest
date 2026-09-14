@@ -110,18 +110,21 @@ const PODIUM_STYLES = {
     ring: 'ring-4 ring-amber-500',
     glow: 'shadow-[0_0_24px_rgba(245,158,11,0.45)]',
     label: 'Ouro',
+    labelClass: 'text-amber-300/90',
   },
   silver: {
     medal: 'bg-slate-400 text-slate-950',
     ring: 'ring-4 ring-slate-400',
     glow: '',
     label: 'Prata',
+    labelClass: 'text-slate-300',
   },
   bronze: {
     medal: 'bg-amber-700 text-amber-100',
     ring: 'ring-4 ring-amber-700',
     glow: '',
     label: 'Bronze',
+    labelClass: 'text-amber-700',
   },
 } as const
 
@@ -183,7 +186,9 @@ function PodiumCard({
             <span className="ml-1 text-[11px] font-medium text-indigo-400">(Você)</span>
           )}
         </p>
-        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300/90">
+        <p
+          className={`mt-0.5 text-[11px] font-semibold uppercase tracking-wide ${style.labelClass}`}
+        >
           {style.label}
         </p>
         <p className="mt-0.5 text-xs text-slate-400">{formatMinutes(entry.minutes)}</p>
