@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AdMob, RewardAdPluginEvents } from '@capacitor-community/admob'
 import { Capacitor } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
+import { REWARDED_AD_UNIT_ID } from '../config/admob'
 
-const adId = 'ca-app-pub-3940256099942544/5224354917'
+const adId = REWARDED_AD_UNIT_ID
 
 const isNative = Capacitor.isNativePlatform()
 
