@@ -29,7 +29,7 @@ export function FocusOverlay() {
       className="fixed inset-0 z-40 flex h-[100dvh] w-full flex-col overflow-hidden bg-slate-950 text-slate-100"
     >
       <div className="mx-auto flex h-full w-full max-w-md flex-col px-6 pb-5">
-        <header className="flex items-center justify-between gap-3 pt-12">
+        <header className="flex items-center justify-between gap-3 pt-14">
           <button
             type="button"
             onClick={handleFinishEarly}
