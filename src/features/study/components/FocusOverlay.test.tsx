@@ -163,4 +163,70 @@ describe('FocusOverlay', () => {
       gold: 4,
     })
   })
+
+  it('mostra o banner e os botões de pausa e conclusão ao entrar em overtime', async () => {
+    renderOverlay()
+    act(() => {
+      timerRef.current?.selectDuration(5)
+      timerRef.current?.start()
+      timerRef.current?.openFocusMode()
+    })
+
+    act(() => {
+      vi.advanceTimersByTime(5 * 60_000 + 30_000)
+    })
+
+    expect(timerRef.current?.status).toBe('overtime')
+    expect(screen.getByTestId('overtime-banner')).toHaveTextContent(
+      'Sessão Estendida • Farmando XP Bônus',
+    )
+    expect(screen.getByText('+00:30')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /finalizar sessão e coletar xp/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
+
+    await act(async () => {
+      screen.getByRole('button', { name: /finalizar sessão e coletar xp/i }).click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(saveStudySessionMock).toHaveBeenCalledWith({
+      durationMinutes: 5.5,
+      xp: 55,
+      gold: 11,
+    })
+  })
+
+  it('pausa e retoma o tempo excedente mantendo o botão de conclusão visível', () => {
+    renderOverlay()
+    act(() => {
+      timerRef.current?.selectDuration(5)
+      timerRef.current?.start()
+      timerRef.current?.openFocusMode()
+    })
+
+    act(() => {
+      vi.advanceTimersByTime(5 * 60_000 + 30_000)
+    })
+
+    act(() => {
+      screen.getByRole('button', { name: /pausar/i }).click()
+    })
+
+    expect(timerRef.current?.status).toBe('paused')
+    expect(timerRef.current?.isOvertime).toBe(true)
+    expect(screen.getByRole('button', { name: /retomar/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /finalizar sessão e coletar xp/i }),
+    ).toBeInTheDocument()
+
+    act(() => {
+      screen.getByRole('button', { name: /retomar/i }).click()
+    })
+
+    expect(timerRef.current?.status).toBe('overtime')
+    expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
+  })
 })

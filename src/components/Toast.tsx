@@ -19,7 +19,7 @@ interface ToastMessage {
 }
 
 interface ToastContextValue {
-  showToast: (message: string, tone?: ToastTone) => void
+  showToast: (message: string, tone?: ToastTone, durationMs?: number) => void
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined)
@@ -59,10 +59,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const showToast = useCallback(
-    (message: string, tone: ToastTone = 'success') => {
+    (message: string, tone: ToastTone = 'success', durationMs?: number) => {
       const id = Date.now() + Math.random()
       setToasts((current) => [...current, { id, message, tone }])
-      const timeoutId = window.setTimeout(() => dismiss(id), TOAST_DURATION_MS)
+      const timeoutId = window.setTimeout(() => dismiss(id), durationMs ?? TOAST_DURATION_MS)
       timeoutsRef.current.push(timeoutId)
     },
     [dismiss],

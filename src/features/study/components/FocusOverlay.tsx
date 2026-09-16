@@ -1,9 +1,12 @@
-import { BookOpen, Flag, Pause, Play } from 'lucide-react'
+import { BookOpen, Flag, Pause, Play, Trophy } from 'lucide-react'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 
 const PAUSE_BUTTON =
   'flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 text-base font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
+
+const COLLECT_BUTTON =
+  'flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 text-base font-semibold text-slate-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50'
 
 export function FocusOverlay() {
   const timer = useStudyTimerContext()
@@ -30,26 +33,44 @@ export function FocusOverlay() {
     >
       <div className="mx-auto flex h-full w-full max-w-md flex-col px-6 pb-5">
         <header className="flex items-center justify-between gap-3 pt-14">
-          <button
-            type="button"
-            onClick={handleFinishEarly}
-            className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 text-sm font-medium text-slate-400 transition hover:border-slate-700 hover:text-slate-200"
-          >
-            <Flag className="h-4 w-4" aria-hidden="true" />
-            Finalizar Agora
-          </button>
+          {timer.isOvertime ? (
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
+              Meta atingida
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFinishEarly}
+              className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 text-sm font-medium text-slate-400 transition hover:border-slate-700 hover:text-slate-200"
+            >
+              <Flag className="h-4 w-4" aria-hidden="true" />
+              Finalizar Agora
+            </button>
+          )}
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400">
             Foco Total
           </span>
         </header>
 
         <main className="flex flex-1 flex-col items-center justify-center pb-10">
+          {timer.isOvertime && (
+            <div
+              data-testid="overtime-banner"
+              className="mb-6 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300"
+            >
+              <Trophy className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Sessão Estendida • Farmando XP Bônus
+            </div>
+          )}
+
           <div
             role="timer"
-            aria-label="Tempo restante"
-            className="font-mono text-8xl font-bold tabular-nums tracking-tight text-white"
+            aria-label={timer.isOvertime ? 'Tempo excedente' : 'Tempo restante'}
+            className={`font-mono text-8xl font-bold tabular-nums tracking-tight ${
+              timer.isOvertime ? 'text-amber-400' : 'text-white'
+            }`}
           >
-            {timer.formattedTime}
+            {timer.isOvertime ? timer.formattedOvertime : timer.formattedTime}
           </div>
 
           <div className="mt-16 flex flex-col items-center">
@@ -64,13 +85,43 @@ export function FocusOverlay() {
               />
             </div>
             <p className="mt-5 animate-pulse text-sm font-medium tracking-wide text-slate-400">
-              {timer.isRunning ? 'Farmando XP...' : 'Pausado — descanse um pouco'}
+              {timer.isOvertime
+                ? timer.isPaused
+                  ? 'Sessão estendida pausada'
+                  : 'Sessão Estendida • Farmando XP Bônus'
+                : timer.isRunning
+                  ? 'Farmando XP...'
+                  : 'Pausado — descanse um pouco'}
             </p>
           </div>
         </main>
 
         <footer className="flex flex-col gap-3 pb-8">
-          {timer.isRunning ? (
+          {timer.isOvertime ? (
+            <>
+              {timer.isPaused ? (
+                <button type="button" onClick={timer.resume} className={PAUSE_BUTTON}>
+                  <Play className="h-5 w-5" aria-hidden="true" />
+                  Retomar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void timer.pause()
+                  }}
+                  className={PAUSE_BUTTON}
+                >
+                  <Pause className="h-5 w-5" aria-hidden="true" />
+                  Pausar
+                </button>
+              )}
+              <button type="button" onClick={handleFinish} className={COLLECT_BUTTON}>
+                <Trophy className="h-5 w-5" aria-hidden="true" />
+                Finalizar Sessão e Coletar XP
+              </button>
+            </>
+          ) : timer.isRunning ? (
             <button
               type="button"
               onClick={() => {

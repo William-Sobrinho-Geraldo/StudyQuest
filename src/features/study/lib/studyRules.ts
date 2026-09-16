@@ -3,6 +3,8 @@ export const MAX_STUDY_MINUTES = 90
 export const STUDY_MINUTE_STEP = 5
 export const XP_PER_MINUTE = 10
 export const GOLD_PER_MINUTE = 2
+export const XP_PER_SECOND = XP_PER_MINUTE / 60
+export const GOLD_PER_SECOND = GOLD_PER_MINUTE / 60
 
 export interface Reward {
   xp: number
@@ -37,9 +39,24 @@ export function calculateReward(minutes: number): Reward {
   }
 }
 
+export function calculateRewardSeconds(totalSeconds: number): Reward {
+  const safe = Math.max(0, totalSeconds)
+  return {
+    xp: Math.round(safe * XP_PER_SECOND),
+    gold: Math.round(safe * GOLD_PER_SECOND),
+  }
+}
+
 export function formatTime(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+export function formatOvertime(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds))
+  const minutes = Math.floor(safe / 60)
+  const remainingSeconds = safe % 60
+  return `+${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
 }

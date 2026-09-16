@@ -8,6 +8,7 @@ import { InviteLinkHandler } from './components/InviteLinkHandler'
 import { SocialProvider } from './features/social/context/SocialContext'
 import { FocusOverlay } from './features/study/components/FocusOverlay'
 import { VictoryModal } from './features/study/components/VictoryModal'
+import { DistractionGuard } from './features/study/components/DistractionGuard'
 import { StudyTimerProvider } from './features/study/context/StudyTimerContext'
 import { DashboardPage } from './pages/DashboardPage'
 import { ForgePage } from './pages/ForgePage'
@@ -131,6 +132,7 @@ export function App() {
             </Routes>
             <FocusOverlay />
             <VictoryModal />
+            <DistractionGuard />
           </StudyTimerProvider>
         </SocialProvider>
       </AuthProvider>

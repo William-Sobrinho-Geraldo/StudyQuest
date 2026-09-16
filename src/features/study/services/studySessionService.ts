@@ -27,14 +27,21 @@ export async function saveStudySession(
   }
 
   const durationMinutes = Number.isFinite(summary.durationMinutes)
-    ? Math.max(1, Math.floor(summary.durationMinutes))
+    ? Math.max(1, Math.round(summary.durationMinutes))
     : 1
+
+  const xp = Number.isFinite(summary.xp)
+    ? Math.max(0, Math.round(summary.xp))
+    : durationMinutes * XP_PER_MINUTE
+  const gold = Number.isFinite(summary.gold)
+    ? Math.max(0, Math.round(summary.gold))
+    : durationMinutes * GOLD_PER_MINUTE
 
   const record: StudySessionRecord = {
     user_id: userData.user.id,
     duration_minutes: durationMinutes,
-    xp: durationMinutes * XP_PER_MINUTE,
-    gold: durationMinutes * GOLD_PER_MINUTE,
+    xp,
+    gold,
     started_at: new Date(Date.now() - durationMinutes * 60_000).toISOString(),
     completed_at: new Date().toISOString(),
   }
