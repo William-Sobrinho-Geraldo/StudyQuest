@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.studyquest.app',
+  appId: 'com.william.studyquest',
   appName: 'StudyQuest',
   webDir: 'dist',
   plugins: {

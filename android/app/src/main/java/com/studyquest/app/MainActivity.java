@@ -1,4 +1,4 @@
-package com.studyquest.app;
+package com.william.studyquest;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
