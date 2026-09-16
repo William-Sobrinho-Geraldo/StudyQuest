@@ -52,6 +52,15 @@ vi.mock('@capacitor/core', () => ({
   },
 }))
 
+vi.mock('@capacitor/local-notifications', () => ({
+  LocalNotifications: {
+    requestPermissions: vi.fn().mockResolvedValue({ display: 'granted' }),
+    schedule: vi.fn().mockResolvedValue(undefined),
+    cancel: vi.fn().mockResolvedValue(undefined),
+    getPending: vi.fn().mockResolvedValue({ notifications: [] }),
+  },
+}))
+
 let timerRef: { current: StudyTimerValue | null } = { current: null }
 
 function Harness() {

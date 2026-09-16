@@ -6,17 +6,18 @@ import {
   STUDY_MINUTE_STEP,
   calculateReward,
   calculateRewardSeconds,
-  formatOvertime,
   formatTime,
   generateStudyOptions,
   validateStudyMinutes,
 } from '../lib/studyRules'
-import { writeAlarmEnabled, writeOvertimeEnabled } from '../lib/studyPreferences'
+import { writeAlarmEnabled } from '../lib/studyPreferences'
 import { useStudyTimer, type ActionResult } from './useStudyTimer'
 
 const {
   emitStudySessionSaved,
   playCompletionSound,
+  scheduleCompletionNotification,
+  cancelCompletionNotification,
   scheduleDistractionAlert,
   scheduleSessionCancelledNotification,
   schedulePausedExpiringWarning,
@@ -25,6 +26,8 @@ const {
 } = vi.hoisted(() => ({
   emitStudySessionSaved: vi.fn(),
   playCompletionSound: vi.fn(),
+  scheduleCompletionNotification: vi.fn().mockResolvedValue(undefined),
+  cancelCompletionNotification: vi.fn().mockResolvedValue(undefined),
   scheduleDistractionAlert: vi.fn().mockResolvedValue(undefined),
   scheduleSessionCancelledNotification: vi.fn().mockResolvedValue(undefined),
   schedulePausedExpiringWarning: vi.fn().mockResolvedValue(undefined),
@@ -43,6 +46,8 @@ vi.mock('../lib/completionSounds', () => ({
 vi.mock('../lib/distractionNotifications', () => ({
   DISTRACTION_GRACE_SECONDS: 20,
   PAUSED_GRACE_SECONDS: 15 * 60,
+  scheduleCompletionNotification,
+  cancelCompletionNotification,
   scheduleDistractionAlert,
   scheduleSessionCancelledNotification,
   schedulePausedExpiringWarning,
@@ -120,7 +125,7 @@ describe('studyRules', () => {
     expect(calculateReward(60)).toEqual({ xp: 600, gold: 120 })
   })
 
-  it('calcula recompensa por segundos, incluindo tempo excedente', () => {
+  it('calcula recompensa por segundos', () => {
     expect(calculateRewardSeconds(300)).toEqual({ xp: 50, gold: 10 })
     expect(calculateRewardSeconds(330)).toEqual({ xp: 55, gold: 11 })
     expect(calculateRewardSeconds(0)).toEqual({ xp: 0, gold: 0 })
@@ -130,12 +135,6 @@ describe('studyRules', () => {
     expect(formatTime(25 * 60_000)).toBe('25:00')
     expect(formatTime(65_000)).toBe('01:05')
     expect(formatTime(0)).toBe('00:00')
-  })
-
-  it('formata o tempo excedente como +MM:SS', () => {
-    expect(formatOvertime(0)).toBe('+00:00')
-    expect(formatOvertime(30)).toBe('+00:30')
-    expect(formatOvertime(65)).toBe('+01:05')
   })
 })
 
@@ -267,6 +266,20 @@ describe('useStudyTimer — pausas', () => {
 })
 
 describe('useStudyTimer — conclusão e recompensas', () => {
+  it('agenda a notificação de conclusão ao iniciar a sessão', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(30)
+    })
+    act(() => {
+      result.current.start()
+    })
+
+    expect(scheduleCompletionNotification).toHaveBeenCalledTimes(1)
+    expect(scheduleCompletionNotification).toHaveBeenCalledWith(expect.any(Number))
+  })
+
   it('finaliza sessão de 30 min gerando 300 XP / 60 Gold e salva no histórico', async () => {
     const { result, saveSession } = setupTimer()
 
@@ -281,13 +294,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       vi.advanceTimersByTime(30 * 60_000)
       await Promise.resolve()
       await Promise.resolve()
-    })
-
-    expect(result.current.status).toBe('overtime')
-    expect(result.current.isOvertime).toBe(true)
-
-    await act(async () => {
-      await result.current.finish()
     })
 
     expect(result.current.status).toBe('completed')
@@ -334,12 +340,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       await Promise.resolve()
     })
 
-    expect(result.current.status).toBe('overtime')
-
-    await act(async () => {
-      await result.current.finish()
-    })
-
     expect(result.current.status).toBe('completed')
     expect(saveSession).toHaveBeenCalledWith({
       durationMinutes: 5,
@@ -364,16 +364,33 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       await Promise.resolve()
     })
 
-    await act(async () => {
-      await result.current.finish()
-    })
-
     expect(result.current.lastResult).toEqual({
       durationMinutes: 5,
       xp: 50,
       gold: 10,
     })
     expect(saveSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('toca o alarme ao zerar apenas quando habilitado', async () => {
+    writeAlarmEnabled(true)
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(5)
+    })
+    act(() => {
+      result.current.start()
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(result.current.status).toBe('completed')
+    expect(playCompletionSound).toHaveBeenCalledTimes(1)
   })
 
   it('emite evento de sessão salva para atualizar o histórico automaticamente', async () => {
@@ -390,10 +407,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       vi.advanceTimersByTime(5 * 60_000)
       await Promise.resolve()
       await Promise.resolve()
-    })
-
-    await act(async () => {
-      await result.current.finish()
     })
 
     expect(result.current.status).toBe('completed')
@@ -415,10 +428,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       vi.advanceTimersByTime(5 * 60_000)
       await Promise.resolve()
       await Promise.resolve()
-    })
-
-    await act(async () => {
-      await result.current.finish()
     })
 
     expect(result.current.status).toBe('completed')
@@ -443,10 +452,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       await Promise.resolve()
     })
 
-    await act(async () => {
-      await result.current.finish()
-    })
-
     expect(result.current.status).toBe('completed')
     expect(result.current.lastResult).toEqual({
       durationMinutes: 5,
@@ -469,9 +474,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       vi.advanceTimersByTime(5 * 60_000)
       await Promise.resolve()
       await Promise.resolve()
-    })
-    await act(async () => {
-      await result.current.finish()
     })
 
     expect(result.current.isCompleted).toBe(true)
@@ -502,13 +504,6 @@ describe('useStudyTimer — conclusão e recompensas', () => {
       await Promise.resolve()
     })
 
-    expect(result.current.status).toBe('overtime')
-    expect(result.current.overtimeSeconds).toBe(5)
-
-    await act(async () => {
-      await result.current.finish()
-    })
-
     expect(result.current.status).toBe('completed')
     expect(saveSession).toHaveBeenCalledTimes(1)
 
@@ -519,153 +514,41 @@ describe('useStudyTimer — conclusão e recompensas', () => {
 
     expect(saveSession).toHaveBeenCalledTimes(1)
   })
-})
 
-describe('useStudyTimer — tempo excedente (overtime)', () => {
-  it('entra em overtime ao atingir 00:00 sem tocar alarme e continua contando', () => {
+  it('cancela e reagenda a notificação de conclusão ao pausar e retomar', () => {
     const { result } = setupTimer()
 
     act(() => {
-      result.current.selectDuration(5)
-    })
-    act(() => {
+      result.current.selectDuration(10)
       result.current.start()
     })
-
-    act(() => {
-      vi.advanceTimersByTime(5 * 60_000)
-    })
-
-    expect(result.current.status).toBe('overtime')
-    expect(result.current.isOvertime).toBe(true)
-    expect(result.current.remainingMs).toBe(0)
-    expect(result.current.overtimeSeconds).toBe(0)
-    expect(playCompletionSound).not.toHaveBeenCalled()
-
-    act(() => {
-      vi.advanceTimersByTime(30_000)
-    })
-
-    expect(result.current.overtimeSeconds).toBe(30)
-    expect(result.current.formattedOvertime).toBe('+00:30')
-  })
-
-  it('toca o alarme no overtime apenas quando o usuário força o som', () => {
-    writeAlarmEnabled(true)
-    const { result } = setupTimer()
-
-    act(() => {
-      result.current.selectDuration(5)
-    })
-    act(() => {
-      result.current.start()
-    })
-
-    act(() => {
-      vi.advanceTimersByTime(5 * 60_000)
-    })
-
-    expect(result.current.status).toBe('overtime')
-    expect(playCompletionSound).toHaveBeenCalledTimes(1)
-  })
-
-  it('pausa e retoma durante o tempo excedente sem perder os segundos acumulados', () => {
-    const { result } = setupTimer()
-
-    act(() => {
-      result.current.selectDuration(5)
-    })
-    act(() => {
-      result.current.start()
-    })
-
-    act(() => {
-      vi.advanceTimersByTime(5 * 60_000 + 30_000)
-    })
-    expect(result.current.overtimeSeconds).toBe(30)
+    scheduleCompletionNotification.mockClear()
 
     act(() => {
       result.current.pause()
     })
-    expect(result.current.status).toBe('paused')
-    expect(result.current.isOvertime).toBe(true)
-
-    act(() => {
-      vi.advanceTimersByTime(60_000)
-    })
-    expect(result.current.overtimeSeconds).toBe(30)
+    expect(cancelCompletionNotification).toHaveBeenCalledTimes(1)
 
     act(() => {
       result.current.resume()
     })
-    expect(result.current.status).toBe('overtime')
-
-    act(() => {
-      vi.advanceTimersByTime(30_000)
-    })
-    expect(result.current.overtimeSeconds).toBe(60)
-    expect(result.current.formattedOvertime).toBe('+01:00')
+    expect(scheduleCompletionNotification).toHaveBeenCalledTimes(1)
   })
 
-  it('soma o tempo excedente ao total de XP e moedas ao concluir', async () => {
-    const { result, saveSession } = setupTimer()
+  it('cancela a notificação de conclusão ao reiniciar o timer', () => {
+    const { result } = setupTimer()
 
     act(() => {
       result.current.selectDuration(5)
-    })
-    act(() => {
       result.current.start()
     })
-
-    await act(async () => {
-      vi.advanceTimersByTime(5 * 60_000 + 30_000)
-      await Promise.resolve()
-      await Promise.resolve()
-    })
-
-    expect(result.current.overtimeSeconds).toBe(30)
-
-    await act(async () => {
-      await result.current.finish()
-    })
-
-    expect(result.current.lastResult).toEqual({
-      durationMinutes: 5.5,
-      xp: 55,
-      gold: 11,
-    })
-    expect(saveSession).toHaveBeenCalledWith({
-      durationMinutes: 5.5,
-      xp: 55,
-      gold: 11,
-    })
-  })
-
-  it('conclui automaticamente e toca o alarme quando o overtime está desativado', async () => {
-    writeOvertimeEnabled(false)
-    const { result, saveSession } = setupTimer()
+    cancelCompletionNotification.mockClear()
 
     act(() => {
-      result.current.selectDuration(5)
-    })
-    act(() => {
-      result.current.start()
+      result.current.reset()
     })
 
-    await act(async () => {
-      vi.advanceTimersByTime(5 * 60_000)
-      await Promise.resolve()
-      await Promise.resolve()
-    })
-
-    expect(result.current.status).toBe('completed')
-    expect(result.current.isOvertime).toBe(false)
-    expect(playCompletionSound).toHaveBeenCalledTimes(1)
-    expect(saveSession).toHaveBeenCalledWith({
-      durationMinutes: 5,
-      xp: 50,
-      gold: 10,
-    })
+    expect(cancelCompletionNotification).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -764,7 +647,7 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(false)
     })
     act(() => {
-      vi.advanceTimersByTime(200)
+      vi.advanceTimersByTime(2000)
     })
 
     expect(scheduleDistractionAlert).toHaveBeenCalledTimes(1)
@@ -785,7 +668,7 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(false)
     })
     act(() => {
-      vi.advanceTimersByTime(200)
+      vi.advanceTimersByTime(2000)
     })
 
     expect(schedulePausedExpiringWarning).toHaveBeenCalledTimes(1)
@@ -1113,6 +996,50 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
     expect(saveSession).not.toHaveBeenCalled()
   })
 
+  it('não cancela ao bloquear a tela logo após retomar uma sessão pausada', () => {
+    const { result, saveSession } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    act(() => {
+      result.current.pause()
+    })
+    act(() => {
+      appStateMock.trigger(false)
+    })
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
+    act(() => {
+      appStateMock.trigger(true)
+    })
+    act(() => {
+      result.current.resume()
+    })
+    act(() => {
+      appStateMock.trigger(false)
+    })
+    act(() => {
+      window.dispatchEvent(new CustomEvent('onNativeScreenOff'))
+    })
+    act(() => {
+      vi.advanceTimersByTime(90_000)
+    })
+    act(() => {
+      window.dispatchEvent(new CustomEvent('onNativeScreenOn'))
+    })
+    act(() => {
+      appStateMock.trigger(true)
+    })
+
+    expect(result.current.status).toBe('running')
+    expect(result.current.distractionCancelled).toBe(false)
+    expect(scheduleDistractionAlert).not.toHaveBeenCalled()
+    expect(saveSession).not.toHaveBeenCalled()
+  })
+
   it('ainda penaliza a minimização quando onNativeScreenOff não chega', () => {
     const { result } = setupTimer()
 
@@ -1125,7 +1052,7 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
       appStateMock.trigger(false)
     })
     act(() => {
-      vi.advanceTimersByTime(200)
+      vi.advanceTimersByTime(2000)
     })
 
     expect(scheduleDistractionAlert).toHaveBeenCalledTimes(1)

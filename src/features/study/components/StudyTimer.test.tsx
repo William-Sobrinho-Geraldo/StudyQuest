@@ -136,17 +136,15 @@ describe('StudyTimer — UI', () => {
     expect(screen.getByRole('button', { name: /concluir sessão/i })).toBeInTheDocument()
   })
 
-  it('finaliza a sessão e salva no histórico', async () => {
+  it('finaliza a sessão e salva no histórico automaticamente ao zerar', async () => {
     renderTimerWithFocus()
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
 
     await act(async () => {
       vi.advanceTimersByTime(25 * 60_000)
-    })
-
-    await act(async () => {
-      screen.getByRole('button', { name: /finalizar sessão e coletar xp/i }).click()
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     expect(saveStudySessionMock).toHaveBeenCalledTimes(1)
@@ -155,52 +153,6 @@ describe('StudyTimer — UI', () => {
       xp: 250,
       gold: 50,
     })
-  })
-
-  it('entra em modo overtime e exibe o tempo excedente', () => {
-    renderTimer()
-
-    fireEvent.click(screen.getByRole('button', { name: /iniciar/i }))
-
-    act(() => {
-      vi.advanceTimersByTime(25 * 60_000 + 30_000)
-    })
-
-    expect(screen.getByRole('timer')).toHaveTextContent('+00:30')
-    expect(screen.getByRole('timer')).toHaveAttribute('aria-label', 'Tempo excedente')
-  })
-
-  it('alterna o tempo excedente e mostra toast + estado acessível', () => {
-    renderTimer()
-
-    const overtimeButton = () =>
-      screen.getByRole('button', { name: /alternar tempo excedente/i })
-
-    expect(overtimeButton()).toHaveAttribute('aria-pressed', 'true')
-    expect(overtimeButton()).toHaveAttribute(
-      'aria-label',
-      'Alternar Tempo Excedente (Atualmente ativado)',
-    )
-
-    fireEvent.click(overtimeButton())
-
-    expect(overtimeButton()).toHaveAttribute('aria-pressed', 'false')
-    expect(overtimeButton()).toHaveAttribute(
-      'aria-label',
-      'Alternar Tempo Excedente (Atualmente desativado)',
-    )
-    expect(
-      screen.getByText('Tempo Excedente desativado: O timer pausará ao chegar em 00:00.'),
-    ).toBeInTheDocument()
-
-    fireEvent.click(overtimeButton())
-
-    expect(overtimeButton()).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      screen.getByText(
-        'Tempo Excedente ativado: Sua sessão continuará rodando após o tempo zerar para acumular XP bônus sem interrupções.',
-      ),
-    ).toBeInTheDocument()
   })
 
   it('alterna o alarme e mostra toast + estado acessível', () => {

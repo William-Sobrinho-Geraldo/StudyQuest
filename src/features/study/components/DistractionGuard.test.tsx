@@ -14,12 +14,14 @@ vi.mock('../services/studySessionService', () => ({
   saveStudySession: saveStudySessionMock,
 }))
 
-const { scheduleDistractionAlert, scheduleSessionCancelledNotification, schedulePausedExpiringWarning, cancelPendingDistractionNotifications, clearPendingFocusNotifications } = vi.hoisted(() => ({
+const { scheduleDistractionAlert, scheduleSessionCancelledNotification, schedulePausedExpiringWarning, cancelPendingDistractionNotifications, clearPendingFocusNotifications, scheduleCompletionNotification, cancelCompletionNotification } = vi.hoisted(() => ({
   scheduleDistractionAlert: vi.fn().mockResolvedValue(undefined),
   scheduleSessionCancelledNotification: vi.fn().mockResolvedValue(undefined),
   schedulePausedExpiringWarning: vi.fn().mockResolvedValue(undefined),
   cancelPendingDistractionNotifications: vi.fn().mockResolvedValue(undefined),
   clearPendingFocusNotifications: vi.fn().mockResolvedValue(undefined),
+  scheduleCompletionNotification: vi.fn().mockResolvedValue(undefined),
+  cancelCompletionNotification: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../lib/distractionNotifications', () => ({
@@ -30,6 +32,8 @@ vi.mock('../lib/distractionNotifications', () => ({
   schedulePausedExpiringWarning,
   cancelPendingDistractionNotifications,
   clearPendingFocusNotifications,
+  scheduleCompletionNotification,
+  cancelCompletionNotification,
 }))
 
 const appStateMock = vi.hoisted(() => {

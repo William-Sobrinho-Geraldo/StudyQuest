@@ -54,9 +54,3 @@ export function formatTime(milliseconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-export function formatOvertime(seconds: number): string {
-  const safe = Math.max(0, Math.floor(seconds))
-  const minutes = Math.floor(safe / 60)
-  const remainingSeconds = safe % 60
-  return `+${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-}

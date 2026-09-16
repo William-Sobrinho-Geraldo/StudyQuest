@@ -5,7 +5,6 @@ import {
   MAX_STUDY_MINUTES,
   MIN_STUDY_MINUTES,
   calculateRewardSeconds,
-  formatOvertime,
   formatTime,
   validateStudyMinutes,
 } from '../lib/studyRules'
@@ -14,19 +13,21 @@ import {
   type StudySessionSummary,
 } from '../services/studySessionService'
 import { emitStudySessionSaved } from '../lib/studyEvents'
-import { readAlarmEnabled, readOvertimeEnabled } from '../lib/studyPreferences'
+import { readAlarmEnabled } from '../lib/studyPreferences'
 import { playCompletionSound } from '../lib/completionSounds'
 import {
   DISTRACTION_GRACE_SECONDS,
   PAUSED_GRACE_SECONDS,
+  cancelCompletionNotification,
   cancelPendingDistractionNotifications,
   clearPendingFocusNotifications,
+  scheduleCompletionNotification,
   scheduleDistractionAlert,
   schedulePausedExpiringWarning,
   scheduleSessionCancelledNotification,
 } from '../lib/distractionNotifications'
 
-export type StudyTimerStatus = 'idle' | 'running' | 'paused' | 'overtime' | 'completed'
+export type StudyTimerStatus = 'idle' | 'running' | 'paused' | 'completed'
 
 export type DistractionCancelReason = 'focus' | 'paused'
 
@@ -46,7 +47,7 @@ interface UseStudyTimerOptions {
 
 const TICK_MS = 1000
 const DEFAULT_MINUTES = 25
-const SCREEN_LOCK_VALIDATION_MS = 150
+const SCREEN_LOCK_CONFIRMATION_MS = 2000
 
 export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const saveSession = options.saveSession ?? saveStudySession
@@ -59,8 +60,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const [isSaving, setIsSaving] = useState(false)
   const [sessionCompletedAt, setSessionCompletedAt] = useState<number | null>(null)
   const [isFocusMode, setIsFocusMode] = useState(false)
-  const [isOvertime, setIsOvertime] = useState(false)
-  const [overtimeSeconds, setOvertimeSeconds] = useState(0)
   const [distractionCancelled, setDistractionCancelled] = useState(false)
   const [distractionCancelReason, setDistractionCancelReason] =
     useState<DistractionCancelReason | null>(null)
@@ -72,10 +71,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const endTimeRef = useRef<number | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const completedRef = useRef(false)
-  const overtimeRef = useRef(false)
-  const overtimeSecondsRef = useRef(0)
-  const overtimeStartRef = useRef<number | null>(null)
-  const overtimeBaseSecondsRef = useRef(0)
   const backgroundTimestampRef = useRef<number | null>(null)
   const backgroundModeRef = useRef<'focus' | 'paused' | null>(null)
   const distractionConfirmedRef = useRef(false)
@@ -96,6 +91,14 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     }
   }, [])
 
+  const clearAllBackgroundTracking = useCallback(() => {
+    backgroundTimestampRef.current = null
+    backgroundModeRef.current = null
+    distractionConfirmedRef.current = false
+    screenLockedRef.current = false
+    clearValidationTimeout()
+  }, [clearValidationTimeout])
+
   const changeStatus = useCallback((next: StudyTimerStatus) => {
     statusRef.current = next
     setStatus(next)
@@ -110,11 +113,12 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
       completedRef.current = true
       endTimeRef.current = null
       clearTimer()
+      clearAllBackgroundTracking()
+      void cancelCompletionNotification()
       void clearPendingFocusNotifications()
 
       const targetMinutes = Math.max(1, minutesOverride ?? durationMinutesRef.current)
-      const overtimeSeconds = overtimeSecondsRef.current
-      const totalSeconds = targetMinutes * 60 + overtimeSeconds
+      const totalSeconds = targetMinutes * 60
       const reward = calculateRewardSeconds(totalSeconds)
       const result: StudyTimerResult = {
         durationMinutes: totalSeconds / 60,
@@ -122,7 +126,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
       }
 
       setRemainingMs(0)
-      setIsOvertime(false)
       changeStatus('completed')
       setLastResult(result)
       setSaveError(null)
@@ -142,100 +145,65 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
       }
       return result
     },
-    [changeStatus, clearTimer, saveSession],
+    [changeStatus, clearAllBackgroundTracking, clearTimer, saveSession],
   )
 
   const tick = useCallback(() => {
-    if (statusRef.current === 'running') {
-      if (endTimeRef.current === null) return
-      const remaining = endTimeRef.current - Date.now()
-      if (remaining > 0) {
-        setRemainingMs(remaining)
-        return
-      }
-
-      setRemainingMs(0)
-      if (readOvertimeEnabled()) {
-        overtimeRef.current = true
-        overtimeBaseSecondsRef.current = 0
-        overtimeSecondsRef.current = 0
-        overtimeStartRef.current = Date.now()
-        setIsOvertime(true)
-        setOvertimeSeconds(0)
-        changeStatus('overtime')
-        if (readAlarmEnabled()) {
-          playCompletionSound()
-        }
-      } else {
-        playCompletionSound()
-        void finish()
-      }
+    if (statusRef.current !== 'running') return
+    if (endTimeRef.current === null) return
+    const remaining = endTimeRef.current - Date.now()
+    if (remaining > 0) {
+      setRemainingMs(remaining)
       return
     }
 
-    if (statusRef.current === 'overtime') {
-      if (overtimeStartRef.current === null) return
-      const seconds =
-        overtimeBaseSecondsRef.current +
-        Math.floor((Date.now() - overtimeStartRef.current) / 1000)
-      overtimeSecondsRef.current = seconds
-      setOvertimeSeconds(seconds)
+    setRemainingMs(0)
+    if (readAlarmEnabled()) {
+      playCompletionSound()
     }
-  }, [changeStatus, finish])
+    void finish()
+  }, [finish])
 
   const start = useCallback(() => {
     if (statusRef.current !== 'idle') return
-    overtimeRef.current = false
-    overtimeSecondsRef.current = 0
-    overtimeStartRef.current = null
-    overtimeBaseSecondsRef.current = 0
-    setIsOvertime(false)
-    setOvertimeSeconds(0)
+    clearAllBackgroundTracking()
     endTimeRef.current = Date.now() + baseRemainingRef.current
     clearTimer()
     intervalRef.current = setInterval(tick, TICK_MS)
     changeStatus('running')
-  }, [changeStatus, clearTimer, tick])
+    void scheduleCompletionNotification(endTimeRef.current)
+  }, [changeStatus, clearAllBackgroundTracking, clearTimer, tick])
 
   const pause = useCallback((): ActionResult => {
-    if (statusRef.current !== 'running' && statusRef.current !== 'overtime') {
+    if (statusRef.current !== 'running') {
       return { ok: false, message: 'Só é possível pausar uma sessão em andamento.' }
     }
 
-    if (statusRef.current === 'running') {
-      if (endTimeRef.current === null) {
-        return { ok: false, message: 'Sessão sem referência de tempo.' }
-      }
-      const remaining = Math.max(0, endTimeRef.current - Date.now())
-      baseRemainingRef.current = remaining
-      setRemainingMs(remaining)
-      endTimeRef.current = null
-    } else if (overtimeStartRef.current !== null) {
-      const seconds =
-        overtimeBaseSecondsRef.current +
-        Math.floor((Date.now() - overtimeStartRef.current) / 1000)
-      overtimeBaseSecondsRef.current = seconds
-      overtimeSecondsRef.current = seconds
-      setOvertimeSeconds(seconds)
-      overtimeStartRef.current = null
+    clearAllBackgroundTracking()
+
+    if (endTimeRef.current === null) {
+      return { ok: false, message: 'Sessão sem referência de tempo.' }
     }
+    const remaining = Math.max(0, endTimeRef.current - Date.now())
+    baseRemainingRef.current = remaining
+    setRemainingMs(remaining)
+    endTimeRef.current = null
 
     clearTimer()
+    void cancelCompletionNotification()
     changeStatus('paused')
     return { ok: true }
-  }, [changeStatus, clearTimer])
+  }, [changeStatus, clearAllBackgroundTracking, clearTimer])
 
   const resume = useCallback(() => {
     if (statusRef.current !== 'paused') return
-    if (overtimeRef.current) {
-      overtimeStartRef.current = Date.now()
-    } else {
-      endTimeRef.current = Date.now() + baseRemainingRef.current
-    }
+    clearAllBackgroundTracking()
+    endTimeRef.current = Date.now() + baseRemainingRef.current
     clearTimer()
     intervalRef.current = setInterval(tick, TICK_MS)
-    changeStatus(overtimeRef.current ? 'overtime' : 'running')
-  }, [changeStatus, clearTimer, tick])
+    changeStatus('running')
+    void scheduleCompletionNotification(endTimeRef.current)
+  }, [changeStatus, clearAllBackgroundTracking, clearTimer, tick])
 
   const selectDuration = useCallback((minutes: number): ActionResult => {
     if (statusRef.current !== 'idle') {
@@ -255,13 +223,11 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
 
   const reset = useCallback(() => {
     clearTimer()
+    clearAllBackgroundTracking()
+    void cancelCompletionNotification()
     void clearPendingFocusNotifications()
     completedRef.current = false
     endTimeRef.current = null
-    overtimeRef.current = false
-    overtimeSecondsRef.current = 0
-    overtimeStartRef.current = null
-    overtimeBaseSecondsRef.current = 0
 
     const minutes = Math.min(
       Math.max(durationMinutesRef.current, MIN_STUDY_MINUTES),
@@ -277,10 +243,8 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     setSaveError(null)
     setIsSaving(false)
     setSessionCompletedAt(null)
-    setIsOvertime(false)
-    setOvertimeSeconds(0)
     changeStatus('idle')
-  }, [changeStatus, clearTimer])
+  }, [changeStatus, clearAllBackgroundTracking, clearTimer])
 
   const finishEarly = useCallback((): ActionResult => {
     if (statusRef.current !== 'running' && statusRef.current !== 'paused') {
@@ -332,15 +296,11 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const handleAppStateChange = useCallback(
     (isActive: boolean) => {
       if (isActive) {
-        screenLockedRef.current = false
         const leftAt = backgroundTimestampRef.current
         const mode = backgroundModeRef.current
         const wasDistraction = distractionConfirmedRef.current
 
-        backgroundTimestampRef.current = null
-        backgroundModeRef.current = null
-        distractionConfirmedRef.current = false
-        clearValidationTimeout()
+        clearAllBackgroundTracking()
 
         if (leftAt === null || mode === null) return
 
@@ -370,7 +330,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
 
       const currentStatus = statusRef.current
       let mode: 'focus' | 'paused' | null = null
-      if (currentStatus === 'running' || currentStatus === 'overtime') {
+      if (currentStatus === 'running') {
         mode = 'focus'
       } else if (currentStatus === 'paused') {
         mode = 'paused'
@@ -394,13 +354,13 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
         } else {
           void schedulePausedExpiringWarning()
         }
-      }, SCREEN_LOCK_VALIDATION_MS)
+      }, SCREEN_LOCK_CONFIRMATION_MS)
     },
-    [cancelSessionDueToDistraction, clearValidationTimeout, tick],
+    [cancelSessionDueToDistraction, clearAllBackgroundTracking, clearValidationTimeout, tick],
   )
 
   useEffect(() => {
-    if (statusRef.current !== 'running' && statusRef.current !== 'overtime') {
+    if (statusRef.current !== 'running') {
       void clearPendingFocusNotifications()
     }
   }, [])
@@ -443,22 +403,15 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   }, [handleNativeScreenOff, handleNativeScreenOn])
 
   const formattedTime = useMemo(() => formatTime(remainingMs), [remainingMs])
-  const formattedOvertime = useMemo(
-    () => formatOvertime(overtimeSeconds),
-    [overtimeSeconds],
-  )
 
   return {
     durationMinutes,
     remainingMs,
     formattedTime,
-    formattedOvertime,
     status,
     isRunning: status === 'running',
     isPaused: status === 'paused',
     isCompleted: status === 'completed',
-    isOvertime,
-    overtimeSeconds,
     canPause: status === 'running',
     lastResult,
     saveError,

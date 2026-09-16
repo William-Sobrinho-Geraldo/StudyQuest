@@ -9,9 +9,8 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Timer,
-  TimerOff,
 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import {
   MAX_STUDY_MINUTES,
   MIN_STUDY_MINUTES,
@@ -20,7 +19,9 @@ import {
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { useStudyPreferences } from '../hooks/useStudyPreferences'
 import { useToast } from '../../../components/Toast'
+import { hasExactAlarmPermission } from '../lib/distractionNotifications'
 import { SoundSelector } from './SoundSelector'
+import { ExactAlarmSettingsModal } from './ExactAlarmSettingsModal'
 
 const PRIMARY_BUTTON =
   'flex min-h-[48px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
@@ -34,29 +35,39 @@ const TOGGLE_BUTTON_BASE =
 const TOGGLE_OFF =
   'border-slate-700 bg-slate-800/40 text-slate-500 hover:border-slate-600 hover:text-slate-300'
 
-const TOGGLE_OVERTIME_ON =
-  'border-indigo-500/60 bg-indigo-500/15 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-
 const TOGGLE_ALARM_ON =
   'border-amber-500/60 bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.35)]'
 
 export function StudyTimer() {
   const timer = useStudyTimerContext()
-  const { alarmEnabled, overtimeEnabled, setAlarmEnabled, setOvertimeEnabled } =
-    useStudyPreferences()
+  const { alarmEnabled, setAlarmEnabled } = useStudyPreferences()
   const { showToast } = useToast()
   const [soundSelectorOpen, setSoundSelectorOpen] = useState(false)
+  const [exactAlarmModalOpen, setExactAlarmModalOpen] = useState(false)
 
-  const handleToggleOvertime = () => {
-    const next = !overtimeEnabled
-    setOvertimeEnabled(next)
-    showToast(
-      next
-        ? 'Tempo Excedente ativado: Sua sessão continuará rodando após o tempo zerar para acumular XP bônus sem interrupções.'
-        : 'Tempo Excedente desativado: O timer pausará ao chegar em 00:00.',
-      'info',
-      5000,
-    )
+  const beginSession = () => {
+    timer.start()
+    timer.openFocusMode()
+  }
+
+  const handleStart = () => {
+    if (Capacitor.isNativePlatform()) {
+      void (async () => {
+        const granted = await hasExactAlarmPermission()
+        if (granted) {
+          beginSession()
+        } else {
+          setExactAlarmModalOpen(true)
+        }
+      })()
+      return
+    }
+    beginSession()
+  }
+
+  const handleExactAlarmConfirmed = () => {
+    setExactAlarmModalOpen(false)
+    beginSession()
   }
 
   const handleToggleAlarm = () => {
@@ -85,11 +96,6 @@ export function StudyTimer() {
     timer.selectDuration(Number(event.target.value))
   }
 
-  const handleStart = () => {
-    timer.start()
-    timer.openFocusMode()
-  }
-
   const inSession = timer.status !== 'idle'
 
   return (
@@ -99,30 +105,6 @@ export function StudyTimer() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleToggleOvertime}
-            aria-pressed={overtimeEnabled}
-            aria-label={
-              overtimeEnabled
-                ? 'Alternar Tempo Excedente (Atualmente ativado)'
-                : 'Alternar Tempo Excedente (Atualmente desativado)'
-            }
-            title={
-              overtimeEnabled
-                ? 'Tempo excedente ativo: ao zerar, o timer segue contando XP bônus'
-                : 'Tempo excedente desativado: o timer pausará ao chegar em 00:00'
-            }
-            className={`${TOGGLE_BUTTON_BASE} ${
-              overtimeEnabled ? TOGGLE_OVERTIME_ON : TOGGLE_OFF
-            }`}
-          >
-            {overtimeEnabled ? (
-              <Timer className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <TimerOff className="h-4 w-4" aria-hidden="true" />
-            )}
-          </button>
-          <button
-            type="button"
             onClick={handleToggleAlarm}
             aria-pressed={alarmEnabled}
             aria-label={
@@ -130,13 +112,7 @@ export function StudyTimer() {
                 ? 'Alternar Alarme Sonoro (Atualmente ativado)'
                 : 'Alternar Alarme Sonoro (Atualmente desativado)'
             }
-            title={
-              overtimeEnabled && !alarmEnabled
-                ? 'Alarme desligado no tempo excedente. Toque para forçar o som.'
-                : alarmEnabled
-                  ? 'Alarme sonoro ativo'
-                  : 'Alarme sonoro desativado'
-            }
+            title={alarmEnabled ? 'Alarme sonoro ativo' : 'Alarme sonoro desativado'}
             className={`${TOGGLE_BUTTON_BASE} ${
               alarmEnabled ? TOGGLE_ALARM_ON : TOGGLE_OFF
             }`}
@@ -203,16 +179,12 @@ export function StudyTimer() {
             )}
             <div
               role="timer"
-              aria-label={timer.isOvertime ? 'Tempo excedente' : 'Tempo restante'}
+              aria-label="Tempo restante"
               className={`relative rounded-3xl px-4 py-3 font-mono text-6xl font-bold tabular-nums transition sm:px-8 sm:py-4 sm:text-7xl ${
-                timer.isOvertime
-                  ? 'text-amber-400 ring-2 ring-amber-500/40'
-                  : inSession
-                    ? 'text-white ring-2 ring-indigo-500/40'
-                    : 'text-white'
+                inSession ? 'text-white ring-2 ring-indigo-500/40' : 'text-white'
               }`}
             >
-              {timer.isOvertime ? timer.formattedOvertime : timer.formattedTime}
+              {timer.formattedTime}
             </div>
           </div>
 
@@ -253,34 +225,43 @@ export function StudyTimer() {
 
       </div>
 
-      <div className="flex justify-center">
-        {!inSession && (
-          <button type="button" onClick={handleStart} className={PRIMARY_BUTTON}>
-            <Play className="h-4 w-4" aria-hidden="true" />
-            Iniciar
-          </button>
-        )}
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex justify-center">
+          {!inSession && (
+            <button type="button" onClick={handleStart} className={PRIMARY_BUTTON}>
+              <Play className="h-4 w-4" aria-hidden="true" />
+              Iniciar
+            </button>
+          )}
 
-        {timer.isRunning && (
-          <button
-            type="button"
-            onClick={timer.pause}
-            className={PRIMARY_BUTTON}
-          >
-            <Pause className="h-4 w-4" aria-hidden="true" />
-            Pausar
-          </button>
-        )}
+          {timer.isRunning && (
+            <button
+              type="button"
+              onClick={timer.pause}
+              className={PRIMARY_BUTTON}
+            >
+              <Pause className="h-4 w-4" aria-hidden="true" />
+              Pausar
+            </button>
+          )}
 
-        {timer.isPaused && (
-          <button type="button" onClick={timer.resume} className={PRIMARY_BUTTON}>
-            <Play className="h-4 w-4" aria-hidden="true" />
-            Retomar
-          </button>
-        )}
+          {timer.isPaused && (
+            <button type="button" onClick={timer.resume} className={PRIMARY_BUTTON}>
+              <Play className="h-4 w-4" aria-hidden="true" />
+              Retomar
+            </button>
+          )}
+        </div>
       </div>
 
       {soundSelectorOpen && <SoundSelector onClose={() => setSoundSelectorOpen(false)} />}
+
+      {exactAlarmModalOpen && (
+        <ExactAlarmSettingsModal
+          onConfirm={handleExactAlarmConfirmed}
+          onClose={() => setExactAlarmModalOpen(false)}
+        />
+      )}
     </section>
   )
 }
