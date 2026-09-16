@@ -61,6 +61,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-09-15T12:00:00.000Z'))
   vi.clearAllMocks()
   isNativePlatform.mockReturnValue(true)
+  localStorage.clear()
 })
 
 afterEach(() => {
@@ -222,7 +223,9 @@ describe('setupAlarmNotificationChannels', () => {
 })
 
 describe('scheduleCompletionNotification — canal e alarme exato', () => {
-  it('usa o canal silencioso quando o alarme está desativado (padrão)', async () => {
+  it('usa o canal silencioso quando o alarme está desativado', async () => {
+    localStorage.setItem('studyquest:alarm-enabled', 'false')
+
     await scheduleCompletionNotification(new Date('2026-09-15T12:25:00.000Z').getTime())
 
     const notification = schedule.mock.calls[0][0].notifications[0]
@@ -232,6 +235,13 @@ describe('scheduleCompletionNotification — canal e alarme exato', () => {
     expect(notification.isExactNotification).toBe(true)
     expect(notification.ongoing).toBe(false)
     expect(notification.autoCancel).toBe(true)
+  })
+
+  it('usa o canal do som por padrão quando o alarme ainda não foi configurado', async () => {
+    await scheduleCompletionNotification(new Date('2026-09-15T12:25:00.000Z').getTime())
+
+    const notification = schedule.mock.calls[0][0].notifications[0]
+    expect(notification.channelId).not.toBe(SILENT_ALARM_CHANNEL_ID)
   })
 
   it('usa o canal do som selecionado quando o alarme está ativado', async () => {

@@ -160,24 +160,24 @@ describe('StudyTimer — UI', () => {
 
     const alarmButton = () => screen.getByRole('button', { name: /alternar alarme sonoro/i })
 
-    expect(alarmButton()).toHaveAttribute('aria-pressed', 'false')
-    expect(alarmButton()).toHaveAttribute(
-      'aria-label',
-      'Alternar Alarme Sonoro (Atualmente desativado)',
-    )
-
-    fireEvent.click(alarmButton())
-
     expect(alarmButton()).toHaveAttribute('aria-pressed', 'true')
     expect(alarmButton()).toHaveAttribute(
       'aria-label',
       'Alternar Alarme Sonoro (Atualmente ativado)',
     )
-    expect(screen.getByText('🔊 Alarme sonoro ativado.')).toBeInTheDocument()
 
     fireEvent.click(alarmButton())
 
     expect(alarmButton()).toHaveAttribute('aria-pressed', 'false')
+    expect(alarmButton()).toHaveAttribute(
+      'aria-label',
+      'Alternar Alarme Sonoro (Atualmente desativado)',
+    )
     expect(screen.getByText('🔇 Alarme sonoro silenciado.')).toBeInTheDocument()
+
+    fireEvent.click(alarmButton())
+
+    expect(alarmButton()).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('🔊 Alarme sonoro ativado.')).toBeInTheDocument()
   })
 })

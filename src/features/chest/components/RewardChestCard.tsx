@@ -1,4 +1,4 @@
-import { Clock, Coins, Gift, Loader2, Sparkles } from 'lucide-react'
+import { Clock, Coins, Gift, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FloatingReward } from '../../../components/ui/FloatingReward'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
@@ -10,6 +10,7 @@ import {
 } from '../../../utils/idleRewards'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
+import { MerchantBlessingModal } from './MerchantBlessingModal'
 
 const formatNumber = (value: number) => new Intl.NumberFormat('pt-BR').format(value)
 
@@ -24,6 +25,7 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
   const [claiming, setClaiming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [floatingReward, setFloatingReward] = useState<{ xp: number; gold: number } | null>(null)
+  const [merchantOpen, setMerchantOpen] = useState(false)
   const [, setTick] = useState(0)
   const floatTimerRef = useRef<number | null>(null)
 
@@ -69,6 +71,17 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
 
   const rewards = getIdleRewards(lastClaim)
   const canClaim = lastClaim !== null && rewards.elapsedMinutes >= 1 && !loading && !claiming
+  const isEmpty = !loading && rewards.elapsedMinutes === 0
+
+  const openMerchant = useCallback(() => {
+    if (isEmpty) {
+      setMerchantOpen(true)
+    }
+  }, [isEmpty])
+
+  const closeMerchant = useCallback(() => {
+    setMerchantOpen(false)
+  }, [])
 
   const handleClaim = useCallback(async () => {
     if (!canClaim || claiming) return
@@ -93,9 +106,13 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
   }, [canClaim, claiming, onClaimed, rewards])
 
   return (
+    <>
     <div
       aria-busy={loading}
-      className="rounded-xl border border-slate-800 bg-slate-900 p-5"
+      onClick={openMerchant}
+      className={`rounded-xl border border-slate-800 bg-slate-900 p-5 ${
+        isEmpty ? 'cursor-pointer transition hover:border-fuchsia-500/50' : ''
+      }`}
       data-testid="reward-chest-card"
     >
       <div className="flex items-center gap-2">
@@ -158,19 +175,31 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
               {floatingReward && (
                 <FloatingReward xp={floatingReward.xp} gold={floatingReward.gold} align="right" />
               )}
-              <button
-                type="button"
-                onClick={() => void handleClaim()}
-                disabled={!canClaim || floatingReward !== null}
-                className={`flex min-h-[48px] items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${
-                  floatingReward
-                    ? 'bg-green-600'
-                    : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
-                }`}
-              >
-                {claiming && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-                {floatingReward ? 'Coletado!' : claiming ? 'Reivindicando...' : 'Reivindicar'}
-              </button>
+              {isEmpty ? (
+                <button
+                  type="button"
+                  data-testid="merchant-blessing-open"
+                  onClick={() => setMerchantOpen(true)}
+                  className="flex min-h-[48px] items-center gap-2 rounded-lg bg-fuchsia-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-500"
+                >
+                  <Wand2 className="h-4 w-4" aria-hidden="true" />
+                  Bênção do Mercador
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void handleClaim()}
+                  disabled={!canClaim || floatingReward !== null}
+                  className={`flex min-h-[48px] items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${
+                    floatingReward
+                      ? 'bg-green-600'
+                      : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
+                  }`}
+                >
+                  {claiming && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                  {floatingReward ? 'Coletado!' : claiming ? 'Reivindicando...' : 'Reivindicar'}
+                </button>
+              )}
             </div>
             {error && (
               <p role="alert" className="text-sm text-red-400">
@@ -181,5 +210,9 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
         </>
       )}
     </div>
+    {merchantOpen && (
+      <MerchantBlessingModal onClose={closeMerchant} onClaimed={onClaimed} />
+    )}
+    </>
   )
 }

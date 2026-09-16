@@ -91,7 +91,7 @@ describe('RewardChestCard', () => {
     expect(screen.getByRole('button', { name: 'Reivindicar' })).toBeEnabled()
   })
 
-  it('desabilita o botão com menos de 1 minuto acumulado', async () => {
+  it('mostra a Bênção do Mercador quando o baú está vazio', async () => {
     mockLastClaim(0)
 
     renderCard()
@@ -100,7 +100,21 @@ describe('RewardChestCard', () => {
     expect(screen.getByTestId('chest-xp')).toHaveTextContent('0 / 1.000 XP')
     expect(screen.getByTestId('chest-gold')).toHaveTextContent('0 / 300 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('0s')
-    expect(screen.getByRole('button', { name: 'Reivindicar' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Reivindicar' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bênção do Mercador' })).toBeEnabled()
+  })
+
+  it('abre o modal da Bênção do Mercador ao clicar no baú vazio', async () => {
+    mockLastClaim(0)
+
+    renderCard()
+    await flush()
+
+    fireEvent.click(screen.getByTestId('reward-chest-card'))
+    await flush()
+
+    expect(screen.getByRole('dialog', { name: 'Bênção do Mercador' })).toBeInTheDocument()
+    expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 0/10')
   })
 
   it('mostra o baú cheio no teto de 8 horas', async () => {

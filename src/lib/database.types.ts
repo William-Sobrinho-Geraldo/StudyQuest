@@ -21,6 +21,8 @@ export type Database = {
           created_at: string
           current_streak: number
           current_xp: number
+          daily_ad_views: number
+          daily_ad_views_date: string | null
           daily_goal_minutes: number
           display_name: string | null
           duels_lost: number
@@ -53,6 +55,8 @@ export type Database = {
           gold?: number
           honor_points?: number
           id: string
+          daily_ad_views?: number
+          daily_ad_views_date?: string | null
           last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
@@ -76,6 +80,8 @@ export type Database = {
           gold?: number
           honor_points?: number
           id?: string
+          daily_ad_views?: number
+          daily_ad_views_date?: string | null
           last_chest_claim?: string
           last_streak_date?: string | null
           level?: number
@@ -664,6 +670,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      claim_merchant_blessing: {
+        Args: Record<string, never>
+        Returns: Json
       }
       quest_progress: {
         Args: Record<string, never>

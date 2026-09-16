@@ -8,7 +8,7 @@ function readBoolean(key: string, fallback: boolean): boolean {
 }
 
 export function readAlarmEnabled(): boolean {
-  return readBoolean(ALARM_ENABLED_KEY, false)
+  return readBoolean(ALARM_ENABLED_KEY, true)
 }
 
 export function writeAlarmEnabled(enabled: boolean): void {

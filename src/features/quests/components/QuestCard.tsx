@@ -10,6 +10,7 @@ const METRIC_UNIT: Record<string, string> = {
   single_session_minutes: 'min',
   gold_earned: 'Gold',
   daily_quests_claimed: 'quests diárias',
+  ad_views: 'visões',
   study_days_30: 'dias',
   level: 'nível',
   gold_total: 'Gold',
