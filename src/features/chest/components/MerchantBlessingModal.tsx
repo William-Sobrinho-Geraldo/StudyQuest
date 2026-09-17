@@ -1,10 +1,12 @@
 import { Coins, Gift, Loader2, MonitorPlay, Sparkles, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FloatingReward } from '../../../components/ui/FloatingReward'
+import { AndroidOnlyAdNotice } from '../../../components/ui/AndroidOnlyAdNotice'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { supabase } from '../../../lib/supabase'
 import { showRewardedAd } from '../../../services/AdService'
 import { useAuth } from '../../auth/AuthContext'
+import { isAndroid } from '../../../utils/platform'
 import {
   getDailyAdViews,
   MERCHANT_BLESSING_GOLD,
@@ -51,7 +53,7 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
   const busy = watching || claiming || reward !== null
 
   const handleWatch = useCallback(async () => {
-    if (busy || hasReachedLimit) return
+    if (!isAndroid() || busy || hasReachedLimit) return
     setError(null)
     setWatching(true)
     try {
@@ -155,38 +157,44 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
           </p>
         )}
 
-        <button
-          type="button"
-          data-testid="merchant-watch"
-          onClick={() => void handleWatch()}
-          disabled={busy || hasReachedLimit}
-          className={`mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
-            reward
-              ? 'bg-green-600'
-              : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
-          }`}
-        >
-          {reward ? (
-            'Coletado!'
-          ) : watching ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Carregando Visão Mágica...
-            </>
-          ) : claiming ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Reivindicando...
-            </>
-          ) : hasReachedLimit ? (
-            'Limite diário atingido'
-          ) : (
-            <>
-              <MonitorPlay className="h-4 w-4" aria-hidden="true" />
-              Assistir Visão Mágica
-            </>
-          )}
-        </button>
+        {isAndroid() ? (
+          <button
+            type="button"
+            data-testid="merchant-watch"
+            onClick={() => void handleWatch()}
+            disabled={busy || hasReachedLimit}
+            className={`mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
+              reward
+                ? 'bg-green-600'
+                : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40'
+            }`}
+          >
+            {reward ? (
+              'Coletado!'
+            ) : watching ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Carregando Visão Mágica...
+              </>
+            ) : claiming ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Reivindicando...
+              </>
+            ) : hasReachedLimit ? (
+              'Limite diário atingido'
+            ) : (
+              <>
+                <MonitorPlay className="h-4 w-4" aria-hidden="true" />
+                Assistir Visão Mágica
+              </>
+            )}
+          </button>
+        ) : (
+          <div className="mt-5">
+            <AndroidOnlyAdNotice />
+          </div>
+        )}
       </div>
     </div>
   )

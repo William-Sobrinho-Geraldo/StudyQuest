@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AdMob, RewardAdPluginEvents } from '@capacitor-community/admob'
-import { Capacitor } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 import { REWARDED_AD_UNIT_ID } from '../config/admob'
+import { isAndroid } from '../utils/platform'
 
 const adId = REWARDED_AD_UNIT_ID
-
-const isNative = Capacitor.isNativePlatform()
 
 export function useRewardedAd() {
   const [isAdReady, setIsAdReady] = useState(false)
@@ -14,7 +12,7 @@ export function useRewardedAd() {
   const onSuccessRef = useRef<(() => void) | undefined>(undefined)
 
   const loadAd = useCallback(async () => {
-    if (!isNative) return
+    if (!isAndroid()) return
     setIsLoading(true)
     try {
       await AdMob.prepareRewardVideoAd({ adId })
@@ -27,7 +25,7 @@ export function useRewardedAd() {
   }, [])
 
   useEffect(() => {
-    if (!isNative) return
+    if (!isAndroid()) return
 
     const handles: PluginListenerHandle[] = []
 
@@ -56,7 +54,7 @@ export function useRewardedAd() {
   }, [loadAd])
 
   const showAd = useCallback(async (onSuccess: () => void) => {
-    if (!isNative) return
+    if (!isAndroid()) return
 
     onSuccessRef.current = onSuccess
     setIsAdReady(false)

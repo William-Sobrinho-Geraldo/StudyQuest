@@ -49,6 +49,7 @@ const capacitorMocks = vi.hoisted(() => ({
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => capacitorMocks.isNative,
+    getPlatform: () => (capacitorMocks.isNative ? 'android' : 'web'),
   },
 }))
 
@@ -195,7 +196,7 @@ describe('VictoryModal', () => {
     expect(screen.getByTestId('timer-status')).toHaveTextContent('completed')
   })
 
-  it('na Web não exibe botão de anúncio e mostra aviso de download', async () => {
+  it('na Web não exibe botão de anúncio e mostra o aviso de plataforma', async () => {
     capacitorMocks.isNative = false
     renderModal()
     await finishSession()
@@ -203,7 +204,7 @@ describe('VictoryModal', () => {
     expect(screen.queryByRole('button', { name: /assistir vídeo/i })).not.toBeInTheDocument()
     expect(
       screen.getByText(
-        /Dobre suas recompensas assistindo a anúncios na nossa versão para Android \(iOS em breve\)\./i,
+        /O recurso de anúncios para acelerar o tempo está disponível apenas no aplicativo Android \(iOS em breve\)\./i,
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /coletar e sair/i })).toBeInTheDocument()

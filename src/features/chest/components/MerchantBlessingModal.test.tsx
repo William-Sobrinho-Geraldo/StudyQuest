@@ -18,6 +18,10 @@ vi.mock('../../../services/AdService', () => ({
   showRewardedAd,
 }))
 
+vi.mock('../../../utils/platform', () => ({
+  isAndroid: () => true,
+}))
+
 vi.mock('../../auth/AuthContext', () => ({
   useAuth: () => ({ profile: profileMock, refreshProfile }),
 }))

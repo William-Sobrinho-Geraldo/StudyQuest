@@ -1,6 +1,5 @@
-import { AlertTriangle, Loader2, PlayCircle, RefreshCw, Smartphone, Sparkles, Store, Video, X } from 'lucide-react'
+import { AlertTriangle, Loader2, PlayCircle, RefreshCw, Sparkles, Store, Video, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { Capacitor } from '@capacitor/core'
 import { AppShell } from '../components/AppShell'
 import { useToast } from '../components/Toast'
 import { useRewardedAd } from '../hooks/useRewardedAd'
@@ -9,11 +8,11 @@ import { ShopCard } from '../features/shop/components/ShopCard'
 import { ShopItemModal } from '../features/shop/components/ShopItemModal'
 import { isInventoryFullError, useShop } from '../features/shop/hooks/useShop'
 import { isAvatarSlot, type ShopSlot } from '../features/shop/lib/shopItems'
+import { isAndroid } from '../utils/platform'
+import { AndroidOnlyAdNotice } from '../components/ui/AndroidOnlyAdNotice'
 
 const INVENTORY_FULL_MESSAGE =
   'Inventário cheio! Venda os itens que não estiver usando para liberar espaço.'
-
-const isNative = Capacitor.isNativePlatform()
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
@@ -94,7 +93,7 @@ function SkipWaitModal({
         </p>
 
         <div className="mt-6 flex flex-col gap-3">
-          {isNative ? (
+          {isAndroid() ? (
             <button
               type="button"
               onClick={onWatchAd}
@@ -114,13 +113,7 @@ function SkipWaitModal({
               )}
             </button>
           ) : (
-            <div className="flex items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-left">
-              <Smartphone className="h-5 w-5 shrink-0 text-indigo-400" aria-hidden="true" />
-              <p className="text-xs leading-relaxed text-slate-400">
-                O recurso de anúncios para acelerar o tempo está disponível apenas no aplicativo
-                Android (iOS em breve).
-              </p>
-            </div>
+            <AndroidOnlyAdNotice />
           )}
           <button
             type="button"

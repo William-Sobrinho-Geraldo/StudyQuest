@@ -1,13 +1,12 @@
-import { Coins, Hammer, Loader2, Smartphone } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
+import { Coins, Hammer, Loader2 } from 'lucide-react'
 import { getItemImage, getRarityGlowColor } from '../../../utils/itemVisuals'
+import { isAndroid } from '../../../utils/platform'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import type { ForgeItem } from '../lib/forgeItems'
 import { SLOT_LABELS } from '../lib/forgeRules'
 import { RARITY_LABELS, rarityStyle } from '../lib/rarityStyles'
 import { useCountdown } from '../hooks/useCountdown'
-
-const isNative = Capacitor.isNativePlatform()
+import { AndroidOnlyAdNotice } from '../../../components/ui/AndroidOnlyAdNotice'
 
 interface ForgeTimerPanelProps {
   item: ForgeItem
@@ -101,7 +100,7 @@ export function ForgeTimerPanel({
             >
               {formatted}
             </p>
-            {isNative ? (
+            {isAndroid() ? (
               <button
                 type="button"
                 data-testid="forge-watch-ad-button"
@@ -119,15 +118,8 @@ export function ForgeTimerPanel({
                 )}
               </button>
             ) : (
-              <div className="flex items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-left">
-                <Smartphone
-                  className="h-5 w-5 shrink-0 text-indigo-400"
-                  aria-hidden="true"
-                />
-                <p className="text-xs leading-relaxed text-slate-400">
-                  O recurso de anúncios para acelerar o tempo está disponível apenas no aplicativo
-                  Android (iOS em breve).
-                </p>
+              <div className="w-full max-w-xs">
+                <AndroidOnlyAdNotice />
               </div>
             )}
           </>

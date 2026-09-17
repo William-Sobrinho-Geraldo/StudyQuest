@@ -40,6 +40,7 @@ vi.mock('../hooks/useRewardedAd', () => ({
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => true,
+    getPlatform: () => 'android',
   },
 }))
 

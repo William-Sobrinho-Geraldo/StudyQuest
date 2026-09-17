@@ -4,17 +4,17 @@ import {
   Coins,
   Loader2,
   MonitorPlay,
-  Smartphone,
   Sparkles,
   Trophy,
 } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
 import { supabase } from '../../../lib/supabase'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { useToast } from '../../../components/Toast'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { emitStudySessionSaved } from '../lib/studyEvents'
 import { useRewardedAd } from '../../../hooks/useRewardedAd'
+import { isAndroid } from '../../../utils/platform'
+import { AndroidOnlyAdNotice } from '../../../components/ui/AndroidOnlyAdNotice'
 
 const AD_MULTIPLIER = 2
 
@@ -31,8 +31,6 @@ export function VictoryModal() {
 
   const [multiplier, setMultiplier] = useState(1)
   const [collecting, setCollecting] = useState(false)
-
-  const isNative = Capacitor.isNativePlatform()
 
   const result = timer.lastResult
 
@@ -141,7 +139,7 @@ export function VictoryModal() {
         </div>
 
         <footer className="mt-6 flex flex-col gap-2.5">
-          {isNative ? (
+          {isAndroid() ? (
             multiplier > 1 ? (
               <button
                 type="button"
@@ -177,13 +175,7 @@ export function VictoryModal() {
               </button>
             )
           ) : (
-            <div className="flex items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-left">
-              <Smartphone className="h-5 w-5 shrink-0 text-indigo-400" aria-hidden="true" />
-              <p className="text-xs leading-relaxed text-slate-400">
-                Dobre suas recompensas assistindo a anúncios na nossa versão para Android (iOS em
-                breve).
-              </p>
-            </div>
+            <AndroidOnlyAdNotice />
           )}
           <button
             type="button"
