@@ -18,12 +18,15 @@ import { CHEST_TIER_META, isQuestChestTier } from '../features/quests/lib/chestT
 import { calculateTotalStats } from '../utils/statsCalculator'
 import { getItemSalePrice } from '../utils/pricing'
 
+const COMPLETE_FORGE_SECRET_CLICKS = 5
+
 export function ForgePage() {
   const forge = useForge()
   const { showToast } = useToast()
   const { isAdReady, showAd } = useRewardedAd()
   const [detailItem, setDetailItem] = useState<ForgeItem | null>(null)
   const [sellItem, setSellItem] = useState<ForgeItem | null>(null)
+  const [completeForgeClicks, setCompleteForgeClicks] = useState(0)
 
   const totalStats = useMemo(() => calculateTotalStats(forge.equipped), [forge.equipped])
 
@@ -84,6 +87,16 @@ export function ForgePage() {
 
   const handleCompleteNow = () => {
     void forge.completeForge()
+  }
+
+  const handleCompleteNowSecret = () => {
+    const next = completeForgeClicks + 1
+    if (next >= COMPLETE_FORGE_SECRET_CLICKS) {
+      setCompleteForgeClicks(0)
+      handleCompleteNow()
+    } else {
+      setCompleteForgeClicks(next)
+    }
   }
 
   const handleOpenChest = async (chestId: string) => {
@@ -207,14 +220,15 @@ export function ForgePage() {
         />
       )}
 
-      {/* Atalho de teste: conclui o refino de forma sutil e sem texto. */}
+      {/* Atalho de teste para desenvolvedor: zona de toque cega que conclui o
+          refino somente após 5 cliques. Invisível e sem estados interativos. */}
       {forge.activeForgeItem && (
         <button
           type="button"
           data-testid="complete-forge-now"
           aria-label="Concluir refino"
-          onClick={handleCompleteNow}
-          className="fixed bottom-16 left-1/2 z-40 h-4 w-24 -translate-x-1/2 rounded-full bg-slate-500/25 opacity-40 transition hover:opacity-80"
+          onClick={handleCompleteNowSecret}
+          className="fixed bottom-16 left-0 z-40 h-4 w-full opacity-0"
         />
       )}
     </AppShell>

@@ -453,7 +453,7 @@ describe('ForgePage', () => {
     expect(screen.getByTestId('anvil-empty-state')).toBeInTheDocument()
   })
 
-  it('botão discreto conclui o refino automaticamente', async () => {
+  it('botão secreto conclui o refino apenas após 5 cliques', async () => {
     inventoryRows = [
       ...forgeRows(),
       makeGear('forging-helmet', 'helmet', 'Coifa de Saber', 3, false, 10, {
@@ -464,7 +464,15 @@ describe('ForgePage', () => {
     setupSut(emptyCapture())
     await renderReadyForge()
 
-    fireEvent.click(screen.getByTestId('complete-forge-now'))
+    const secretButton = screen.getByTestId('complete-forge-now')
+    fireEvent.click(secretButton)
+    fireEvent.click(secretButton)
+    fireEvent.click(secretButton)
+    fireEvent.click(secretButton)
+
+    expect(rpc).not.toHaveBeenCalledWith('complete_forge_now', expect.anything())
+
+    fireEvent.click(secretButton)
 
     expect(rpc).toHaveBeenCalledWith('complete_forge_now', {
       p_inventory_id: 'forging-helmet',
