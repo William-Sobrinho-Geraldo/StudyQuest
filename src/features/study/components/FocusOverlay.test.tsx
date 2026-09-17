@@ -56,7 +56,7 @@ describe('FocusOverlay', () => {
     expect(screen.getByText('Farmando XP...')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /concluir sessão/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /finalizar agora/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /finalizar sessão/i })).toBeInTheDocument()
   })
 
   it('pausa e retoma a sessão corretamente', () => {
@@ -140,7 +140,7 @@ describe('FocusOverlay', () => {
     })
   })
 
-  it('abandona a sessão ao clicar em Finalizar Agora antes de 1 minuto', () => {
+  it('abandona a sessão ao clicar em Finalizar Sessão antes de 1 minuto', () => {
     renderOverlay()
     act(() => {
       timerRef.current?.selectDuration(10)
@@ -151,7 +151,7 @@ describe('FocusOverlay', () => {
     expect(screen.getByTestId('focus-overlay')).toBeInTheDocument()
 
     act(() => {
-      screen.getByRole('button', { name: /finalizar agora/i }).click()
+      screen.getByRole('button', { name: /finalizar sessão/i }).click()
     })
 
     expect(screen.queryByTestId('focus-overlay')).not.toBeInTheDocument()
@@ -160,7 +160,7 @@ describe('FocusOverlay', () => {
     expect(saveStudySessionMock).not.toHaveBeenCalled()
   })
 
-  it('salva o progresso parcial ao clicar em Finalizar Agora após 1 minuto', async () => {
+  it('salva o progresso parcial ao clicar em Finalizar Sessão após 1 minuto', async () => {
     renderOverlay()
     act(() => {
       timerRef.current?.selectDuration(60)
@@ -172,7 +172,7 @@ describe('FocusOverlay', () => {
     })
 
     act(() => {
-      screen.getByRole('button', { name: /finalizar agora/i }).click()
+      screen.getByRole('button', { name: /finalizar sessão/i }).click()
     })
 
     expect(timerRef.current?.status).toBe('completed')

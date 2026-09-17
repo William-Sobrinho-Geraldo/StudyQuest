@@ -132,7 +132,7 @@ describe('StudyTimer — UI', () => {
 
     expect(focusRef.current?.isFocusMode).toBe(true)
     expect(screen.getByTestId('focus-overlay')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /finalizar agora/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /finalizar sessão/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /concluir sessão/i })).toBeInTheDocument()
   })
 
