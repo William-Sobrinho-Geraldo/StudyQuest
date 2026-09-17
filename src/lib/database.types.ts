@@ -675,6 +675,10 @@ export type Database = {
         Args: Record<string, never>
         Returns: Json
       }
+      check_email_exists: {
+        Args: { email_input: string }
+        Returns: boolean
+      }
       quest_progress: {
         Args: Record<string, never>
         Returns: {

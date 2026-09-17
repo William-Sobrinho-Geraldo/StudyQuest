@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Check, Crown, Edit2, HelpCircle, LifeBuoy, Loader2, Pencil, Sparkles, Swords, X } from 'lucide-react'
+import { Check, Crown, Edit2, HelpCircle, LifeBuoy, Loader2, Mail, Pencil, Sparkles, Swords, X } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { UserAvatar } from '../components/UserAvatar'
 import { useAuth } from '../features/auth/AuthContext'
@@ -554,6 +554,19 @@ export function ProfilePage() {
                 />
               </button>
             )}
+
+            <div className="mb-2 flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
+              {user?.email ? (
+                <span data-testid="profile-email" className="text-sm text-slate-400">
+                  {user.email}
+                </span>
+              ) : (
+                <span data-testid="profile-email" className="text-sm text-slate-600">
+                  E-mail não disponível
+                </span>
+              )}
+            </div>
 
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-slate-500">Título de PvP:</span>

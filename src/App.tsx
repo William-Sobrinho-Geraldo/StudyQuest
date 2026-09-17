@@ -19,6 +19,7 @@ import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { QuestsPage } from './pages/QuestsPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ShopPage } from './pages/ShopPage'
 import { SocialPage } from './pages/SocialPage'
 import { SprintCreatePage } from './pages/SprintCreatePage'
@@ -39,6 +40,7 @@ export function App() {
               <Route path="/login" element={<LoginPage />} />
             <Route path="/invite" element={<InvitePage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route
               path="/"
               element={

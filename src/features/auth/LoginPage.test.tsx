@@ -9,6 +9,8 @@ const authMocks = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
   signOut: vi.fn(),
+  updateUser: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
   onAuthStateChange: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
@@ -21,6 +23,8 @@ vi.mock('../../lib/supabase', () => ({
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
       signOut: authMocks.signOut,
+      updateUser: authMocks.updateUser,
+      resetPasswordForEmail: authMocks.resetPasswordForEmail,
       onAuthStateChange: authMocks.onAuthStateChange,
     },
     from: authMocks.from,
@@ -60,6 +64,8 @@ beforeEach(() => {
   authMocks.getSession.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.signInWithPassword.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.signUp.mockResolvedValue({ data: { session: null }, error: null })
+  authMocks.updateUser.mockResolvedValue({ data: { user: null }, error: null })
+  authMocks.resetPasswordForEmail.mockResolvedValue({ data: null, error: null })
   authMocks.onAuthStateChange.mockImplementation(() => ({
     data: { subscription: { unsubscribe: vi.fn() } },
   }))
@@ -88,7 +94,7 @@ beforeEach(() => {
       }),
     }),
   })
-  authMocks.rpc.mockResolvedValue({ data: null, error: null })
+  authMocks.rpc.mockResolvedValue({ data: true, error: null })
 })
 
 afterEach(() => {
@@ -290,5 +296,105 @@ describe('RegisterModal — fluxo de cadastro', () => {
     )
     expect(screen.queryByText(/^Email address/)).not.toBeInTheDocument()
     expect(authMocks.signUp).toHaveBeenCalledOnce()
+  })
+})
+
+describe('ForgotPasswordModal — recuperação de senha', () => {
+  async function openForgotPassword() {
+    const user = userEvent.setup()
+    renderApp('/login')
+    await user.click(screen.getByRole('button', { name: /esqueci minha senha/i }))
+  }
+
+  async function fillEmail(email: string) {
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    if (email) {
+      await user.type(within(dialog).getByLabelText(/email/i), email)
+    }
+    await user.click(within(dialog).getByRole('button', { name: /enviar link/i }))
+  }
+
+  it('abre o modal ao clicar em Esqueci minha senha', async () => {
+    await openForgotPassword()
+
+    expect(screen.getByRole('dialog')).toHaveAccessibleName('Esqueci minha senha')
+    expect(screen.getByRole('button', { name: /enviar link/i })).toBeInTheDocument()
+  })
+
+  it('envia o email com redirect para a página de redefinição e mostra sucesso', async () => {
+    await openForgotPassword()
+    await fillEmail(credentials.email)
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'enviamos um link de recuperação',
+    )
+    expect(authMocks.rpc).toHaveBeenCalledWith('check_email_exists', {
+      email_input: credentials.email,
+    })
+    expect(authMocks.resetPasswordForEmail).toHaveBeenCalledWith(credentials.email, {
+      redirectTo: expect.stringContaining('/reset-password'),
+    })
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('exibe erro amigável e não envia o link quando o e-mail não existe', async () => {
+    authMocks.rpc.mockResolvedValue({ data: false, error: null })
+
+    await openForgotPassword()
+    await fillEmail(credentials.email)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'E-mail não encontrado na nossa base de dados.',
+    )
+    expect(authMocks.rpc).toHaveBeenCalledWith('check_email_exists', {
+      email_input: credentials.email,
+    })
+    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('interrompe o fluxo quando a verificação falha no Supabase', async () => {
+    authMocks.rpc.mockResolvedValue({ data: null, error: { message: 'RPC falhou' } })
+
+    await openForgotPassword()
+    await fillEmail(credentials.email)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('RPC falhou')
+    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled()
+  })
+
+  it('valida o formato do email antes de chamar o Supabase', async () => {
+    await openForgotPassword()
+    await fillEmail('sem-arroba')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Email inválido. Use o formato correto: nome@exemplo.com',
+    )
+    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled()
+  })
+
+  it('exige email antes de chamar o Supabase', async () => {
+    await openForgotPassword()
+    await fillEmail('')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Informe seu email.')
+    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled()
+  })
+
+  it('exibe o erro retornado pelo Supabase', async () => {
+    authMocks.resetPasswordForEmail.mockResolvedValue({
+      data: null,
+      error: { message: 'For security purposes, you can only request this after 60 seconds.' },
+    })
+
+    await openForgotPassword()
+    await fillEmail(credentials.email)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'For security purposes, you can only request this after 60 seconds.',
+    )
+    expect(authMocks.resetPasswordForEmail).toHaveBeenCalledOnce()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })

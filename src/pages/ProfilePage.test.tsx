@@ -48,7 +48,7 @@ interface SessionRowMock {
 
 const USER_ID = 'user-123'
 
-function mockSession(email = 'hero@studyquest.dev') {
+function mockSession(email: string | null = 'hero@studyquest.dev') {
   getSession.mockResolvedValue({
     data: {
       session: {
@@ -204,6 +204,28 @@ describe('ProfilePage', () => {
     expect(screen.getByTestId('user-avatar-fallback')).toHaveTextContent('A')
     expect(screen.queryByTestId('user-avatar-image')).not.toBeInTheDocument()
     expect(screen.queryByTestId('equipped-title-badge')).not.toBeInTheDocument()
+  })
+
+  it('exibe o e-mail do usuário autenticado', async () => {
+    mockSession('hero@studyquest.dev')
+    profileValue = fullProfile({})
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(screen.getByTestId('profile-email')).toHaveTextContent('hero@studyquest.dev')
+  })
+
+  it('exibe fallback quando o e-mail ainda não foi recuperado', async () => {
+    mockSession(null)
+    profileValue = fullProfile({ display_name: 'Aventureiro' })
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Aventureiro' })
+
+    expect(screen.getByTestId('profile-email')).toHaveTextContent('E-mail não disponível')
   })
 
   it('edita o nome e reflete imediatamente na UI', async () => {

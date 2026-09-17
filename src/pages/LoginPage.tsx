@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Loader2, Lock, Mail, Swords } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { RegisterModal } from '../features/auth/RegisterModal'
+import { ForgotPasswordModal } from '../features/auth/ForgotPasswordModal'
 import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../lib/validation'
 
 interface LoginLocationState {
@@ -19,6 +20,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   const from = (location.state as LoginLocationState | null)?.from?.pathname ?? '/'
 
@@ -114,6 +116,16 @@ export function LoginPage() {
             </div>
           </div>
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="inline-flex min-h-[44px] touch-manipulation select-none items-center text-sm font-semibold text-indigo-400 transition hover:text-indigo-300 active:scale-95"
+            >
+              Esqueci minha senha
+            </button>
+          </div>
+
           {error && (
             <p
               role="alert"
@@ -150,6 +162,9 @@ export function LoginPage() {
       </div>
 
       {showRegister && <RegisterModal onClose={() => setShowRegister(false)} />}
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   )
 }
