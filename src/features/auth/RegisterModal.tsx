@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { Loader2, Lock, Mail, Sparkles, User, X } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Lock, Mail, Sparkles, User, X } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { useModalBackHandler } from '../../hooks/useNativeBackButton'
 import { useToast } from '../../components/Toast'
 import { completeSignupWithInvite } from '../social/lib/inviteFlow'
 import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../../lib/validation'
+
+const PASSWORD_MIN = 6
 
 interface RegisterModalProps {
   onClose: () => void
@@ -19,9 +21,21 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const passwordsDoNotMatch =
+    password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword
+  const canSubmit =
+    name.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= PASSWORD_MIN &&
+    confirmPassword.length > 0 &&
+    password === confirmPassword
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -42,8 +56,12 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
       setError(EMAIL_INVALID_MESSAGE)
       return
     }
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.')
+    if (password.length < PASSWORD_MIN) {
+      setError(`A senha deve ter pelo menos ${PASSWORD_MIN} caracteres.`)
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.')
       return
     }
 
@@ -165,15 +183,76 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
               <input
                 id="register-password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                enterKeyHint="next"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  if (error) setError(null)
+                }}
+                placeholder="Mínimo de 6 caracteres"
+                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-12 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-pressed={showPassword}
+                className="absolute right-1 top-1/2 grid h-10 w-10 touch-manipulation select-none -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 active:scale-95"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="register-confirm-password" className="mb-1.5 block text-sm font-medium text-slate-300">
+              Confirmar Senha
+            </label>
+            <div className="relative">
+              <Lock
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                aria-hidden="true"
+              />
+              <input
+                id="register-confirm-password"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 enterKeyHint="done"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Mínimo de 6 caracteres"
-                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                value={confirmPassword}
+                onChange={(event) => {
+                  setConfirmPassword(event.target.value)
+                  if (error) setError(null)
+                }}
+                placeholder="Repita a senha"
+                aria-describedby={passwordsDoNotMatch ? 'register-confirm-password-error' : undefined}
+                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-12 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((current) => !current)}
+                aria-label={showConfirmPassword ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                aria-pressed={showConfirmPassword}
+                className="absolute right-1 top-1/2 grid h-10 w-10 touch-manipulation select-none -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 active:scale-95"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
             </div>
+            {passwordsDoNotMatch && (
+              <p id="register-confirm-password-error" role="alert" className="mt-1.5 text-xs text-red-400">
+                As senhas não coincidem
+              </p>
+            )}
           </div>
 
           {error && (
@@ -196,8 +275,8 @@ export function RegisterModal({ onClose }: RegisterModalProps) {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-base font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!canSubmit || submitting}
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-base font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

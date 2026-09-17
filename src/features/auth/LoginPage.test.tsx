@@ -182,7 +182,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
     await user.click(screen.getByRole('button', { name: /cadastre-se/i }))
   }
 
-  async function fillRegister(email: string, password: string) {
+  async function fillRegister(email: string, password: string, confirmPassword?: string) {
     const user = userEvent.setup()
     const dialog = screen.getByRole('dialog')
     await user.type(within(dialog).getByLabelText(/nome/i), 'Hero')
@@ -190,8 +190,9 @@ describe('RegisterModal — fluxo de cadastro', () => {
       await user.type(within(dialog).getByLabelText(/email/i), email)
     }
     if (password) {
-      await user.type(within(dialog).getByLabelText(/senha/i), password)
+      await user.type(within(dialog).getByLabelText('Senha'), password)
     }
+    await user.type(within(dialog).getByLabelText('Confirmar Senha'), confirmPassword ?? password)
     await user.click(within(dialog).getByRole('button', { name: /criar conta/i }))
   }
 
@@ -245,29 +246,100 @@ describe('RegisterModal — fluxo de cadastro', () => {
     expect(authMocks.signUp).toHaveBeenCalledWith(signUpPayload)
   })
 
-  it('valida senha com menos de 6 caracteres', async () => {
+  it('mantém o botão desabilitado com senha menor que 6 caracteres', async () => {
     renderApp('/login')
     await openRegister()
-    await fillRegister(credentials.email, '12345')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'A senha deve ter pelo menos 6 caracteres',
-    )
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText(/nome/i), 'Hero')
+    await user.type(within(dialog).getByLabelText(/email/i), credentials.email)
+    await user.type(within(dialog).getByLabelText('Senha'), '12345')
+    await user.type(within(dialog).getByLabelText('Confirmar Senha'), '12345')
+
+    expect(within(dialog).getByRole('button', { name: /criar conta/i })).toBeDisabled()
     expect(authMocks.signUp).not.toHaveBeenCalled()
   })
 
-  it('exige nome antes de cadastrar', async () => {
+  it('mantém o botão desabilitado sem nome', async () => {
     renderApp('/login')
     await openRegister()
 
     const user = userEvent.setup()
     const dialog = screen.getByRole('dialog')
     await user.type(within(dialog).getByLabelText(/email/i), credentials.email)
-    await user.type(within(dialog).getByLabelText(/senha/i), credentials.password)
-    await user.click(within(dialog).getByRole('button', { name: /criar conta/i }))
+    await user.type(within(dialog).getByLabelText('Senha'), credentials.password)
+    await user.type(within(dialog).getByLabelText('Confirmar Senha'), credentials.password)
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Informe seu nome.')
+    expect(within(dialog).getByRole('button', { name: /criar conta/i })).toBeDisabled()
     expect(authMocks.signUp).not.toHaveBeenCalled()
+  })
+
+  it('mantém o botão desabilitado enquanto faltam campos ou as senhas divergem', async () => {
+    renderApp('/login')
+    await openRegister()
+
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    const submit = within(dialog).getByRole('button', { name: /criar conta/i })
+
+    expect(submit).toBeDisabled()
+
+    await user.type(within(dialog).getByLabelText(/nome/i), 'Hero')
+    await user.type(within(dialog).getByLabelText(/email/i), credentials.email)
+    await user.type(within(dialog).getByLabelText('Senha'), credentials.password)
+
+    expect(submit).toBeDisabled()
+
+    await user.type(within(dialog).getByLabelText('Confirmar Senha'), 'senha-diferente')
+
+    expect(submit).toBeDisabled()
+
+    await user.clear(within(dialog).getByLabelText('Confirmar Senha'))
+    await user.type(within(dialog).getByLabelText('Confirmar Senha'), credentials.password)
+
+    expect(submit).toBeEnabled()
+    expect(authMocks.signUp).not.toHaveBeenCalled()
+  })
+
+  it('exibe aviso quando as senhas não coincidem', async () => {
+    renderApp('/login')
+    await openRegister()
+
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText(/nome/i), 'Hero')
+    await user.type(within(dialog).getByLabelText(/email/i), credentials.email)
+    await user.type(within(dialog).getByLabelText('Senha'), credentials.password)
+    await user.type(within(dialog).getByLabelText('Confirmar Senha'), 'senha-diferente')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('As senhas não coincidem')
+    expect(authMocks.signUp).not.toHaveBeenCalled()
+  })
+
+  it('alterna a visibilidade da senha e da confirmação pelo olhinho', async () => {
+    renderApp('/login')
+    await openRegister()
+
+    const user = userEvent.setup()
+    const dialog = screen.getByRole('dialog')
+    const passwordInput = within(dialog).getByLabelText('Senha')
+    const confirmInput = within(dialog).getByLabelText('Confirmar Senha')
+
+    expect(passwordInput).toHaveAttribute('type', 'password')
+    expect(confirmInput).toHaveAttribute('type', 'password')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Mostrar senha' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Mostrar confirmação' }))
+
+    expect(passwordInput).toHaveAttribute('type', 'text')
+    expect(confirmInput).toHaveAttribute('type', 'text')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Ocultar senha' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Ocultar confirmação' }))
+
+    expect(passwordInput).toHaveAttribute('type', 'password')
+    expect(confirmInput).toHaveAttribute('type', 'password')
   })
 
   it('valida o formato do email antes de chamar o Supabase', async () => {
