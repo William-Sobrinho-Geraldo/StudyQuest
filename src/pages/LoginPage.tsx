@@ -1,19 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { Loader2, Lock, Mail, Swords } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { RegisterModal } from '../features/auth/RegisterModal'
 import { ForgotPasswordModal } from '../features/auth/ForgotPasswordModal'
 import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../lib/validation'
 
-interface LoginLocationState {
-  from?: { pathname?: string }
-}
-
 export function LoginPage() {
   const { signIn, isAuthenticated, processPendingInvite } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,10 +17,8 @@ export function LoginPage() {
   const [showRegister, setShowRegister] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
 
-  const from = (location.state as LoginLocationState | null)?.from?.pathname ?? '/'
-
   if (isAuthenticated) {
-    return <Navigate to={from} replace />
+    return <Navigate to="/" replace />
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -50,7 +43,7 @@ export function LoginPage() {
         return
       }
       processPendingInvite()
-      navigate(from, { replace: true })
+      navigate('/', { replace: true })
     } catch {
       setError('Não foi possível entrar. Tente novamente.')
     } finally {

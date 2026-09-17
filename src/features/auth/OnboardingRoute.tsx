@@ -1,18 +1,17 @@
 import type { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { AuthLoadingScreen } from './AuthLoadingScreen'
 import { useAuth } from './AuthContext'
 
 export function OnboardingRoute({ children }: { children: ReactNode }) {
   const { status, profile, profileLoading } = useAuth()
-  const location = useLocation()
 
   if (status === 'loading') {
     return <AuthLoadingScreen />
   }
 
   if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    return <Navigate to="/login" replace />
   }
 
   if (profileLoading) {
