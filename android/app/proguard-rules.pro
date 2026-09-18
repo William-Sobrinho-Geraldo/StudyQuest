@@ -14,8 +14,22 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-renamesourcefileattribute SourceFile
+
+# -- Capacitor / Cordova --
+-keep class com.getcapacitor.** { *; }
+-keep class com.capacitorjs.** { *; }
+-dontwarn org.apache.cordova.**
+-keep class org.apache.cordova.** { *; }
+
+# -- AdMob / Google Play Services Ads --
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.ads.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+
+# -- DTOs / modelos de resposta de rede (reflection/Gson) --
+-keep class com.william.studyquest.** { *; }
