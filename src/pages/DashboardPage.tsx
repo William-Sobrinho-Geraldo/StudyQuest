@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { BarChart2, ChevronRight, Store } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../features/auth/AuthContext'
+import { DailyMotivationCard } from '../features/inspiration/components/DailyMotivationCard'
 import { RewardChestCard } from '../features/chest/components/RewardChestCard'
 import { DailyGoalCard } from '../features/profile/components/DailyGoalCard'
 import { HeroProfile } from '../features/profile/components/HeroProfile'
@@ -31,6 +32,10 @@ export function DashboardPage() {
       </p>
 
       <div className="mt-6">
+        <DailyMotivationCard />
+      </div>
+
+      <div className="mt-4">
         <HeroProfile key={profileEpoch} />
       </div>
 

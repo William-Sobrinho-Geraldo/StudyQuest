@@ -39,6 +39,7 @@ export type Database = {
           study_goal: string | null
           unlocked_avatars: string[]
           unlocked_titles: string[]
+          quote_preferences: string[]
         }
         Insert: {
           avatar_id?: string | null
@@ -64,6 +65,7 @@ export type Database = {
           study_goal?: string | null
           unlocked_avatars?: string[]
           unlocked_titles?: string[]
+          quote_preferences?: string[]
         }
         Update: {
           avatar_id?: string | null
@@ -89,6 +91,28 @@ export type Database = {
           study_goal?: string | null
           unlocked_avatars?: string[]
           unlocked_titles?: string[]
+          quote_preferences?: string[]
+        }
+        Relationships: []
+      }
+      motivational_quotes: {
+        Row: {
+          author: string
+          category: string
+          content: string
+          id: string
+        }
+        Insert: {
+          author: string
+          category: string
+          content: string
+          id?: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          content?: string
+          id?: string
         }
         Relationships: []
       }
@@ -1012,6 +1036,25 @@ export type Database = {
       get_public_profile: {
         Args: { p_target_user_id: string }
         Returns: Json
+      }
+      fn_normalize_quote_category: {
+        Args: { p_value: string }
+        Returns: string
+      }
+      get_random_quote_by_category: {
+        Args: { p_categories: string[] }
+        Returns: {
+          author: string
+          category: string
+          content: string
+          id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "motivational_quotes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_pending_invites: {
         Args: Record<string, never>

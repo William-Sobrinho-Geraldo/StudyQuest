@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../features/auth/AuthContext'
+import { ToastProvider } from '../components/Toast'
 import { ProfilePage } from './ProfilePage'
 
 const { getSession, onAuthStateChange, from, updateUser } = vi.hoisted(() => ({
@@ -155,9 +156,11 @@ function renderProfile() {
     <MemoryRouter
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
-      <AuthProvider>
-        <ProfilePage />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <ProfilePage />
+        </AuthProvider>
+      </ToastProvider>
     </MemoryRouter>,
   )
 }

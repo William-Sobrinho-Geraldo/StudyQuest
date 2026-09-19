@@ -17,6 +17,7 @@ import type { EquipmentSlot } from '../features/forge/lib/forgeRules'
 import { ArenaHistorySection } from '../features/pvp/components/ArenaHistorySection'
 import { getDuelTitle } from '../features/pvp/lib/duelStats'
 import { FeedbackModal } from '../features/feedback/FeedbackModal'
+import { InspirationPreferences } from '../features/inspiration/components/InspirationPreferences'
 
 const NAME_MIN = 3
 const NAME_MAX = 15
@@ -699,6 +700,8 @@ export function ProfilePage() {
             />
           </div>
         </section>
+
+        <InspirationPreferences />
 
         <section className="mt-4 w-full">
           <h2 className="mb-2 text-lg font-bold">Histórico de Arena</h2>
