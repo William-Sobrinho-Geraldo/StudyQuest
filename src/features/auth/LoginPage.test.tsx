@@ -107,7 +107,7 @@ async function fillAndSubmit(email: string, password: string) {
     await user.type(screen.getByLabelText(/email/i), email)
   }
   if (password) {
-    await user.type(screen.getByLabelText(/senha/i), password)
+    await user.type(screen.getByLabelText('Senha', { selector: 'input' }), password)
   }
   await user.click(screen.getByRole('button', { name: /entrar/i }))
 }
@@ -173,6 +173,31 @@ describe('LoginPage — fluxo de autenticação', () => {
       'Informe seu email e senha.',
     )
     expect(authMocks.signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('alterna a visibilidade da senha pelo olhinho', async () => {
+    renderApp('/login')
+
+    const user = userEvent.setup()
+    const passwordInput = screen.getByLabelText('Senha', { selector: 'input' })
+
+    expect(passwordInput).toHaveAttribute('type', 'password')
+    expect(screen.getByRole('button', { name: 'Mostrar senha' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Mostrar senha' }))
+
+    expect(passwordInput).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: 'Ocultar senha' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Ocultar senha' }))
+
+    expect(passwordInput).toHaveAttribute('type', 'password')
   })
 })
 

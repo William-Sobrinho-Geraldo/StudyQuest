@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Loader2, Lock, Mail, Swords } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Lock, Mail, Swords } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { RegisterModal } from '../features/auth/RegisterModal'
 import { ForgotPasswordModal } from '../features/auth/ForgotPasswordModal'
@@ -12,6 +12,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
@@ -98,14 +99,27 @@ export function LoginPage() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 enterKeyHint="done"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"
-                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-3 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                className="h-12 w-full rounded-lg border border-slate-700 bg-slate-800 pl-10 pr-12 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-pressed={showPassword}
+                className="absolute right-1 top-1/2 grid h-10 w-10 touch-manipulation select-none -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 active:scale-95"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
             </div>
           </div>
 
