@@ -6,6 +6,12 @@ export const GOLD_PER_MINUTE = 2
 export const XP_PER_SECOND = XP_PER_MINUTE / 60
 export const GOLD_PER_SECOND = GOLD_PER_MINUTE / 60
 
+// Registo manual de tempo esquecido: recompensa reduzida ("tudo calculado a 30%").
+export const MANUAL_REWARD_MULTIPLIER = 0.3
+export const MANUAL_PENALTY_PERCENT = 70
+export const MIN_MANUAL_STUDY_MINUTES = 1
+export const MAX_MANUAL_STUDY_MINUTES = 180
+
 export interface Reward {
   xp: number
   gold: number
@@ -36,6 +42,24 @@ export function calculateReward(minutes: number): Reward {
   return {
     xp: minutes * XP_PER_MINUTE,
     gold: minutes * GOLD_PER_MINUTE,
+  }
+}
+
+export function validateManualStudyMinutes(minutes: number): string | null {
+  if (!Number.isInteger(minutes)) {
+    return 'O tempo estudado deve ser um número inteiro de minutos.'
+  }
+  if (minutes < MIN_MANUAL_STUDY_MINUTES || minutes > MAX_MANUAL_STUDY_MINUTES) {
+    return `O tempo registado manualmente deve estar entre ${MIN_MANUAL_STUDY_MINUTES} e ${MAX_MANUAL_STUDY_MINUTES} minutos.`
+  }
+  return null
+}
+
+export function calculateManualReward(minutes: number): Reward {
+  const base = calculateReward(minutes)
+  return {
+    xp: Math.floor(base.xp * MANUAL_REWARD_MULTIPLIER),
+    gold: Math.floor(base.gold * MANUAL_REWARD_MULTIPLIER),
   }
 }
 

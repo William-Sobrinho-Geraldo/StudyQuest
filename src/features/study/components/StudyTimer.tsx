@@ -22,6 +22,7 @@ import { useToast } from '../../../components/Toast'
 import { hasExactAlarmPermission } from '../lib/distractionNotifications'
 import { SoundSelector } from './SoundSelector'
 import { ExactAlarmSettingsModal } from './ExactAlarmSettingsModal'
+import { ManualStudyModal } from './ManualStudyModal'
 
 const PRIMARY_BUTTON =
   'flex min-h-[48px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
@@ -44,6 +45,7 @@ export function StudyTimer() {
   const { showToast } = useToast()
   const [soundSelectorOpen, setSoundSelectorOpen] = useState(false)
   const [exactAlarmModalOpen, setExactAlarmModalOpen] = useState(false)
+  const [manualModalOpen, setManualModalOpen] = useState(false)
 
   const beginSession = () => {
     timer.start()
@@ -252,6 +254,16 @@ export function StudyTimer() {
             </button>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setManualModalOpen(true)}
+          disabled={inSession}
+          title="Registrar estudo passado que não foi cronometrado"
+          className="text-xs font-medium text-purple-400 underline transition-colors hover:text-purple-300 disabled:pointer-events-none disabled:opacity-50"
+        >
+          Registar tempo esquecido
+        </button>
       </div>
 
       {soundSelectorOpen && <SoundSelector onClose={() => setSoundSelectorOpen(false)} />}
@@ -261,6 +273,10 @@ export function StudyTimer() {
           onConfirm={handleExactAlarmConfirmed}
           onClose={() => setExactAlarmModalOpen(false)}
         />
+      )}
+
+      {manualModalOpen && (
+        <ManualStudyModal onClose={() => setManualModalOpen(false)} />
       )}
     </section>
   )

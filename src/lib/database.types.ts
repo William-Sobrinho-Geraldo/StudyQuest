@@ -449,6 +449,7 @@ export type Database = {
           duration_minutes: number
           gold: number
           id: string
+          is_manual: boolean
           started_at: string
           user_id: string
           xp: number
@@ -458,6 +459,7 @@ export type Database = {
           duration_minutes: number
           gold: number
           id?: string
+          is_manual?: boolean
           started_at?: string
           user_id: string
           xp: number
@@ -467,6 +469,7 @@ export type Database = {
           duration_minutes?: number
           gold?: number
           id?: string
+          is_manual?: boolean
           started_at?: string
           user_id?: string
           xp?: number

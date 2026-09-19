@@ -155,6 +155,20 @@ describe('StudyTimer — UI', () => {
     })
   })
 
+  it('abre o modal de registo manual de tempo esquecido', () => {
+    renderTimer()
+
+    expect(
+      screen.queryByRole('dialog', { name: /registar estudo offline/i }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /registar tempo esquecido/i }))
+
+    expect(
+      screen.getByRole('dialog', { name: /registar estudo offline/i }),
+    ).toBeInTheDocument()
+  })
+
   it('alterna o alarme e mostra toast + estado acessível', () => {
     renderTimer()
 
