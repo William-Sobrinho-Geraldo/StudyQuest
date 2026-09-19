@@ -1,10 +1,11 @@
-import { Check, Loader2, Sparkles } from 'lucide-react'
+import { Settings2, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useToast } from '../../../components/Toast'
 import { useAuth } from '../../auth/AuthContext'
 import { ALL_QUOTE_CATEGORIES, QUOTE_CATEGORIES } from '../lib/quoteCategories'
 import { clearCachedDailyQuote } from '../lib/quoteCache'
 import { updateQuotePreferences } from '../services/quoteService'
+import { InspirationPreferencesModal } from './InspirationPreferencesModal'
 
 export function InspirationPreferences() {
   const { user, profile, refreshProfile } = useAuth()
@@ -15,6 +16,7 @@ export function InspirationPreferences() {
       : [...ALL_QUOTE_CATEGORIES],
   )
   const [saving, setSaving] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
     const preferences = profile?.quote_preferences
@@ -23,91 +25,60 @@ export function InspirationPreferences() {
     }
   }, [profile?.quote_preferences])
 
-  async function toggle(categoryId: string) {
+  async function save(preferences: readonly string[]) {
     if (!user || saving) return
 
-    const isActive = selected.includes(categoryId)
-    if (isActive && selected.length === 1) {
-      showToast('Mantenha ao menos uma categoria de frases selecionada.', 'info')
-      return
-    }
-
-    const next = isActive
-      ? selected.filter((id) => id !== categoryId)
-      : [...selected, categoryId]
-    const previous = selected
-
-    setSelected(next)
     setSaving(true)
     try {
-      await updateQuotePreferences(user.id, next)
+      await updateQuotePreferences(user.id, preferences)
       clearCachedDailyQuote(user.id)
       await refreshProfile()
-      showToast(
-        isActive ? 'Categoria ocultada das frases.' : 'Categoria ativada nas frases.',
-        'success',
-      )
+      setModalOpen(false)
+      showToast('Preferências de inspiração salvas.', 'success')
     } catch {
-      setSelected(previous)
       showToast('Não foi possível salvar suas preferências.', 'error')
     } finally {
       setSaving(false)
     }
   }
 
+  const activeLabels = QUOTE_CATEGORIES.filter((category) => selected.includes(category.id)).map(
+    (category) => category.label,
+  )
+
   return (
     <section aria-busy={saving} className="mt-4 w-full" data-testid="inspiration-preferences">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/15">
-          <Sparkles className="h-5 w-5 text-amber-400" aria-hidden="true" />
-        </span>
-        <div>
-          <h2 className="text-lg font-bold">Preferências de Inspiração</h2>
-          <p className="text-xs text-slate-400">
-            Escolha quais categorias de frases motivacionais aparecem na sua Home.
-          </p>
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/15">
+            <Sparkles className="h-5 w-5 text-amber-400" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-slate-100">Preferências de Inspiração</h2>
+            <p className="mt-0.5 truncate text-sm text-slate-400">
+              Ativas: {activeLabels.join(', ')}
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          aria-label="Editar preferências de inspiração"
+          data-testid="inspiration-edit-button"
+          className="flex shrink-0 touch-manipulation select-none items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-700 hover:text-white active:scale-95"
+        >
+          <Settings2 className="h-4 w-4" aria-hidden="true" />
+          Editar
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5">
-        {QUOTE_CATEGORIES.map((category) => {
-          const checked = selected.includes(category.id)
-          return (
-            <label
-              key={category.id}
-              data-testid={`inspiration-option-${category.id}`}
-              className={`flex touch-manipulation select-none items-center gap-3 rounded-xl border p-3 transition ${
-                checked
-                  ? 'border-indigo-500/50 bg-indigo-500/10'
-                  : 'border-slate-800 bg-slate-900'
-              }`}
-            >
-              <input
-                type="checkbox"
-                className="peer sr-only"
-                checked={checked}
-                disabled={saving}
-                onChange={() => void toggle(category.id)}
-              />
-              <span
-                aria-hidden="true"
-                className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-white transition ${
-                  checked ? 'border-indigo-500 bg-indigo-600' : 'border-slate-600 bg-slate-800'
-                }`}
-              >
-                <Check className={`h-3.5 w-3.5 ${checked ? 'opacity-100' : 'opacity-0'}`} />
-              </span>
-              <span className="text-sm font-medium text-slate-200">{category.label}</span>
-            </label>
-          )
-        })}
-      </div>
-
-      {saving && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-indigo-300">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-          Salvando preferências...
-        </p>
+      {modalOpen && (
+        <InspirationPreferencesModal
+          initialSelected={selected}
+          saving={saving}
+          onSave={(preferences) => void save(preferences)}
+          onClose={() => setModalOpen(false)}
+        />
       )}
     </section>
   )
