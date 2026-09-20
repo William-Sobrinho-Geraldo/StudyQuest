@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:mobile": "vite build && npx cap sync android",
+    "build:mobile": "vite build && npm run admob:manifest && npx cap sync android",
+    "build:mobile:dev": "vite build --mode development && npm run admob:manifest:dev && npx cap sync android",
+    "admob:manifest": "node scripts/setAdmobManifestAppId.js production",
+    "admob:manifest:dev": "node scripts/setAdmobManifestAppId.js dev",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "seed:quotes": "node scripts/seedQuotes.js",
