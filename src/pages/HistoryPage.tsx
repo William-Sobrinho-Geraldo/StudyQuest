@@ -192,10 +192,24 @@ function StudyHistoryPanel() {
     }))
   }, [buckets, period])
 
-  const totalMinutes = sessions.reduce((total, session) => total + session.duration_minutes, 0)
-  const totalSessions = sessions.length
-  const totalXp = sessions.reduce((total, session) => total + session.xp, 0)
-  const totalGold = sessions.reduce((total, session) => total + session.gold, 0)
+  const totals = useMemo(() => {
+    let minutes = 0
+    let sessionCount = 0
+    let xp = 0
+    let gold = 0
+    for (const session of sessions) {
+      minutes += session.duration_minutes
+      sessionCount += 1
+      xp += session.xp
+      gold += session.gold
+    }
+    return { minutes, sessionCount, xp, gold }
+  }, [sessions])
+
+  const totalMinutes = totals.minutes
+  const totalSessions = totals.sessionCount
+  const totalXp = totals.xp
+  const totalGold = totals.gold
 
   const goDelta = (delta: number) => {
     setAnchor((current) =>

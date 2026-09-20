@@ -15,6 +15,7 @@ import { emitStudySessionSaved } from '../lib/studyEvents'
 import { useRewardedAd } from '../../../hooks/useRewardedAd'
 import { isAndroid } from '../../../utils/platform'
 import { AndroidOnlyAdNotice } from '../../../components/ui/AndroidOnlyAdNotice'
+import type { StudyTimerResult } from '../hooks/useStudyTimer'
 
 const AD_MULTIPLIER = 2
 
@@ -26,20 +27,42 @@ const SECONDARY_BUTTON =
 
 export function VictoryModal() {
   const timer = useStudyTimerContext()
+  const result = timer.lastResult
+
+  // Fora de sessão concluída não montamos o conteúdo (nem o useRewardedAd):
+  // os listeners do AdMob e o pré-carregamento do anúncio só acontecem quando
+  // o modal realmente aparece, evitando memória/trabalho em segundo plano no
+  // início do app.
+  if (!timer.isCompleted || !result) return null
+
+  return (
+    <VictoryModalContent
+      result={result}
+      onSettled={() => {
+        timer.reset()
+        timer.closeFocusMode()
+      }}
+    />
+  )
+}
+
+function VictoryModalContent({
+  result,
+  onSettled,
+}: {
+  result: StudyTimerResult
+  onSettled: () => void
+}) {
   const { showToast } = useToast()
   const { isAdReady, showAd } = useRewardedAd()
 
   const [multiplier, setMultiplier] = useState(1)
   const [collecting, setCollecting] = useState(false)
 
-  const result = timer.lastResult
-
   useEffect(() => {
     setMultiplier(1)
     setCollecting(false)
   }, [result])
-
-  if (!timer.isCompleted || !result) return null
 
   const displayXp = result.xp * multiplier
   const displayGold = result.gold * multiplier
@@ -54,8 +77,7 @@ export function VictoryModal() {
       }
       emitStudySessionSaved()
       showToast(message, 'success')
-      timer.reset()
-      timer.closeFocusMode()
+      onSettled()
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : 'Falha ao salvar as recompensas.',

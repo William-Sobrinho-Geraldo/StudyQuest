@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Backpack, Home, LogOut, Sparkles, Swords, Trophy, Users } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
@@ -17,14 +17,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { pendingInviteCount } = useSocialBadge()
   const navigate = useNavigate()
 
-  async function handleSignOut() {
+  const handleSignOut = useCallback(async () => {
     await signOut()
     navigate('/login', { replace: true })
-  }
+  }, [navigate, signOut])
 
-  function handleOpenSocial() {
+  const handleOpenSocial = useCallback(() => {
     navigate('/social')
-  }
+  }, [navigate])
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

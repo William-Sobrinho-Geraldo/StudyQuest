@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { Check, Crown, Loader2, Trophy, UserCheck, UserPlus } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { UserAvatar } from '../components/UserAvatar'
@@ -26,7 +26,7 @@ interface FriendRequestButtonProps {
   onSend: (userId: string) => void
 }
 
-function FriendRequestButton({
+const FriendRequestButton = memo(function FriendRequestButton({
   relation,
   userId,
   playerTag,
@@ -102,7 +102,7 @@ function FriendRequestButton({
       {!compact && <span>{label}</span>}
     </button>
   )
-}
+})
 
 const PODIUM_STYLES = {
   gold: {
@@ -141,7 +141,7 @@ interface PodiumCardProps {
   onSend: (userId: string) => void
 }
 
-function PodiumCard({
+const PodiumCard = memo(function PodiumCard({
   entry,
   tone,
   relation,
@@ -204,7 +204,62 @@ function PodiumCard({
       />
     </div>
   )
+})
+
+interface RankedRowProps {
+  entry: GlobalRankingEntry
+  relation: RankingRelation
+  isOwn: boolean
+  busy: boolean
+  onOpen: (userId: string) => void
+  onSend: (userId: string) => Promise<boolean> | boolean | void
 }
+
+// Memoizado para que a lista inteira não re-renderize quando apenas um
+// pedido de amizade está em andamento (o "busy" só muda na linha afetada).
+const RankedRow = memo(function RankedRow({
+  entry,
+  relation,
+  isOwn,
+  busy,
+  onOpen,
+  onSend,
+}: RankedRowProps) {
+  return (
+    <li
+      onClick={() => onOpen(entry.user_id)}
+      className={`flex cursor-pointer touch-manipulation items-center gap-4 rounded-xl border border-slate-700/50 p-3 transition-colors hover:bg-slate-800/60 active:bg-slate-800/70 ${
+        isOwn ? 'border-indigo-500/40 bg-indigo-500/10' : 'bg-slate-800/40'
+      }`}
+    >
+      <span className="w-6 shrink-0 select-none text-center text-sm font-bold text-slate-400">
+        {entry.pos}
+      </span>
+      <UserAvatar
+        avatarId={entry.avatar_id}
+        name={entry.player_tag}
+        className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-bold text-slate-100">
+          {entry.player_tag ?? 'Jogador'}
+          {isOwn && (
+            <span className="ml-1.5 text-xs font-medium text-indigo-400">(Você)</span>
+          )}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-400">{formatMinutes(entry.minutes)}</p>
+      </div>
+      <FriendRequestButton
+        relation={relation}
+        userId={entry.user_id}
+        playerTag={entry.player_tag}
+        busy={busy}
+        isOwn={isOwn}
+        onSend={onSend}
+      />
+    </li>
+  )
+})
 
 export function LeaderboardPage() {
   const { user } = useAuth()
@@ -343,49 +398,17 @@ export function LeaderboardPage() {
                 Classificação completa
               </h2>
               <ol className="space-y-2">
-                {ranking.slice(3).map((entry) => {
-                  const isOwn = entry.user_id === ownUserId
-                  const relation = sentIds.has(entry.user_id) ? 'pending_out' : entry.relation
-                  return (
-                    <li
-                      key={entry.user_id}
-                      onClick={() => openProfile(entry.user_id)}
-                      className={`flex cursor-pointer touch-manipulation items-center gap-4 rounded-xl border border-slate-700/50 p-3 transition-colors hover:bg-slate-800/60 active:bg-slate-800/70 ${
-                        isOwn ? 'border-indigo-500/40 bg-indigo-500/10' : 'bg-slate-800/40'
-                      }`}
-                    >
-                      <span className="w-6 shrink-0 select-none text-center text-sm font-bold text-slate-400">
-                        {entry.pos}
-                      </span>
-                      <UserAvatar
-                        avatarId={entry.avatar_id}
-                        name={entry.player_tag}
-                        className="h-16 w-16 shrink-0 rounded-2xl object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-bold text-slate-100">
-                          {entry.player_tag ?? 'Jogador'}
-                          {isOwn && (
-                            <span className="ml-1.5 text-xs font-medium text-indigo-400">
-                              (Você)
-                            </span>
-                          )}
-                        </p>
-                        <p className="mt-0.5 text-xs text-slate-400">
-                          {formatMinutes(entry.minutes)}
-                        </p>
-                      </div>
-                      <FriendRequestButton
-                        relation={relation}
-                        userId={entry.user_id}
-                        playerTag={entry.player_tag}
-                        busy={busyIds.has(entry.user_id)}
-                        isOwn={isOwn}
-                        onSend={handleSend}
-                      />
-                    </li>
-                  )
-                })}
+                {ranking.slice(3).map((entry) => (
+                  <RankedRow
+                    key={entry.user_id}
+                    entry={entry}
+                    relation={sentIds.has(entry.user_id) ? 'pending_out' : entry.relation}
+                    isOwn={entry.user_id === ownUserId}
+                    busy={busyIds.has(entry.user_id)}
+                    onOpen={openProfile}
+                    onSend={handleSend}
+                  />
+                ))}
               </ol>
             </section>
           )}

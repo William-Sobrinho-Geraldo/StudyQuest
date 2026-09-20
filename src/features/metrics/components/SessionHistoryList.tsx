@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Clock, Coins, Sparkles } from 'lucide-react'
 import type { SessionHistoryItem, StudyHistoryPeriod } from '../services/studyHistoryService'
 
@@ -30,8 +30,12 @@ function startLabel(startedAt: string, period: StudyHistoryPeriod): string {
 }
 
 function SortedSessionsList({ sessions, period }: SessionHistoryListProps) {
-  const sorted = [...sessions].sort(
-    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+  const sorted = useMemo(
+    () =>
+      [...sessions].sort(
+        (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+      ),
+    [sessions],
   )
 
   return (

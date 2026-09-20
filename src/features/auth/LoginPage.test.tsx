@@ -104,12 +104,12 @@ afterEach(() => {
 async function fillAndSubmit(email: string, password: string) {
   const user = userEvent.setup()
   if (email) {
-    await user.type(screen.getByLabelText(/email/i), email)
+    await user.type(await screen.findByLabelText(/email/i), email)
   }
   if (password) {
-    await user.type(screen.getByLabelText('Senha', { selector: 'input' }), password)
+    await user.type(await screen.findByLabelText('Senha', { selector: 'input' }), password)
   }
-  await user.click(screen.getByRole('button', { name: /entrar/i }))
+  await user.click(await screen.findByRole('button', { name: /entrar/i }))
 }
 
 describe('LoginPage — fluxo de autenticação', () => {
@@ -179,15 +179,15 @@ describe('LoginPage — fluxo de autenticação', () => {
     renderApp('/login')
 
     const user = userEvent.setup()
-    const passwordInput = screen.getByLabelText('Senha', { selector: 'input' })
+    const passwordInput = await screen.findByLabelText('Senha', { selector: 'input' })
 
     expect(passwordInput).toHaveAttribute('type', 'password')
-    expect(screen.getByRole('button', { name: 'Mostrar senha' })).toHaveAttribute(
+    expect(await screen.findByRole('button', { name: 'Mostrar senha' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
 
-    await user.click(screen.getByRole('button', { name: 'Mostrar senha' }))
+    await user.click(await screen.findByRole('button', { name: 'Mostrar senha' }))
 
     expect(passwordInput).toHaveAttribute('type', 'text')
     expect(screen.getByRole('button', { name: 'Ocultar senha' })).toHaveAttribute(
@@ -204,7 +204,7 @@ describe('LoginPage — fluxo de autenticação', () => {
 describe('RegisterModal — fluxo de cadastro', () => {
   async function openRegister() {
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /cadastre-se/i }))
+    await user.click(await screen.findByRole('button', { name: /cadastre-se/i }))
   }
 
   async function fillRegister(email: string, password: string, confirmPassword?: string) {
@@ -400,7 +400,7 @@ describe('ForgotPasswordModal — recuperação de senha', () => {
   async function openForgotPassword() {
     const user = userEvent.setup()
     renderApp('/login')
-    await user.click(screen.getByRole('button', { name: /esqueci minha senha/i }))
+    await user.click(await screen.findByRole('button', { name: /esqueci minha senha/i }))
   }
 
   async function fillEmail(email: string) {
