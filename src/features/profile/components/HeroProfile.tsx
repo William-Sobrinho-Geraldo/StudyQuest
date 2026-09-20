@@ -71,6 +71,7 @@ export function HeroProfile() {
       <div className="flex items-center gap-4">
         <UserAvatar
           avatarId={profile?.avatar_id}
+          avatarUrl={profile?.avatar_url ?? undefined}
           name={displayName}
           className="h-14 w-14 shrink-0 rounded-full"
         />

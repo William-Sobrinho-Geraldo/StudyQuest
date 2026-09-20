@@ -2,6 +2,7 @@ import { getAvatarDefinition } from '../utils/avatars'
 
 export interface UserAvatarProps {
   avatarId: string | null | undefined
+  avatarUrl?: string | null
   name?: string | null
   className?: string
 }
@@ -11,9 +12,21 @@ function nameInitial(name?: string | null): string {
   return trimmed ? trimmed.charAt(0).toUpperCase() : '?'
 }
 
-export function UserAvatar({ avatarId, name, className }: UserAvatarProps) {
-  const avatar = getAvatarDefinition(avatarId)
+export function UserAvatar({ avatarId, avatarUrl, name, className }: UserAvatarProps) {
   const base = className ?? 'h-14 w-14 rounded-full'
+
+  if (avatarUrl) {
+    return (
+      <img
+        data-testid="user-avatar-image"
+        src={avatarUrl}
+        alt={name ? `Avatar de ${name}` : 'Avatar'}
+        className={`${base} object-cover`}
+      />
+    )
+  }
+
+  const avatar = getAvatarDefinition(avatarId)
 
   if (!avatar) {
     return (

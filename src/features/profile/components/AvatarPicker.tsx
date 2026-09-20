@@ -1,10 +1,12 @@
 import { Check, Lock } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { AvatarDefinition } from '../../../utils/avatars'
 
 interface AvatarPickerProps {
   avatars: readonly AvatarDefinition[]
   selectedId: string | null
   unlockedIds: readonly string[]
+  customCard?: ReactNode
   onSelect: (id: string) => void
 }
 
@@ -12,12 +14,14 @@ export function AvatarPicker({
   avatars,
   selectedId,
   unlockedIds,
+  customCard,
   onSelect,
 }: AvatarPickerProps) {
   const unlockedSet = new Set(unlockedIds)
 
   return (
     <div className="grid grid-cols-2 gap-3">
+      {customCard}
       {avatars.map((avatar) => {
         const unlocked = unlockedSet.has(avatar.id)
         const selected = selectedId === avatar.id

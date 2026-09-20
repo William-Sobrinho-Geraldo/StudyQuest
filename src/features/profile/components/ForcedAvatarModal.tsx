@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../../lib/supabase'
 import { AVATARS } from '../../../utils/avatars'
 import { AvatarPicker } from './AvatarPicker'
+import { AvatarUpload } from './AvatarUpload'
 
 const COMMON_AVATARS = AVATARS.filter((avatar) => avatar.rarity === 'comum')
 const COMMON_IDS = COMMON_AVATARS.map((avatar) => avatar.id)
@@ -11,11 +12,12 @@ const COMMON_IDS = COMMON_AVATARS.map((avatar) => avatar.id)
 export function ForcedAvatarModal() {
   const { user, profile, profileLoading, refreshProfile } = useAuth()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [customSelected, setCustomSelected] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   if (profileLoading || !profile) return null
-  if (profile.avatar_id !== null) return null
+  if (profile.avatar_id !== null || profile.avatar_url) return null
 
   async function handleConfirm() {
     if (!user || !selectedId) return
@@ -23,7 +25,7 @@ export function ForcedAvatarModal() {
     setError(null)
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ avatar_id: selectedId })
+      .update({ avatar_id: selectedId, avatar_url: null })
       .eq('id', user.id)
 
     if (updateError) {
@@ -52,15 +54,39 @@ export function ForcedAvatarModal() {
             Escolha seu Avatar
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Selecione um avatar para começar sua jornada.
+            Envie sua própria foto ou selecione um avatar para começar sua jornada.
+          </p>
+        </div>
+
+        <div className="mb-3">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-indigo-300">
+            Avatar Personalizado
+          </p>
+          <p className="text-xs text-slate-400">
+            Use sua própria foto como avatar ou escolha um dos avatares padrão abaixo.
           </p>
         </div>
 
         <AvatarPicker
           avatars={COMMON_AVATARS}
-          selectedId={selectedId}
+          selectedId={customSelected ? null : selectedId}
           unlockedIds={COMMON_IDS}
-          onSelect={setSelectedId}
+          customCard={
+            <AvatarUpload
+              avatar_url={profile.avatar_url}
+              selected={customSelected}
+              onUploaded={() => {
+                setCustomSelected(true)
+                setSelectedId(null)
+                if (error) setError(null)
+              }}
+            />
+          }
+          onSelect={(id) => {
+            setSelectedId(id)
+            setCustomSelected(false)
+            if (error) setError(null)
+          }}
         />
 
         {error && (

@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { UserAvatar } from '../components/UserAvatar'
 import { useAuth } from '../features/auth/AuthContext'
 import { AvatarPicker } from '../features/profile/components/AvatarPicker'
+import { AvatarUpload } from '../features/profile/components/AvatarUpload'
 import { supabase } from '../lib/supabase'
 import { AVATARS, DEFAULT_UNLOCKED_AVATARS } from '../utils/avatars'
 import { getLevelProgress } from '../utils/leveling'
@@ -41,6 +42,7 @@ interface EquippedRow {
 interface EditHeroModalProps {
   currentName: string
   currentAvatar: string | null
+  currentAvatarUrl: string | null
   currentGoal: string | null
   currentBio: string | null
   unlockedAvatars: readonly string[]
@@ -51,6 +53,7 @@ interface EditHeroModalProps {
 function EditHeroModal({
   currentName,
   currentAvatar,
+  currentAvatarUrl,
   currentGoal,
   currentBio,
   unlockedAvatars,
@@ -60,6 +63,7 @@ function EditHeroModal({
   const { user } = useAuth()
   const [name, setName] = useState(currentName)
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(currentAvatar)
+  const [customSelected, setCustomSelected] = useState(() => Boolean(currentAvatarUrl))
   const [goal, setGoal] = useState(currentGoal ?? '')
   const [bio, setBio] = useState(currentBio ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -74,8 +78,8 @@ function EditHeroModal({
       setError(`O nome do herói deve ter entre ${NAME_MIN} e ${NAME_MAX} caracteres.`)
       return
     }
-    if (!selectedAvatar) {
-      setError('Escolha um avatar.')
+    if (!selectedAvatar && !customSelected) {
+      setError('Escolha um avatar ou envie sua foto.')
       return
     }
     if (goal.trim().length > GOAL_MAX) {
@@ -90,14 +94,26 @@ function EditHeroModal({
 
     setSaving(true)
     try {
+      const patch: {
+        display_name: string
+        avatar_id: string | null
+        study_goal: string | null
+        bio: string | null
+        avatar_url?: string
+      } = {
+        display_name: heroName,
+        avatar_id: selectedAvatar,
+        study_goal: goal.trim() || null,
+        bio: bio.trim() || null,
+      }
+      if (customSelected && currentAvatarUrl) {
+        patch.avatar_id = null
+        patch.avatar_url = currentAvatarUrl
+      }
+
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({
-          display_name: heroName,
-          avatar_id: selectedAvatar,
-          study_goal: goal.trim() || null,
-          bio: bio.trim() || null,
-        })
+        .update(patch)
         .eq('id', user.id)
 
       if (updateError) {
@@ -209,12 +225,32 @@ function EditHeroModal({
             <legend className="mb-2 block text-sm font-medium text-slate-300">
               Avatar
             </legend>
+            <div className="mb-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                Avatar Personalizado
+              </p>
+              <p className="text-xs text-slate-400">
+                Envie sua própria foto como avatar ou escolha um dos avatares padrão do jogo.
+              </p>
+            </div>
             <AvatarPicker
               avatars={AVATARS}
-              selectedId={selectedAvatar}
+              selectedId={customSelected ? null : selectedAvatar}
               unlockedIds={unlockedAvatars}
+              customCard={
+                <AvatarUpload
+                  avatar_url={currentAvatarUrl}
+                  selected={customSelected}
+                  onUploaded={() => {
+                    setCustomSelected(true)
+                    setSelectedAvatar(null)
+                    if (error) setError(null)
+                  }}
+                />
+              }
               onSelect={(id) => {
                 setSelectedAvatar(id)
+                setCustomSelected(false)
                 if (error) setError(null)
               }}
             />
@@ -484,6 +520,7 @@ export function ProfilePage() {
         <section className="flex flex-col items-center gap-3 pt-4">
           <UserAvatar
             avatarId={profile?.avatar_id}
+            avatarUrl={profile?.avatar_url ?? undefined}
             name={displayName}
             className="h-24 w-24 rounded-full shadow-lg ring-4 ring-indigo-500/30"
           />
@@ -767,6 +804,7 @@ export function ProfilePage() {
         <EditHeroModal
           currentName={profile?.display_name ?? ''}
           currentAvatar={profile?.avatar_id ?? null}
+          currentAvatarUrl={profile?.avatar_url ?? null}
           currentGoal={profile?.study_goal ?? null}
           currentBio={profile?.bio ?? null}
           unlockedAvatars={profile?.unlocked_avatars ?? DEFAULT_UNLOCKED_AVATARS}

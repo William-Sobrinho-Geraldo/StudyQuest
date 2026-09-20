@@ -124,7 +124,7 @@ describe('LoginPage — fluxo de autenticação', () => {
 
     expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith(credentials)
-    expect(screen.getByText('Heroi')).toBeInTheDocument()
+    expect(await screen.findByText('Heroi')).toBeInTheDocument()
   })
 
   it('exibe erro e permanece no login quando as credenciais são inválidas', async () => {
@@ -241,7 +241,7 @@ describe('RegisterModal — fluxo de cadastro', () => {
 
     expect(await screen.findByRole('heading', { name: 'Bem-vindo, Herói' })).toBeInTheDocument()
     expect(authMocks.signUp).toHaveBeenCalledWith(signUpPayload)
-    expect(screen.getByText('Heroi')).toBeInTheDocument()
+    expect(await screen.findByText('Heroi')).toBeInTheDocument()
   })
 
   it('exibe erro e permanece no modal quando o cadastro falha', async () => {

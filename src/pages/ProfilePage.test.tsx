@@ -30,6 +30,7 @@ interface ProfileRow {
   player_tag: string | null
   display_name: string
   avatar_id: string | null
+  avatar_url: string | null
   equipped_title: string | null
   unlocked_titles: string[]
   study_goal: string | null
@@ -91,6 +92,7 @@ function fullProfile(overrides: Partial<ProfileRow> = {}): ProfileRow {
     player_tag: null,
     display_name: 'Aventureiro',
     avatar_id: null,
+    avatar_url: null,
     equipped_title: null,
     unlocked_titles: [],
     study_goal: null,
@@ -207,6 +209,24 @@ describe('ProfilePage', () => {
     expect(screen.getByTestId('user-avatar-fallback')).toHaveTextContent('A')
     expect(screen.queryByTestId('user-avatar-image')).not.toBeInTheDocument()
     expect(screen.queryByTestId('equipped-title-badge')).not.toBeInTheDocument()
+  })
+
+  it('prioriza a foto personalizada (avatar_url) sobre o avatar do jogo no topo', async () => {
+    mockSession()
+    profileValue = fullProfile({
+      display_name: 'Heroi',
+      avatar_id: 'comum_1',
+      avatar_url: 'https://cdn.example/foto.png',
+    })
+    mockProfiles()
+
+    renderProfile()
+    await screen.findByRole('heading', { name: 'Heroi' })
+
+    expect(screen.getByTestId('user-avatar-image')).toHaveAttribute(
+      'src',
+      'https://cdn.example/foto.png',
+    )
   })
 
   it('exibe o e-mail do usuário autenticado', async () => {

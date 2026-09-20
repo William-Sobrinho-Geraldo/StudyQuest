@@ -168,6 +168,7 @@ const PodiumCard = memo(function PodiumCard({
         )}
         <UserAvatar
           avatarId={entry.avatar_id}
+          avatarUrl={entry.avatar_url ?? undefined}
           name={entry.player_tag}
           className={`${leading ? 'h-24 w-24' : 'h-16 w-16'} rounded-full object-cover ${style.ring} ${
             style.glow
@@ -237,6 +238,7 @@ const RankedRow = memo(function RankedRow({
       </span>
       <UserAvatar
         avatarId={entry.avatar_id}
+        avatarUrl={entry.avatar_url ?? undefined}
         name={entry.player_tag}
         className="h-16 w-16 shrink-0 rounded-2xl object-cover"
       />

@@ -86,6 +86,7 @@ export function DuelModal({
               <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
                 <UserAvatar
                   avatarId={attackerAvatarId}
+                  avatarUrl={profile?.avatar_url ?? undefined}
                   name={attackerName}
                   className="h-20 w-20 rounded-2xl border border-slate-700 shadow-lg ring-4 ring-indigo-500/30 animate-pulse"
                 />

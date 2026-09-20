@@ -17,6 +17,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_id: string | null
+          avatar_url: string | null
           bio: string | null
           created_at: string
           current_streak: number
@@ -56,6 +57,7 @@ export type Database = {
           gold?: number
           honor_points?: number
           id: string
+          avatar_url?: string | null
           daily_ad_views?: number
           daily_ad_views_date?: string | null
           last_chest_claim?: string
@@ -82,6 +84,7 @@ export type Database = {
           gold?: number
           honor_points?: number
           id?: string
+          avatar_url?: string | null
           daily_ad_views?: number
           daily_ad_views_date?: string | null
           last_chest_claim?: string

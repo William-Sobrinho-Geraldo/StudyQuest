@@ -42,6 +42,7 @@ export interface GlobalRankingEntry {
   minutes: number
   player_tag: string | null
   avatar_id: string | null
+  avatar_url: string | null
   pos: number
   relation: RankingRelation
   user_id: string
@@ -87,10 +88,15 @@ export async function fetchGlobalRanking(
     p_limit: GLOBAL_RANKING_LIMIT,
   })
   if (error) throw new Error(error.message)
-  return (data ?? []).map((entry) => ({
-    ...entry,
+  const rows = (data ?? []) as Record<string, unknown>[]
+  return rows.map((entry) => ({
+    pos: typeof entry.pos === 'number' ? entry.pos : Number(entry.pos) || 0,
+    user_id: typeof entry.user_id === 'string' ? entry.user_id : '',
+    player_tag: typeof entry.player_tag === 'string' ? entry.player_tag : null,
     avatar_id: typeof entry.avatar_id === 'string' ? entry.avatar_id : null,
-    relation: normalizeRelation(entry.relation),
+    avatar_url: typeof entry.avatar_url === 'string' ? entry.avatar_url : null,
+    minutes: typeof entry.minutes === 'number' ? entry.minutes : Number(entry.minutes) || 0,
+    relation: normalizeRelation(entry.relation as string | null | undefined),
   }))
 }
 

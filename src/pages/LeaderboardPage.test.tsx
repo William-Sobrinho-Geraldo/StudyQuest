@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '../components/Toast'
 import { AuthProvider } from '../features/auth/AuthContext'
+import { getAvatarDefinition } from '../utils/avatars'
 import { LeaderboardPage } from './LeaderboardPage'
 
 const { getSession, onAuthStateChange, from, rpc } = vi.hoisted(() => ({
@@ -27,17 +28,67 @@ interface RankingRow {
   pos: number
   user_id: string
   player_tag: string | null
+  avatar_id: string | null
+  avatar_url: string | null
   minutes: number
   relation: string | null
 }
 
 const rankingValue: RankingRow[] = [
-  { pos: 1, user_id: 'user-2', player_tag: 'ana#1234', minutes: 300, relation: null },
-  { pos: 2, user_id: 'user-1', player_tag: 'voce#0001', minutes: 200, relation: 'self' },
-  { pos: 3, user_id: 'user-3', player_tag: 'caio#5678', minutes: 150, relation: 'friends' },
-  { pos: 4, user_id: 'user-4', player_tag: 'bia#9012', minutes: 100, relation: null },
-  { pos: 5, user_id: 'user-5', player_tag: 'duda#3456', minutes: 80, relation: 'pending_out' },
-  { pos: 6, user_id: 'user-6', player_tag: 'leo#7890', minutes: 60, relation: 'pending_in' },
+  {
+    pos: 1,
+    user_id: 'user-2',
+    player_tag: 'ana#1234',
+    avatar_id: null,
+    avatar_url: null,
+    minutes: 300,
+    relation: null,
+  },
+  {
+    pos: 2,
+    user_id: 'user-1',
+    player_tag: 'voce#0001',
+    avatar_id: null,
+    avatar_url: null,
+    minutes: 200,
+    relation: 'self',
+  },
+  {
+    pos: 3,
+    user_id: 'user-3',
+    player_tag: 'caio#5678',
+    avatar_id: 'comum_1',
+    avatar_url: null,
+    minutes: 150,
+    relation: 'friends',
+  },
+  {
+    pos: 4,
+    user_id: 'user-4',
+    player_tag: 'bia#9012',
+    avatar_id: null,
+    avatar_url: 'https://cdn.example/bia.png',
+    minutes: 100,
+    relation: null,
+  },
+  {
+    pos: 5,
+    user_id: 'user-5',
+    player_tag: 'duda#3456',
+    avatar_id: null,
+    avatar_url: null,
+    minutes: 80,
+    relation: 'pending_out',
+  },
+  {
+    pos: 6,
+    user_id: 'user-6',
+    player_tag: 'leo#7890',
+    avatar_id: null,
+    avatar_url: null,
+    minutes: 60,
+    relation: 'pending_in',
+  },
 ]
 
 const myRankValue = [{ pos: 99, minutes: 5 }]
@@ -135,6 +186,27 @@ describe('LeaderboardPage', () => {
     expect(screen.getByRole('button', { name: 'Você recebeu convite de leo#7890' })).toBeDisabled()
 
     expect(screen.queryByRole('button', { name: 'Adicionar voce#0001 como amigo' })).toBeNull()
+  })
+
+  it('prioriza a foto personalizada (avatar_url) sobre o avatar_id na lista', async () => {
+    renderLeaderboard()
+    await screen.findByText('bia#9012')
+    await screen.findByText('caio#5678')
+
+    const biaRow = screen.getByText('bia#9012').closest('li') as HTMLLIElement
+    const biaImg = within(biaRow).getByTestId('user-avatar-image') as HTMLImageElement
+    expect(biaImg).toHaveAttribute('src', 'https://cdn.example/bia.png')
+    expect(biaImg).toHaveClass('rounded-2xl', 'object-cover')
+
+    const preset = getAvatarDefinition('comum_1')
+    expect(preset).toBeDefined()
+    const caioImg = screen.getByAltText(preset!.name) as HTMLImageElement
+    expect(caioImg.getAttribute('src')).toBe(preset!.imagePath)
+    expect(caioImg.getAttribute('src')).not.toBe('https://cdn.example/bia.png')
+
+    expect(
+      screen.getAllByTestId('user-avatar-fallback').some((el) => el.textContent === 'A'),
+    ).toBe(true)
   })
 
   it('envia solicitação com loading, troca para Check e exibe toast de sucesso', async () => {
