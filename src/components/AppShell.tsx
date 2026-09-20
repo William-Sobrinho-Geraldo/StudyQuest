@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav
           aria-label="Navegação principal"
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800 bg-slate-900 pb-[env(safe-area-inset-bottom)]"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800 bg-slate-900 pb-[max(env(safe-area-inset-bottom),0.5rem)]"
         >
           <div className="mx-auto flex max-w-md items-stretch">
             {NAV_LINKS.map(({ to, label, icon: Icon, end }) => (
