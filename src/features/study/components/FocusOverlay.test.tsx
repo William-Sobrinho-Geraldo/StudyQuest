@@ -3,6 +3,21 @@ import { act, render, screen } from '@testing-library/react'
 import { StudyTimerProvider, useStudyTimerContext, type StudyTimerValue } from '../context/StudyTimerContext'
 import { FocusOverlay } from './FocusOverlay'
 
+vi.mock('@lottiefiles/dotlottie-web', () => {
+  class DotLottieMock {
+    static setWasmUrl = vi.fn()
+    play = vi.fn()
+    pause = vi.fn()
+    destroy = vi.fn()
+    addEventListener = vi.fn()
+    removeEventListener = vi.fn()
+  }
+  return {
+    DotLottie: DotLottieMock,
+    setWasmUrl: vi.fn(),
+  }
+})
+
 const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
 
 vi.mock('../services/studySessionService', () => ({

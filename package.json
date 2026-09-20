@@ -24,6 +24,7 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
+    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@supabase/supabase-js": "^2.49.1",
     "lucide-react": "^0.475.0",
     "react": "^18.3.1",

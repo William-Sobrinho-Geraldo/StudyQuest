@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { BookOpen, Flag, Pause, Play } from 'lucide-react'
+import { Flag, Pause, Play } from 'lucide-react'
+import { StudyLoadingAnimation } from '../../../components/StudyLoadingAnimation'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
 
@@ -50,29 +51,23 @@ export function FocusOverlay() {
           </span>
         </header>
 
-        <main className="flex flex-1 flex-col items-center justify-center pb-6">
-          <div
-            role="timer"
-            aria-label="Tempo restante"
-            className="font-mono text-8xl font-bold tabular-nums tracking-tight text-white"
-          >
-            {timer.formattedTime}
+        <main className="flex min-h-0 flex-1 flex-col pb-6">
+          <div className="flex justify-center pt-12">
+            <div
+              role="timer"
+              aria-label="Tempo restante"
+              className="font-mono text-8xl font-bold tabular-nums tracking-tight text-white"
+            >
+              {timer.formattedTime}
+            </div>
           </div>
 
-          <div className="mt-16 flex flex-col items-center">
-            <div className="relative grid h-28 w-28 place-items-center rounded-2xl border-2 border-slate-800 bg-slate-900">
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 animate-pulse rounded-2xl bg-indigo-500/25 blur-xl"
-              />
-              <BookOpen
-                className="relative h-14 w-14 animate-bounce text-indigo-400"
-                aria-hidden="true"
-              />
-            </div>
-            <p className="mt-5 animate-pulse text-sm font-medium tracking-wide text-slate-400">
-              {timer.isRunning ? 'Farmando XP...' : 'Pausado — descanse um pouco'}
-            </p>
+          <div className="flex flex-1 flex-col items-center justify-center">
+            <StudyLoadingAnimation
+              className="aspect-square max-w-full w-[90vw]"
+              text={timer.isRunning ? 'Farmando XP...' : 'Pausado — descanse um pouco'}
+              paused={!timer.isRunning}
+            />
           </div>
         </main>
 
