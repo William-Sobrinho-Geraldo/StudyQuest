@@ -26,6 +26,10 @@ import {
   schedulePausedExpiringWarning,
   scheduleSessionCancelledNotification,
 } from '../lib/distractionNotifications'
+import {
+  startFocusForegroundService,
+  stopFocusForegroundService,
+} from '../lib/backgroundSession'
 
 export type StudyTimerStatus = 'idle' | 'running' | 'paused' | 'completed'
 
@@ -116,6 +120,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
       clearAllBackgroundTracking()
       void cancelCompletionNotification()
       void clearPendingFocusNotifications()
+      void stopFocusForegroundService()
 
       const targetMinutes = Math.max(1, minutesOverride ?? durationMinutesRef.current)
       const totalSeconds = targetMinutes * 60
@@ -171,6 +176,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     clearTimer()
     intervalRef.current = setInterval(tick, TICK_MS)
     changeStatus('running')
+    void startFocusForegroundService()
     void scheduleCompletionNotification(endTimeRef.current)
   }, [changeStatus, clearAllBackgroundTracking, clearTimer, tick])
 
@@ -191,6 +197,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
 
     clearTimer()
     void cancelCompletionNotification()
+    void stopFocusForegroundService()
     changeStatus('paused')
     return { ok: true }
   }, [changeStatus, clearAllBackgroundTracking, clearTimer])
@@ -202,6 +209,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     clearTimer()
     intervalRef.current = setInterval(tick, TICK_MS)
     changeStatus('running')
+    void startFocusForegroundService()
     void scheduleCompletionNotification(endTimeRef.current)
   }, [changeStatus, clearAllBackgroundTracking, clearTimer, tick])
 
@@ -226,6 +234,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     clearAllBackgroundTracking()
     void cancelCompletionNotification()
     void clearPendingFocusNotifications()
+    void stopFocusForegroundService()
     completedRef.current = false
     endTimeRef.current = null
 
@@ -302,12 +311,20 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
 
         clearAllBackgroundTracking()
 
-        if (leftAt === null || mode === null) return
+        if (leftAt === null || mode === null) {
+          if (statusRef.current === 'running') {
+            void startFocusForegroundService()
+          }
+          return
+        }
 
         if (!wasDistraction) {
           // Bloqueio de tela (nativo ou WebView congelada antes da validação).
           // Sem notificações nem penalidade — apenas reconcilia o contador.
           tick()
+          if (statusRef.current === 'running') {
+            void startFocusForegroundService()
+          }
           return
         }
 
@@ -324,6 +341,10 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
           cancelSessionDueToDistraction('paused')
         } else {
           setDistractionRecoveryCount((count) => count + 1)
+        }
+
+        if (statusRef.current === 'running') {
+          void startFocusForegroundService()
         }
         return
       }
@@ -348,6 +369,10 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
           return
         }
         distractionConfirmedRef.current = true
+        // O usuário saiu do app (não foi apenas bloqueio de tela): encerra o
+        // serviço em primeiro plano para não permitir que a sessão conclua em
+        // segundo plano, preservando a regra anti-distração.
+        void stopFocusForegroundService()
         if (mode === 'focus') {
           void scheduleDistractionAlert()
           void scheduleSessionCancelledNotification()
@@ -390,6 +415,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   useEffect(() => {
     return () => {
       clearValidationTimeout()
+      void stopFocusForegroundService()
     }
   }, [clearValidationTimeout])
 

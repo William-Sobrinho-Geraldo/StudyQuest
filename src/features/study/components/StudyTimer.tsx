@@ -20,8 +20,15 @@ import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { useStudyPreferences } from '../hooks/useStudyPreferences'
 import { useToast } from '../../../components/Toast'
 import { hasExactAlarmPermission } from '../lib/distractionNotifications'
+import {
+  isBatteryOptimizationEnabled,
+  markBatteryOptimizationPromptShown,
+  requestIgnoreBatteryOptimization,
+  wasBatteryOptimizationPromptShown,
+} from '../lib/backgroundSession'
 import { SoundSelector } from './SoundSelector'
 import { ExactAlarmSettingsModal } from './ExactAlarmSettingsModal'
+import { BatteryOptimizationModal } from './BatteryOptimizationModal'
 import { ManualStudyModal } from './ManualStudyModal'
 
 const PRIMARY_BUTTON =
@@ -45,6 +52,7 @@ export function StudyTimer() {
   const { showToast } = useToast()
   const [soundSelectorOpen, setSoundSelectorOpen] = useState(false)
   const [exactAlarmModalOpen, setExactAlarmModalOpen] = useState(false)
+  const [batteryModalOpen, setBatteryModalOpen] = useState(false)
   const [manualModalOpen, setManualModalOpen] = useState(false)
 
   const beginSession = () => {
@@ -52,12 +60,21 @@ export function StudyTimer() {
     timer.openFocusMode()
   }
 
+  const proceedAfterExactAlarm = async () => {
+    const optimizationEnabled = await isBatteryOptimizationEnabled()
+    if (optimizationEnabled && !wasBatteryOptimizationPromptShown()) {
+      setBatteryModalOpen(true)
+      return
+    }
+    beginSession()
+  }
+
   const handleStart = () => {
     if (Capacitor.isNativePlatform()) {
       void (async () => {
         const granted = await hasExactAlarmPermission()
         if (granted) {
-          beginSession()
+          await proceedAfterExactAlarm()
         } else {
           setExactAlarmModalOpen(true)
         }
@@ -69,7 +86,18 @@ export function StudyTimer() {
 
   const handleExactAlarmConfirmed = () => {
     setExactAlarmModalOpen(false)
+    void proceedAfterExactAlarm()
+  }
+
+  const handleBatteryConfirmed = () => {
+    markBatteryOptimizationPromptShown()
+    setBatteryModalOpen(false)
     beginSession()
+  }
+
+  const handleBatteryDismiss = () => {
+    markBatteryOptimizationPromptShown()
+    setBatteryModalOpen(false)
   }
 
   const handleToggleAlarm = () => {
@@ -152,10 +180,21 @@ export function StudyTimer() {
           className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
           aria-hidden="true"
         />
-        <p className="text-xs leading-relaxed text-amber-200/90">
-          Mantenha o StudyQuest aberto. Minimizar o app por mais de 20s cancelará a sessão
-          sem XP.
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs leading-relaxed text-amber-200/90">
+            Mantenha o StudyQuest aberto. Minimizar o app por mais de 20s cancelará a sessão
+            sem XP.
+          </p>
+          {Capacitor.getPlatform() === 'android' && (
+            <button
+              type="button"
+              onClick={() => void requestIgnoreBatteryOptimization()}
+              className="text-xs font-medium text-amber-300 underline transition-colors hover:text-amber-200"
+            >
+              O alarme não toca com a tela bloqueada?
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mt-10 flex flex-col items-center">
@@ -272,6 +311,13 @@ export function StudyTimer() {
         <ExactAlarmSettingsModal
           onConfirm={handleExactAlarmConfirmed}
           onClose={() => setExactAlarmModalOpen(false)}
+        />
+      )}
+
+      {batteryModalOpen && (
+        <BatteryOptimizationModal
+          onConfirmed={handleBatteryConfirmed}
+          onDismiss={handleBatteryDismiss}
         />
       )}
 

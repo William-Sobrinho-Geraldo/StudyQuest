@@ -6,6 +6,7 @@ import {
   requestNotificationPermissions,
   setupAlarmNotificationChannels,
 } from '../features/study/lib/distractionNotifications'
+import { setupFocusServiceChannel } from '../features/study/lib/backgroundSession'
 
 export async function initNativeApp(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return
@@ -15,5 +16,6 @@ export async function initNativeApp(): Promise<void> {
   await AdMob.initialize()
   await requestNotificationPermissions()
   await setupAlarmNotificationChannels()
+  await setupFocusServiceChannel()
   await registerOpenAppActionType()
 }

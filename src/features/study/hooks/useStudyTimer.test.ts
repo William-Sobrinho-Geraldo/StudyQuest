@@ -23,6 +23,8 @@ const {
   schedulePausedExpiringWarning,
   cancelPendingDistractionNotifications,
   clearPendingFocusNotifications,
+  startFocusForegroundService,
+  stopFocusForegroundService,
 } = vi.hoisted(() => ({
   emitStudySessionSaved: vi.fn(),
   playCompletionSound: vi.fn(),
@@ -33,6 +35,8 @@ const {
   schedulePausedExpiringWarning: vi.fn().mockResolvedValue(undefined),
   cancelPendingDistractionNotifications: vi.fn().mockResolvedValue(undefined),
   clearPendingFocusNotifications: vi.fn().mockResolvedValue(undefined),
+  startFocusForegroundService: vi.fn().mockResolvedValue(undefined),
+  stopFocusForegroundService: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../lib/studyEvents', () => ({
@@ -53,6 +57,11 @@ vi.mock('../lib/distractionNotifications', () => ({
   schedulePausedExpiringWarning,
   cancelPendingDistractionNotifications,
   clearPendingFocusNotifications,
+}))
+
+vi.mock('../lib/backgroundSession', () => ({
+  startFocusForegroundService,
+  stopFocusForegroundService,
 }))
 
 const appStateMock = vi.hoisted(() => {
@@ -87,6 +96,7 @@ async function flushAsync() {
 
 beforeEach(() => {
   vi.useFakeTimers()
+  vi.clearAllMocks()
 })
 
 afterEach(() => {
@@ -1057,5 +1067,157 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
 
     expect(scheduleDistractionAlert).toHaveBeenCalledTimes(1)
     expect(scheduleSessionCancelledNotification).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useStudyTimer — serviço em primeiro plano (alarme com tela bloqueada)', () => {
+  it('inicia o serviço ao começar a sessão', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+
+    expect(startFocusForegroundService).toHaveBeenCalledTimes(1)
+  })
+
+  it('para o serviço ao pausar e reinicia ao retomar', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    act(() => {
+      result.current.pause()
+    })
+
+    expect(stopFocusForegroundService).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      result.current.resume()
+    })
+
+    expect(startFocusForegroundService).toHaveBeenCalledTimes(2)
+  })
+
+  it('para o serviço ao reiniciar o timer', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    stopFocusForegroundService.mockClear()
+
+    act(() => {
+      result.current.reset()
+    })
+
+    expect(stopFocusForegroundService).toHaveBeenCalledTimes(1)
+  })
+
+  it('para o serviço ao finalizar a sessão', async () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    stopFocusForegroundService.mockClear()
+
+    await act(async () => {
+      await result.current.finish()
+    })
+
+    expect(stopFocusForegroundService).toHaveBeenCalledTimes(1)
+  })
+
+  it('para o serviço quando a minimização é confirmada', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    stopFocusForegroundService.mockClear()
+
+    act(() => {
+      appStateMock.trigger(false)
+    })
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
+
+    expect(stopFocusForegroundService).toHaveBeenCalledTimes(1)
+  })
+
+  it('mantém o serviço quando apenas a tela é bloqueada', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    stopFocusForegroundService.mockClear()
+
+    act(() => {
+      appStateMock.trigger(false)
+    })
+    act(() => {
+      window.dispatchEvent(new CustomEvent('onNativeScreenOff'))
+    })
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
+
+    expect(stopFocusForegroundService).not.toHaveBeenCalled()
+  })
+
+  it('reinicia o serviço ao retornar antes do limite de distração', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    act(() => {
+      appStateMock.trigger(false)
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    startFocusForegroundService.mockClear()
+
+    act(() => {
+      appStateMock.trigger(true)
+    })
+
+    expect(startFocusForegroundService).toHaveBeenCalledTimes(1)
+    expect(result.current.status).toBe('running')
+  })
+
+  it('não reinicia o serviço quando a sessão foi cancelada por distração', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+    })
+    act(() => {
+      appStateMock.trigger(false)
+    })
+    act(() => {
+      vi.advanceTimersByTime(25_000)
+    })
+    startFocusForegroundService.mockClear()
+
+    act(() => {
+      appStateMock.trigger(true)
+    })
+
+    expect(result.current.status).toBe('idle')
+    expect(startFocusForegroundService).not.toHaveBeenCalled()
   })
 })

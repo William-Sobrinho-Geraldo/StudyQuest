@@ -11,6 +11,16 @@ vi.mock('../services/studySessionService', () => ({
   saveStudySession: saveStudySessionMock,
 }))
 
+vi.mock('../lib/backgroundSession', () => ({
+  isBatteryOptimizationEnabled: vi.fn().mockResolvedValue(false),
+  markBatteryOptimizationPromptShown: vi.fn(),
+  requestIgnoreBatteryOptimization: vi.fn(),
+  wasBatteryOptimizationPromptShown: vi.fn().mockReturnValue(true),
+  setupFocusServiceChannel: vi.fn().mockResolvedValue(undefined),
+  startFocusForegroundService: vi.fn().mockResolvedValue(undefined),
+  stopFocusForegroundService: vi.fn().mockResolvedValue(undefined),
+}))
+
 function renderTimer() {
   return render(
     <ToastProvider>

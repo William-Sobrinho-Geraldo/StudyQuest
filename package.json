@@ -27,6 +27,8 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
+    "@capawesome-team/capacitor-android-battery-optimization": "^8.0.1",
+    "@capawesome-team/capacitor-android-foreground-service": "^8.1.0",
     "@lottiefiles/dotlottie-react": "^0.19.16",
     "@supabase/supabase-js": "^2.49.1",
     "browser-image-compression": "^2.0.2",
