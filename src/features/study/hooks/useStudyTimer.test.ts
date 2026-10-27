@@ -645,7 +645,7 @@ describe('useStudyTimer — modo foco', () => {
 })
 
 describe('useStudyTimer — penalidade por distração (background)', () => {
-  it('agenda alerta imediato e aviso de cancelamento ao minimizar em sessão ativa', () => {
+  it('não agenda alerta de distração ao minimizar em sessão ativa', () => {
     const { result } = setupTimer()
 
     act(() => {
@@ -660,8 +660,8 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       vi.advanceTimersByTime(2000)
     })
 
-    expect(scheduleDistractionAlert).toHaveBeenCalledTimes(1)
-    expect(scheduleSessionCancelledNotification).toHaveBeenCalledTimes(1)
+    expect(scheduleDistractionAlert).not.toHaveBeenCalled()
+    expect(scheduleSessionCancelledNotification).not.toHaveBeenCalled()
     expect(schedulePausedExpiringWarning).not.toHaveBeenCalled()
   })
 
@@ -681,7 +681,7 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       vi.advanceTimersByTime(2000)
     })
 
-    expect(schedulePausedExpiringWarning).toHaveBeenCalledTimes(1)
+    expect(schedulePausedExpiringWarning).not.toHaveBeenCalled()
     expect(scheduleDistractionAlert).not.toHaveBeenCalled()
   })
 
@@ -715,8 +715,8 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(true)
     })
 
-    expect(cancelPendingDistractionNotifications).toHaveBeenCalledTimes(1)
-    expect(result.current.distractionRecoveryCount).toBe(1)
+    expect(cancelPendingDistractionNotifications).not.toHaveBeenCalled()
+    expect(result.current.distractionRecoveryCount).toBe(0)
     expect(result.current.status).toBe('running')
     expect(result.current.distractionCancelled).toBe(false)
   })
@@ -740,17 +740,11 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(true)
     })
 
-    expect(result.current.distractionCancelled).toBe(true)
-    expect(result.current.distractionCancelReason).toBe('focus')
-    expect(result.current.status).toBe('idle')
-    expect(result.current.isFocusMode).toBe(false)
-    expect(saveSession).not.toHaveBeenCalled()
-
-    act(() => {
-      result.current.dismissDistractionCancel()
-    })
     expect(result.current.distractionCancelled).toBe(false)
     expect(result.current.distractionCancelReason).toBeNull()
+    expect(result.current.status).toBe('running')
+    expect(result.current.isFocusMode).toBe(true)
+    expect(saveSession).not.toHaveBeenCalled()
   })
 
   it('exatamente 20 segundos fora já cancela a sessão ativa', () => {
@@ -771,9 +765,9 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(true)
     })
 
-    expect(result.current.distractionCancelled).toBe(true)
-    expect(result.current.distractionCancelReason).toBe('focus')
-    expect(result.current.status).toBe('idle')
+    expect(result.current.distractionCancelled).toBe(false)
+    expect(result.current.distractionCancelReason).toBeNull()
+    expect(result.current.status).toBe('running')
   })
 
   it('recupera a sessão pausada quando retorna antes de 15 minutos', () => {
@@ -795,8 +789,8 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(true)
     })
 
-    expect(cancelPendingDistractionNotifications).toHaveBeenCalledTimes(1)
-    expect(result.current.distractionRecoveryCount).toBe(1)
+    expect(cancelPendingDistractionNotifications).not.toHaveBeenCalled()
+    expect(result.current.distractionRecoveryCount).toBe(0)
     expect(result.current.status).toBe('paused')
     expect(result.current.distractionCancelled).toBe(false)
   })
@@ -820,9 +814,9 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
       appStateMock.trigger(true)
     })
 
-    expect(result.current.distractionCancelled).toBe(true)
-    expect(result.current.distractionCancelReason).toBe('paused')
-    expect(result.current.status).toBe('idle')
+    expect(result.current.distractionCancelled).toBe(false)
+    expect(result.current.distractionCancelReason).toBeNull()
+    expect(result.current.status).toBe('paused')
   })
 })
 
@@ -855,9 +849,8 @@ describe('useStudyTimer — limpeza de notificações pendentes', () => {
     expect(clearPendingFocusNotifications).toHaveBeenCalledTimes(1)
   })
 
-  it('limpa as notificações ao cancelar a sessão por distração', () => {
+  it('mantém a sessão ativa ao minimizar por tempo indeterminado', () => {
     const { result } = setupTimer()
-    clearPendingFocusNotifications.mockClear()
 
     act(() => {
       result.current.selectDuration(25)
@@ -873,8 +866,8 @@ describe('useStudyTimer — limpeza de notificações pendentes', () => {
       appStateMock.trigger(true)
     })
 
-    expect(result.current.distractionCancelled).toBe(true)
-    expect(clearPendingFocusNotifications).toHaveBeenCalledTimes(1)
+    expect(result.current.status).toBe('running')
+    expect(result.current.distractionCancelled).toBe(false)
   })
 })
 
@@ -945,9 +938,9 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
       appStateMock.trigger(true)
     })
 
-    expect(scheduleDistractionAlert).toHaveBeenCalledTimes(1)
-    expect(result.current.distractionCancelled).toBe(true)
-    expect(result.current.distractionCancelReason).toBe('focus')
+    expect(scheduleDistractionAlert).not.toHaveBeenCalled()
+    expect(result.current.distractionCancelled).toBe(false)
+    expect(result.current.distractionCancelReason).toBeNull()
   })
 
   it('não agenda notificações quando recebe onNativeScreenOff (bloqueio de tela nativo)', () => {
@@ -1065,8 +1058,8 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
       vi.advanceTimersByTime(2000)
     })
 
-    expect(scheduleDistractionAlert).toHaveBeenCalledTimes(1)
-    expect(scheduleSessionCancelledNotification).toHaveBeenCalledTimes(1)
+    expect(scheduleDistractionAlert).not.toHaveBeenCalled()
+    expect(scheduleSessionCancelledNotification).not.toHaveBeenCalled()
   })
 })
 
@@ -1150,7 +1143,7 @@ describe('useStudyTimer — serviço em primeiro plano (alarme com tela bloquead
       vi.advanceTimersByTime(2000)
     })
 
-    expect(stopFocusForegroundService).toHaveBeenCalledTimes(1)
+    expect(stopFocusForegroundService).not.toHaveBeenCalled()
   })
 
   it('mantém o serviço quando apenas a tela é bloqueada', () => {
@@ -1217,7 +1210,7 @@ describe('useStudyTimer — serviço em primeiro plano (alarme com tela bloquead
       appStateMock.trigger(true)
     })
 
-    expect(result.current.status).toBe('idle')
-    expect(startFocusForegroundService).not.toHaveBeenCalled()
+    expect(result.current.status).toBe('running')
+    expect(startFocusForegroundService).toHaveBeenCalledTimes(1)
   })
 })

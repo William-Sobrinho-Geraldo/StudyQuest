@@ -110,18 +110,6 @@ describe('DistractionGuard', () => {
     })
 
     expect(
-      screen.getByRole('dialog', { name: /sessão abandonada/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('Sessão Abandonada!')).toBeInTheDocument()
-    expect(
-      screen.getByText(/perdeu as recompensas desta rodada/i),
-    ).toBeInTheDocument()
-
-    act(() => {
-      screen.getByRole('button', { name: /entendi/i }).click()
-    })
-
-    expect(
       screen.queryByRole('dialog', { name: /sessão abandonada/i }),
     ).not.toBeInTheDocument()
   })
@@ -144,7 +132,7 @@ describe('DistractionGuard', () => {
     })
 
     expect(
-      screen.getByText('Sessão recuperada a tempo! Mantenha o foco.'),
-    ).toBeInTheDocument()
+      screen.queryByText('Sessão recuperada a tempo! Mantenha o foco.'),
+    ).not.toBeInTheDocument()
   })
 })

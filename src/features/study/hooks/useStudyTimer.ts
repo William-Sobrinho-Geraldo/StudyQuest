@@ -16,15 +16,9 @@ import { emitStudySessionSaved } from '../lib/studyEvents'
 import { readAlarmEnabled } from '../lib/studyPreferences'
 import { playCompletionSound } from '../lib/completionSounds'
 import {
-  DISTRACTION_GRACE_SECONDS,
-  PAUSED_GRACE_SECONDS,
   cancelCompletionNotification,
-  cancelPendingDistractionNotifications,
   clearPendingFocusNotifications,
   scheduleCompletionNotification,
-  scheduleDistractionAlert,
-  schedulePausedExpiringWarning,
-  scheduleSessionCancelledNotification,
 } from '../lib/distractionNotifications'
 import {
   startFocusForegroundService,
@@ -51,7 +45,7 @@ interface UseStudyTimerOptions {
 
 const TICK_MS = 1000
 const DEFAULT_MINUTES = 25
-const SCREEN_LOCK_CONFIRMATION_MS = 2000
+
 
 export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const saveSession = options.saveSession ?? saveStudySession
@@ -67,7 +61,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const [distractionCancelled, setDistractionCancelled] = useState(false)
   const [distractionCancelReason, setDistractionCancelReason] =
     useState<DistractionCancelReason | null>(null)
-  const [distractionRecoveryCount, setDistractionRecoveryCount] = useState(0)
+  const [distractionRecoveryCount] = useState(0)
 
   const statusRef = useRef<StudyTimerStatus>('idle')
   const durationMinutesRef = useRef(DEFAULT_MINUTES)
@@ -79,7 +73,7 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
   const backgroundModeRef = useRef<'focus' | 'paused' | null>(null)
   const distractionConfirmedRef = useRef(false)
   const backgroundValidationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const screenLockedRef = useRef(false)
+
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -99,7 +93,6 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     backgroundTimestampRef.current = null
     backgroundModeRef.current = null
     distractionConfirmedRef.current = false
-    screenLockedRef.current = false
     clearValidationTimeout()
   }, [clearValidationTimeout])
 
@@ -278,110 +271,46 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     return { ok: true }
   }, [closeFocusMode, finish, reset])
 
-  const cancelSessionDueToDistraction = useCallback(
-    (reason: DistractionCancelReason) => {
-      reset()
-      closeFocusMode()
-      setDistractionCancelReason(reason)
-      setDistractionCancelled(true)
-    },
-    [closeFocusMode, reset],
-  )
-
   const dismissDistractionCancel = useCallback(() => {
     setDistractionCancelled(false)
     setDistractionCancelReason(null)
   }, [])
 
   const handleNativeScreenOff = useCallback(() => {
-    screenLockedRef.current = true
+    // Mantido para compatibilidade com eventos nativos; a sessão segue ativa.
     clearValidationTimeout()
   }, [clearValidationTimeout])
 
   const handleNativeScreenOn = useCallback(() => {
-    screenLockedRef.current = false
+    // Mantido para compatibilidade com eventos nativos.
   }, [])
 
   const handleAppStateChange = useCallback(
     (isActive: boolean) => {
       if (isActive) {
-        const leftAt = backgroundTimestampRef.current
-        const mode = backgroundModeRef.current
-        const wasDistraction = distractionConfirmedRef.current
-
+        // Ao retornar ao app, a sessão segue ativa independentemente do
+        // tempo em segundo plano: apenas reconcilia o contador de tempo.
         clearAllBackgroundTracking()
 
-        if (leftAt === null || mode === null) {
-          if (statusRef.current === 'running') {
-            void startFocusForegroundService()
-          }
-          return
-        }
-
-        if (!wasDistraction) {
-          // Bloqueio de tela (nativo ou WebView congelada antes da validação).
-          // Sem notificações nem penalidade — apenas reconcilia o contador.
-          tick()
-          if (statusRef.current === 'running') {
-            void startFocusForegroundService()
-          }
-          return
-        }
-
-        void cancelPendingDistractionNotifications()
-
-        const elapsed = (Date.now() - leftAt) / 1000
-        if (mode === 'focus') {
-          if (elapsed >= DISTRACTION_GRACE_SECONDS) {
-            cancelSessionDueToDistraction('focus')
-          } else {
-            setDistractionRecoveryCount((count) => count + 1)
-          }
-        } else if (elapsed >= PAUSED_GRACE_SECONDS) {
-          cancelSessionDueToDistraction('paused')
-        } else {
-          setDistractionRecoveryCount((count) => count + 1)
-        }
-
+        tick()
         if (statusRef.current === 'running') {
           void startFocusForegroundService()
         }
         return
       }
 
+      // Ao ir para segundo plano, mantemos a sessão ativa (sem cancelamento
+      // por tempo) e preservamos o serviço em primeiro plano para que alarmes
+      // e agendamentos continuem funcionando.
       const currentStatus = statusRef.current
-      let mode: 'focus' | 'paused' | null = null
-      if (currentStatus === 'running') {
-        mode = 'focus'
-      } else if (currentStatus === 'paused') {
-        mode = 'paused'
-      }
+      if (currentStatus !== 'running' && currentStatus !== 'paused') return
 
-      if (mode === null) return
-
+      // Mantemos o rastreamento mínimo apenas para compatibilidade, mas sem
+      // validação/temporizador de cancelamento.
       backgroundTimestampRef.current = Date.now()
-      backgroundModeRef.current = mode
-      distractionConfirmedRef.current = false
-      clearValidationTimeout()
-
-      backgroundValidationTimeoutRef.current = setTimeout(() => {
-        if (screenLockedRef.current) {
-          return
-        }
-        distractionConfirmedRef.current = true
-        // O usuário saiu do app (não foi apenas bloqueio de tela): encerra o
-        // serviço em primeiro plano para não permitir que a sessão conclua em
-        // segundo plano, preservando a regra anti-distração.
-        void stopFocusForegroundService()
-        if (mode === 'focus') {
-          void scheduleDistractionAlert()
-          void scheduleSessionCancelledNotification()
-        } else {
-          void schedulePausedExpiringWarning()
-        }
-      }, SCREEN_LOCK_CONFIRMATION_MS)
+      backgroundModeRef.current = currentStatus === 'running' ? 'focus' : 'paused'
     },
-    [cancelSessionDueToDistraction, clearAllBackgroundTracking, clearValidationTimeout, tick],
+    [clearAllBackgroundTracking, tick],
   )
 
   useEffect(() => {
