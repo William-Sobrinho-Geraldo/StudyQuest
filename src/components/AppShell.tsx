@@ -5,6 +5,7 @@ import { useAuth } from '../features/auth/AuthContext'
 import { useSocialBadge } from '../features/social/context/SocialContext'
 import { ForcedAvatarModal } from '../features/profile/components/ForcedAvatarModal'
 import { BackgroundMusicToggle } from './BackgroundMusicToggle'
+import { BackgroundMusicSelector } from './BackgroundMusicSelector'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
             <BackgroundMusicToggle />
+            <BackgroundMusicSelector />
             <button
               type="button"
               onClick={handleOpenSocial}

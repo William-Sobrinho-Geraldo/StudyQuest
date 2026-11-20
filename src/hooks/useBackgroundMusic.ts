@@ -1,7 +1,14 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import audioSrc from '../assets/audio/bg-music.mp3'
+import {
+  BACKGROUND_MUSIC_TRACKS,
+  DEFAULT_TRACK_ID,
+  getTrackById,
+  resolveTrackId,
+  type BackgroundMusicTrack,
+} from '../lib/backgroundMusicTracks'
 
 const STORAGE_KEY = 'studyquest:bg-music-muted'
+const TRACK_STORAGE_KEY = 'studyquest:bg-music-track'
 const DEFAULT_MUTED = false
 const VOLUME = 0.25
 
@@ -10,6 +17,7 @@ type Listener = () => void
 const listeners = new Set<Listener>()
 
 let mutedState = DEFAULT_MUTED
+let trackState = DEFAULT_TRACK_ID
 let audioEl: HTMLAudioElement | null = null
 let retryRegistered = false
 
@@ -28,6 +36,24 @@ function writeMuted(value: boolean): void {
   if (typeof window === 'undefined') return
   try {
     window.localStorage.setItem(STORAGE_KEY, String(value))
+  } catch {
+    // ignore
+  }
+}
+
+function readTrack(): string {
+  if (typeof window === 'undefined') return DEFAULT_TRACK_ID
+  try {
+    return resolveTrackId(window.localStorage.getItem(TRACK_STORAGE_KEY))
+  } catch {
+    return DEFAULT_TRACK_ID
+  }
+}
+
+function writeTrack(id: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(TRACK_STORAGE_KEY, id)
   } catch {
     // ignore
   }
@@ -77,7 +103,8 @@ function ensureAudio(): void {
   if (typeof window === 'undefined') return
   if (audioEl) return
   try {
-    const audio = new Audio(audioSrc)
+    const track = getTrackById(trackState) ?? getTrackById(DEFAULT_TRACK_ID)
+    const audio = new Audio(track?.src)
     audio.loop = true
     audio.volume = VOLUME
     audio.muted = mutedState
@@ -105,6 +132,22 @@ function setMuted(next: boolean): void {
   listeners.forEach((listener) => listener())
 }
 
+function setTrack(nextId: string): void {
+  const track = getTrackById(nextId)
+  if (!track || track.id === trackState) return
+  trackState = track.id
+  writeTrack(track.id)
+  if (audioEl) {
+    audioEl.src = track.src
+    audioEl.loop = true
+    audioEl.load()
+    if (!mutedState) {
+      tryPlay(true)
+    }
+  }
+  listeners.forEach((listener) => listener())
+}
+
 function toggleMuted(): void {
   setMuted(!mutedState)
 }
@@ -124,10 +167,19 @@ function getServerSnapshot(): boolean {
   return DEFAULT_MUTED
 }
 
+function getTrackSnapshot(): string {
+  return trackState
+}
+
+function getTrackServerSnapshot(): string {
+  return DEFAULT_TRACK_ID
+}
+
 // Initialise state from persisted preference as soon as the module loads in a
 // browser environment, so the first render already reflects the user's choice.
 if (typeof window !== 'undefined') {
   mutedState = readMuted()
+  trackState = readTrack()
   ensureAudio()
 
   // A música NÃO é pausada ao ir para segundo plano: o WebView continua ativo
@@ -165,6 +217,13 @@ export interface UseBackgroundMusicResult {
   isPlaying: boolean
   playing: boolean
   volume: number
+  /** Currently selected track. */
+  track: BackgroundMusicTrack
+  /** All available tracks. */
+  tracks: BackgroundMusicTrack[]
+  /** Id of the currently selected track. */
+  trackId: string
+  currentTrackId: string
   /** Toggle mute state. */
   toggle: () => void
   toggleMute: () => void
@@ -175,12 +234,17 @@ export interface UseBackgroundMusicResult {
   unmute: () => void
   play: () => Promise<void> | undefined
   pause: () => void
+  /** Select a track by id (no-op for invalid ids). */
+  setTrack: (trackId: string) => void
+  selectTrack: (trackId: string) => void
 }
 
 export function useBackgroundMusic(): UseBackgroundMusicResult {
   ensureAudio()
 
   const muted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const trackId = useSyncExternalStore(subscribe, getTrackSnapshot, getTrackServerSnapshot)
+  const track = getTrackById(trackId) ?? getTrackById(DEFAULT_TRACK_ID) ?? BACKGROUND_MUSIC_TRACKS[0]
 
   const toggle = useCallback(() => {
     toggleMuted()
@@ -206,6 +270,10 @@ export function useBackgroundMusic(): UseBackgroundMusicResult {
     audioEl?.pause()
   }, [])
 
+  const setTrackCallback = useCallback((id: string) => {
+    setTrack(id)
+  }, [])
+
   return {
     audioRef: { current: audioEl },
     audio: audioEl,
@@ -214,6 +282,10 @@ export function useBackgroundMusic(): UseBackgroundMusicResult {
     isPlaying: !muted,
     playing: !muted,
     volume: VOLUME,
+    track,
+    tracks: BACKGROUND_MUSIC_TRACKS,
+    trackId,
+    currentTrackId: trackId,
     toggle,
     toggleMute: toggle,
     toggleMusic: toggle,
@@ -222,5 +294,7 @@ export function useBackgroundMusic(): UseBackgroundMusicResult {
     unmute,
     play,
     pause,
+    setTrack: setTrackCallback,
+    selectTrack: setTrackCallback,
   }
 }
