@@ -105,6 +105,33 @@ describe('FocusOverlay', () => {
     expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
   })
 
+  it('silencia e reativa o som ambiente sem pausar o cronômetro', () => {
+    renderOverlay()
+    act(() => {
+      timerRef.current?.selectDuration(10)
+      timerRef.current?.start()
+      timerRef.current?.openFocusMode()
+    })
+
+    const audioButton = screen.getByRole('button', { name: /silenciar som ambiente/i })
+    expect(audioButton).toBeInTheDocument()
+
+    act(() => {
+      audioButton.click()
+    })
+
+    expect(screen.getByRole('button', { name: /ativar som ambiente/i })).toBeInTheDocument()
+    expect(timerRef.current?.status).toBe('running')
+    expect(screen.getByText('Farmando XP...')).toBeInTheDocument()
+
+    act(() => {
+      screen.getByRole('button', { name: /ativar som ambiente/i }).click()
+    })
+
+    expect(screen.getByRole('button', { name: /silenciar som ambiente/i })).toBeInTheDocument()
+    expect(timerRef.current?.status).toBe('running')
+  })
+
   it('conclui a sessão ao clicar em Concluir Sessão', () => {
     renderOverlay()
     act(() => {

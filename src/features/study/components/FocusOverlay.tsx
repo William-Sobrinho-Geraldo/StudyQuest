@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { Flag, Pause, Play } from 'lucide-react'
+import { Flag, Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import { StudyLoadingAnimation } from '../../../components/StudyLoadingAnimation'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
 import { useModalBackHandler } from '../../../hooks/useNativeBackButton'
+import { useBackgroundMusic } from '../../../hooks/useBackgroundMusic'
 
 const PAUSE_BUTTON =
   'flex min-h-14 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-6 text-base font-semibold text-slate-200 transition-transform duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50'
@@ -10,10 +11,14 @@ const PAUSE_BUTTON =
 const FINISH_BUTTON =
   'flex min-h-14 flex-1 items-center justify-center gap-2 rounded-xl bg-rose-600 px-6 text-base font-bold text-white transition-transform duration-150 active:scale-95 animate-glow-pulse'
 
+const AUDIO_BUTTON =
+  'flex min-h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white active:scale-95'
+
 const FINISH_TAPS_REQUIRED = 5
 
 export function FocusOverlay() {
   const timer = useStudyTimerContext()
+  const { isMuted, toggle: toggleAudio } = useBackgroundMusic()
   const tapCountRef = useRef(0)
 
   const handleFinishEarly = () => {
@@ -73,6 +78,21 @@ export function FocusOverlay() {
 
         <footer className="relative pt-2 pb-[max(env(safe-area-inset-bottom),1rem)]">
           <div className="mb-8 flex items-stretch gap-3">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              data-testid="focus-audio-toggle"
+              aria-label={isMuted ? 'Ativar som ambiente' : 'Silenciar som ambiente'}
+              title={isMuted ? 'Ativar som ambiente' : 'Silenciar som ambiente'}
+              className={AUDIO_BUTTON}
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Volume2 className="h-5 w-5" aria-hidden="true" />
+              )}
+            </button>
+
             {timer.isRunning ? (
               <button
                 type="button"
