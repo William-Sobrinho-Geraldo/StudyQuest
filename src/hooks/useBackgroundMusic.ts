@@ -20,6 +20,10 @@ let mutedState = DEFAULT_MUTED
 let trackState = DEFAULT_TRACK_ID
 let audioEl: HTMLAudioElement | null = null
 let retryRegistered = false
+// Quantos anúncios estão atualmente exibindo e suspenderam a música. É usado
+// como contador (em vez de booleano) para absorver callbacks duplicados ou fora
+// de ordem: a música só retoma quando não há mais nenhum anúncio ativo.
+let adSuspendCount = 0
 
 function readMuted(): boolean {
   if (typeof window === 'undefined') return DEFAULT_MUTED
@@ -115,6 +119,32 @@ function ensureAudio(): void {
     }
   } catch {
     audioEl = null
+  }
+}
+
+/**
+ * Pausa a música porque um anúncio começou a ser exibido. NÃO altera a
+ * preferência de mudo do usuário (`mutedState`/localStorage): apenas interrompe
+ * a reprodução momentaneamente, para não competir com o áudio do anúncio.
+ */
+export function suspendBackgroundMusicForAd(): void {
+  adSuspendCount += 1
+  if (audioEl) {
+    audioEl.pause()
+  }
+}
+
+/**
+ * Sinaliza o fim (concluído, fechado/dispensado ou falha) de um anúncio e
+ * retoma a música somente quando não houver mais nenhum anúncio ativo e o
+ * usuário não estiver com o som mutado. Usa `tryPlay` para tratar de forma
+ * segura a política de autoplay do WebView (agendando retry no próximo gesto
+ * quando necessário).
+ */
+export function resumeBackgroundMusicAfterAd(): void {
+  adSuspendCount = Math.max(0, adSuspendCount - 1)
+  if (adSuspendCount === 0) {
+    tryPlay(true)
   }
 }
 

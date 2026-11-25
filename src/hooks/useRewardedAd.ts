@@ -3,6 +3,10 @@ import { AdMob, RewardAdPluginEvents } from '@capacitor-community/admob'
 import type { PluginListenerHandle } from '@capacitor/core'
 import { REWARDED_AD_UNIT_ID } from '../config/admob'
 import { isAndroid } from '../utils/platform'
+import {
+  resumeBackgroundMusicAfterAd,
+  suspendBackgroundMusicForAd,
+} from './useBackgroundMusic'
 
 const adId = REWARDED_AD_UNIT_ID
 
@@ -30,6 +34,14 @@ export function useRewardedAd() {
 
     const handles: PluginListenerHandle[] = []
 
+    // O anúncio começou a ser exibido: pausa a música de fundo para não
+    // competir com o áudio do anúncio (sem alterar a preferência de mudo).
+    void AdMob.addListener(RewardAdPluginEvents.Showed, () => {
+      suspendBackgroundMusicForAd()
+    }).then((handle) => {
+      handles.push(handle)
+    })
+
     // Única fonte de verdade para conceder a recompensa: o anúncio foi
     // assistido até o fim e o usuário ganhou a recompensa.
     void AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
@@ -43,6 +55,7 @@ export function useRewardedAd() {
 
     // Fechado sem concluir (ou apenas encerrado): nunca concede recompensa.
     void AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+      resumeBackgroundMusicAfterAd()
       onSuccessRef.current = undefined
       onErrorRef.current = undefined
       setIsAdReady(false)
@@ -54,6 +67,7 @@ export function useRewardedAd() {
     // Anúncio carregado, mas falhou ao abrir: informa indisponibilidade e
     // recarrega sem conceder recompensa.
     void AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => {
+      resumeBackgroundMusicAfterAd()
       const handler = onErrorRef.current
       onSuccessRef.current = undefined
       onErrorRef.current = undefined
@@ -82,6 +96,9 @@ export function useRewardedAd() {
       try {
         await AdMob.showRewardVideoAd()
       } catch (error) {
+        // Falhou ao abrir (ex.: anúncio não preparado): garante que a música
+        // não fique travada pausada, retomando se o usuário não estiver mutado.
+        resumeBackgroundMusicAfterAd()
         console.error('Falha ao exibir o anúncio:', error)
         const handler = onErrorRef.current
         onSuccessRef.current = undefined

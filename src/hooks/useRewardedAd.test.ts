@@ -8,6 +8,11 @@ const admobMock = vi.hoisted(() => ({
   addListener: vi.fn(),
 }))
 
+const bgMusicMock = vi.hoisted(() => ({
+  suspendBackgroundMusicForAd: vi.fn(),
+  resumeBackgroundMusicAfterAd: vi.fn(),
+}))
+
 vi.mock('@capacitor-community/admob', () => ({
   AdMob: {
     prepareRewardVideoAd: admobMock.prepareRewardVideoAd,
@@ -23,6 +28,11 @@ vi.mock('@capacitor-community/admob', () => ({
     Rewarded: 'onRewardedVideoAdReward',
     AdImpression: 'onRewardedVideoAdImpression',
   },
+}))
+
+vi.mock('./useBackgroundMusic', () => ({
+  suspendBackgroundMusicForAd: bgMusicMock.suspendBackgroundMusicForAd,
+  resumeBackgroundMusicAfterAd: bgMusicMock.resumeBackgroundMusicAfterAd,
 }))
 
 vi.mock('../utils/platform', () => ({
@@ -140,5 +150,59 @@ describe('useRewardedAd', () => {
     expect(onError).toHaveBeenCalledTimes(1)
     // Recarrega após a falha de exibição.
     await waitFor(() => expect(admobMock.prepareRewardVideoAd).toHaveBeenCalledTimes(2))
+  })
+
+  it('pausa a música quando o anúncio começa a ser exibido (Showed)', async () => {
+    const { result } = renderAdHook()
+    await waitFor(() => expect(result.current.isAdReady).toBe(true))
+
+    act(() => {
+      emit('onRewardedVideoAdShowed')
+    })
+
+    expect(bgMusicMock.suspendBackgroundMusicForAd).toHaveBeenCalledTimes(1)
+    expect(bgMusicMock.resumeBackgroundMusicAfterAd).not.toHaveBeenCalled()
+  })
+
+  it('retoma a música ao fechar o anúncio (Dismissed)', async () => {
+    const { result } = renderAdHook()
+    await waitFor(() => expect(result.current.isAdReady).toBe(true))
+
+    act(() => {
+      emit('onRewardedVideoAdShowed')
+      emit('onRewardedVideoAdDismissed')
+    })
+
+    expect(bgMusicMock.suspendBackgroundMusicForAd).toHaveBeenCalledTimes(1)
+    expect(bgMusicMock.resumeBackgroundMusicAfterAd).toHaveBeenCalledTimes(1)
+
+    // Flush do recarregamento assíncrono disparado pelo Dismissed.
+    await waitFor(() => expect(admobMock.prepareRewardVideoAd).toHaveBeenCalledTimes(2))
+  })
+
+  it('retoma a música quando o anúncio falha ao abrir (FailedToShow)', async () => {
+    const { result } = renderAdHook()
+    await waitFor(() => expect(result.current.isAdReady).toBe(true))
+
+    act(() => {
+      emit('onRewardedVideoAdFailedToShow')
+    })
+
+    expect(bgMusicMock.resumeBackgroundMusicAfterAd).toHaveBeenCalledTimes(1)
+
+    // Flush do recarregamento assíncrono disparado pelo FailedToShow.
+    await waitFor(() => expect(admobMock.prepareRewardVideoAd).toHaveBeenCalledTimes(2))
+  })
+
+  it('retoma a música quando showRewardVideoAd rejeita (falha ao abrir)', async () => {
+    admobMock.showRewardVideoAd.mockRejectedValueOnce(new Error('sem anúncio preparado'))
+    const { result } = renderAdHook()
+    await waitFor(() => expect(result.current.isAdReady).toBe(true))
+
+    await act(async () => {
+      await result.current.showAd(vi.fn(), vi.fn())
+    })
+
+    expect(bgMusicMock.resumeBackgroundMusicAfterAd).toHaveBeenCalledTimes(1)
   })
 })
