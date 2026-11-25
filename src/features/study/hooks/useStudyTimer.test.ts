@@ -25,6 +25,8 @@ const {
   clearPendingFocusNotifications,
   startFocusForegroundService,
   stopFocusForegroundService,
+  suspendBackgroundMusicForSessionEnd,
+  resumeBackgroundMusicAfterSessionClaim,
 } = vi.hoisted(() => ({
   emitStudySessionSaved: vi.fn(),
   playCompletionSound: vi.fn(),
@@ -37,6 +39,8 @@ const {
   clearPendingFocusNotifications: vi.fn().mockResolvedValue(undefined),
   startFocusForegroundService: vi.fn().mockResolvedValue(undefined),
   stopFocusForegroundService: vi.fn().mockResolvedValue(undefined),
+  suspendBackgroundMusicForSessionEnd: vi.fn(),
+  resumeBackgroundMusicAfterSessionClaim: vi.fn(),
 }))
 
 vi.mock('../lib/studyEvents', () => ({
@@ -62,6 +66,11 @@ vi.mock('../lib/distractionNotifications', () => ({
 vi.mock('../lib/backgroundSession', () => ({
   startFocusForegroundService,
   stopFocusForegroundService,
+}))
+
+vi.mock('./useBackgroundMusic', () => ({
+  suspendBackgroundMusicForSessionEnd,
+  resumeBackgroundMusicAfterSessionClaim,
 }))
 
 const appStateMock = vi.hoisted(() => {
@@ -623,6 +632,74 @@ describe('useStudyTimer — encerramento antecipado', () => {
       xp: 20,
       gold: 4,
     })
+  })
+})
+
+describe('useStudyTimer — música de fundo na conclusão', () => {
+  it('pausa a música de fundo ao concluir a sessão', async () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(5)
+    })
+    act(() => {
+      result.current.start()
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(result.current.status).toBe('completed')
+    expect(suspendBackgroundMusicForSessionEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('retoma a música de fundo ao resetar após concluir (coleta de recompensas)', async () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(5)
+      result.current.start()
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(suspendBackgroundMusicForSessionEnd).toHaveBeenCalledTimes(1)
+    expect(resumeBackgroundMusicAfterSessionClaim).not.toHaveBeenCalled()
+
+    act(() => {
+      result.current.reset()
+    })
+
+    expect(resumeBackgroundMusicAfterSessionClaim).toHaveBeenCalledTimes(1)
+  })
+
+  it('não pausa a música ao abandonar antes de 1 minuto e libera com segurança', () => {
+    const { result } = setupTimer()
+
+    act(() => {
+      result.current.selectDuration(25)
+      result.current.start()
+      result.current.openFocusMode()
+    })
+    act(() => {
+      vi.advanceTimersByTime(30_000)
+    })
+
+    act(() => {
+      result.current.finishEarly()
+    })
+
+    expect(result.current.status).toBe('idle')
+    expect(suspendBackgroundMusicForSessionEnd).not.toHaveBeenCalled()
+    // reset() chamado pelo abandono libera qualquer suspensão pendente.
+    expect(resumeBackgroundMusicAfterSessionClaim).toHaveBeenCalledTimes(1)
   })
 })
 

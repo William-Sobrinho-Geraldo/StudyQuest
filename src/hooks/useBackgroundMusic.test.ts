@@ -6,6 +6,8 @@ type HookModule = typeof import('./useBackgroundMusic')
 let useBackgroundMusic: HookModule['useBackgroundMusic']
 let suspendBackgroundMusicForAd: HookModule['suspendBackgroundMusicForAd']
 let resumeBackgroundMusicAfterAd: HookModule['resumeBackgroundMusicAfterAd']
+let suspendBackgroundMusicForSessionEnd: HookModule['suspendBackgroundMusicForSessionEnd']
+let resumeBackgroundMusicAfterSessionClaim: HookModule['resumeBackgroundMusicAfterSessionClaim']
 
 /**
  * Implementação falsa de `HTMLAudioElement` usada apenas nos testes. O jsdom
@@ -52,6 +54,8 @@ beforeEach(async () => {
   useBackgroundMusic = mod.useBackgroundMusic
   suspendBackgroundMusicForAd = mod.suspendBackgroundMusicForAd
   resumeBackgroundMusicAfterAd = mod.resumeBackgroundMusicAfterAd
+  suspendBackgroundMusicForSessionEnd = mod.suspendBackgroundMusicForSessionEnd
+  resumeBackgroundMusicAfterSessionClaim = mod.resumeBackgroundMusicAfterSessionClaim
 })
 
 afterEach(() => {
@@ -169,6 +173,116 @@ describe('useBackgroundMusic', () => {
         resumeBackgroundMusicAfterAd()
       })
 
+      expect(audio.paused).toBe(false)
+    })
+  })
+
+  describe('pausa e retomada na conclusão da sessão de foco', () => {
+    it('pausa ao concluir a sessão e retoma após coletar quando não mutado', () => {
+      renderHook(() => useBackgroundMusic())
+      const audio = FakeAudio.instances[0]
+      expect(audio.paused).toBe(false)
+
+      act(() => {
+        suspendBackgroundMusicForSessionEnd()
+      })
+
+      expect(audio.paused).toBe(true)
+      expect(audio.pauseCalls).toBeGreaterThan(0)
+      // A preferência de mudo do usuário não é alterada.
+      expect(localStorage.getItem('studyquest:bg-music-muted')).toBeNull()
+
+      act(() => {
+        resumeBackgroundMusicAfterSessionClaim()
+      })
+
+      expect(audio.paused).toBe(false)
+    })
+
+    it('permanece em silêncio quando o usuário já está mutado', () => {
+      const { result } = renderHook(() => useBackgroundMusic())
+
+      act(() => {
+        result.current.mute()
+      })
+
+      expect(result.current.isMuted).toBe(true)
+      const audio = FakeAudio.instances[0]
+      const playCallsAfterMute = audio.playCalls
+
+      act(() => {
+        suspendBackgroundMusicForSessionEnd()
+        resumeBackgroundMusicAfterSessionClaim()
+      })
+
+      // Não tenta retomar a reprodução: continua em silêncio.
+      expect(audio.playCalls).toBe(playCallsAfterMute)
+    })
+
+    it('não retoma por fim de anúncio enquanto a sessão ainda está pendente', () => {
+      renderHook(() => useBackgroundMusic())
+      const audio = FakeAudio.instances[0]
+
+      act(() => {
+        suspendBackgroundMusicForSessionEnd()
+      })
+      expect(audio.paused).toBe(true)
+
+      // O anúncio terminou, mas as recompensas da sessão ainda não foram
+      // coletadas: a música continua pausada.
+      act(() => {
+        resumeBackgroundMusicAfterAd()
+      })
+      expect(audio.paused).toBe(true)
+
+      act(() => {
+        resumeBackgroundMusicAfterSessionClaim()
+      })
+      expect(audio.paused).toBe(false)
+    })
+
+    it('não retoma por coleta enquanto um anúncio ainda está ativo', () => {
+      renderHook(() => useBackgroundMusic())
+      const audio = FakeAudio.instances[0]
+
+      act(() => {
+        suspendBackgroundMusicForAd()
+        suspendBackgroundMusicForSessionEnd()
+      })
+      expect(audio.paused).toBe(true)
+
+      // As recompensas foram coletadas, mas o anúncio ainda está na tela:
+      // a música não deve voltar.
+      act(() => {
+        resumeBackgroundMusicAfterSessionClaim()
+      })
+      expect(audio.paused).toBe(true)
+
+      act(() => {
+        resumeBackgroundMusicAfterAd()
+      })
+      expect(audio.paused).toBe(false)
+    })
+
+    it('suporta múltiplas suspensões de sessão sem travar (resiliência)', () => {
+      renderHook(() => useBackgroundMusic())
+      const audio = FakeAudio.instances[0]
+
+      act(() => {
+        suspendBackgroundMusicForSessionEnd()
+        suspendBackgroundMusicForSessionEnd()
+      })
+      expect(audio.paused).toBe(true)
+
+      act(() => {
+        resumeBackgroundMusicAfterSessionClaim()
+      })
+      // Ainda há uma sessão pendente.
+      expect(audio.paused).toBe(true)
+
+      act(() => {
+        resumeBackgroundMusicAfterSessionClaim()
+      })
       expect(audio.paused).toBe(false)
     })
   })

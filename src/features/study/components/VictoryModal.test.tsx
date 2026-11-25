@@ -42,6 +42,18 @@ vi.mock('../../../hooks/useRewardedAd', () => ({
   }),
 }))
 
+const bgMusic = vi.hoisted(() => ({
+  suspendBackgroundMusicForSessionEnd: vi.fn(),
+  resumeBackgroundMusicAfterSessionClaim: vi.fn(),
+}))
+
+// `useStudyTimer` importa o re-export local; mockar o mesmo módulo garante que
+// o fluxo real de pausa/retomada da música não seja executado no teste.
+vi.mock('../hooks/useBackgroundMusic', () => ({
+  suspendBackgroundMusicForSessionEnd: bgMusic.suspendBackgroundMusicForSessionEnd,
+  resumeBackgroundMusicAfterSessionClaim: bgMusic.resumeBackgroundMusicAfterSessionClaim,
+}))
+
 const capacitorMocks = vi.hoisted(() => ({
   isNative: true,
 }))
@@ -104,6 +116,8 @@ beforeEach(() => {
   rewardedAd.isAdReady = true
   rewardedAd.showAd.mockClear()
   rewardedAd.loadAd.mockClear()
+  bgMusic.suspendBackgroundMusicForSessionEnd.mockClear()
+  bgMusic.resumeBackgroundMusicAfterSessionClaim.mockClear()
   capacitorMocks.isNative = true
   timerRef.current = null
 })
@@ -149,6 +163,23 @@ describe('VictoryModal', () => {
     expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 250, p_gold: 50 })
     expect(screen.queryByRole('dialog', { name: /sessão concluída/i })).not.toBeInTheDocument()
     expect(timerRef.current?.status).toBe('idle')
+  })
+
+  it('pausa a música ao concluir e só retoma após coletar as recompensas', async () => {
+    const { getByRole } = renderModal()
+    await finishSession()
+
+    expect(bgMusic.suspendBackgroundMusicForSessionEnd).toHaveBeenCalledTimes(1)
+    // Enquanto o modal de recompensas está aberto, a música nunca é retomada.
+    expect(bgMusic.resumeBackgroundMusicAfterSessionClaim).not.toHaveBeenCalled()
+
+    await act(async () => {
+      getByRole('button', { name: /coletar e sair/i }).click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(bgMusic.resumeBackgroundMusicAfterSessionClaim).toHaveBeenCalledTimes(1)
   })
 
   it('Assistir Vídeo chama o showAd e dobra as recompensas', async () => {

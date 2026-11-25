@@ -24,6 +24,10 @@ import {
   startFocusForegroundService,
   stopFocusForegroundService,
 } from '../lib/backgroundSession'
+import {
+  resumeBackgroundMusicAfterSessionClaim,
+  suspendBackgroundMusicForSessionEnd,
+} from './useBackgroundMusic'
 
 export type StudyTimerStatus = 'idle' | 'running' | 'paused' | 'completed'
 
@@ -108,6 +112,10 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     async (minutesOverride?: number): Promise<StudyTimerResult | null> => {
       if (completedRef.current) return null
       completedRef.current = true
+      // A sessão terminou: pausa imediatamente a música contínua para que o
+      // som de conclusão toque sem competição. A pausa é liberada apenas
+      // quando o usuário coletar as recompensas (reset) ou abandonar a sessão.
+      suspendBackgroundMusicForSessionEnd()
       endTimeRef.current = null
       clearTimer()
       clearAllBackgroundTracking()
@@ -245,6 +253,10 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     setSaveError(null)
     setIsSaving(false)
     setSessionCompletedAt(null)
+    // Libera qualquer suspensão de sessão concluída. É idempotente: no caminho
+    // de abandono (< 1 min) nunca houve suspensão, então isso apenas garante
+    // que a música não fique travada pausada por engano.
+    resumeBackgroundMusicAfterSessionClaim()
     changeStatus('idle')
   }, [changeStatus, clearAllBackgroundTracking, clearTimer])
 
@@ -345,6 +357,9 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
     return () => {
       clearValidationTimeout()
       void stopFocusForegroundService()
+      // Resiliência: se o provider desmontar com uma sessão concluída pendente,
+      // libera a suspensão para não deixar a música travada pausada.
+      resumeBackgroundMusicAfterSessionClaim()
     }
   }, [clearValidationTimeout])
 

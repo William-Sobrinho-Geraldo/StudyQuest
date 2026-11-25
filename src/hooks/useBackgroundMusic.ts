@@ -24,6 +24,10 @@ let retryRegistered = false
 // como contador (em vez de booleano) para absorver callbacks duplicados ou fora
 // de ordem: a música só retoma quando não há mais nenhum anúncio ativo.
 let adSuspendCount = 0
+// Quantas sessões de foco concluídas estão com recompensas pendentes (modal de
+// vitória aberto). Enquanto houver ao menos uma, a música permanece pausada para
+// não competir com o som de conclusão — sem alterar a preferência de mudo.
+let sessionEndSuspendCount = 0
 
 function readMuted(): boolean {
   if (typeof window === 'undefined') return DEFAULT_MUTED
@@ -71,6 +75,11 @@ function writeTrack(id: string): void {
  */
 function tryPlay(registerRetry = true): void {
   if (!audioEl || mutedState) return
+  // Nunca retomar por conta própria enquanto houver um bloqueio ativo: um
+  // anúncio em exibição ou uma sessão concluída aguardando coleta de
+  // recompensas. Isso cobre visibilitychange, appStateChange, gesture-retry e
+  // retomada após anúncio.
+  if (adSuspendCount > 0 || sessionEndSuspendCount > 0) return
   try {
     const result = audioEl.play()
     if (result && typeof result.then === 'function') {
@@ -144,6 +153,34 @@ export function suspendBackgroundMusicForAd(): void {
 export function resumeBackgroundMusicAfterAd(): void {
   adSuspendCount = Math.max(0, adSuspendCount - 1)
   if (adSuspendCount === 0) {
+    tryPlay(true)
+  }
+}
+
+/**
+ * Pausa a música porque uma sessão de foco terminou e o modal de recompensas
+ * está prestes a ser exibido. NÃO altera a preferência de mudo do usuário
+ * (`mutedState`/localStorage): apenas interrompe a reprodução momentaneamente
+ * para que o som de conclusão toque com clareza.
+ */
+export function suspendBackgroundMusicForSessionEnd(): void {
+  sessionEndSuspendCount += 1
+  if (audioEl) {
+    audioEl.pause()
+  }
+}
+
+/**
+ * Libera a suspensão de uma sessão concluída (após coletar as recompensas, ou
+ * ao cancelar/reiniciar a sessão). A música só retoma quando não há mais
+ * nenhuma sessão pendente, nenhum anúncio ativo e o usuário não está mutado.
+ */
+export function resumeBackgroundMusicAfterSessionClaim(): void {
+  // Sem suspensão pendente não há nada a retomar: evita tentar tocar a música
+  // em fluxos que nunca a pausaram (ex.: abandono antes de 1 minuto, unmount).
+  if (sessionEndSuspendCount === 0) return
+  sessionEndSuspendCount -= 1
+  if (sessionEndSuspendCount === 0) {
     tryPlay(true)
   }
 }
