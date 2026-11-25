@@ -4,7 +4,7 @@ import { FloatingReward } from '../../../components/ui/FloatingReward'
 import { AndroidOnlyAdNotice } from '../../../components/ui/AndroidOnlyAdNotice'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { supabase } from '../../../lib/supabase'
-import { showRewardedAd } from '../../../services/AdService'
+import { useRewardedAd } from '../../../hooks/useRewardedAd'
 import { useAuth } from '../../auth/AuthContext'
 import { isAndroid } from '../../../utils/platform'
 import {
@@ -16,11 +16,28 @@ import {
 
 const formatNumber = (value: number) => new Intl.NumberFormat('pt-BR').format(value)
 
-interface MerchantBlessingResult {
+// O retorno da RPC pode chegar como objeto (jsonb) ou como string (json).
+// Garantimos os valores exibidos como fallback para nunca "perder" o XP/Gold.
+function parseBlessingResult(data: unknown): {
   xp: number
   gold: number
-  daily_ad_views: number
-  limit: number
+  daily_ad_views: number | null
+} {
+  let value: unknown = data
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value)
+    } catch {
+      value = null
+    }
+  }
+  const record = (value ?? {}) as Record<string, unknown>
+  return {
+    xp: typeof record.xp === 'number' ? record.xp : MERCHANT_BLESSING_XP,
+    gold: typeof record.gold === 'number' ? record.gold : MERCHANT_BLESSING_GOLD,
+    daily_ad_views:
+      typeof record.daily_ad_views === 'number' ? record.daily_ad_views : null,
+  }
 }
 
 interface MerchantBlessingModalProps {
@@ -30,8 +47,8 @@ interface MerchantBlessingModalProps {
 
 export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingModalProps) {
   const { profile, refreshProfile } = useAuth()
+  const { isAdReady, isLoading, showAd } = useRewardedAd()
   const [dailyViews, setDailyViews] = useState(() => getDailyAdViews(profile))
-  const [watching, setWatching] = useState(false)
   const [claiming, setClaiming] = useState(false)
   const [reward, setReward] = useState<{ xp: number; gold: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -50,29 +67,20 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
   }, [])
 
   const hasReachedLimit = dailyViews >= MERCHANT_DAILY_LIMIT
-  const busy = watching || claiming || reward !== null
+  const busy = claiming || reward !== null
 
-  const handleWatch = useCallback(async () => {
-    if (!isAndroid() || busy || hasReachedLimit) return
-    setError(null)
-    setWatching(true)
+  const claimReward = useCallback(async () => {
+    setClaiming(true)
     try {
-      const watched = await showRewardedAd()
-      if (!watched) {
-        setWatching(false)
-        return
-      }
-      setWatching(false)
-      setClaiming(true)
       const { data, error: rpcError } = await supabase.rpc('claim_merchant_blessing')
       if (rpcError) {
         setError(rpcError.message)
         setClaiming(false)
         return
       }
-      const result = data as unknown as MerchantBlessingResult
+      const result = parseBlessingResult(data)
       setReward({ xp: result.xp, gold: result.gold })
-      setDailyViews(result.daily_ad_views)
+      setDailyViews((prev) => result.daily_ad_views ?? prev + 1)
       setClaiming(false)
       void refreshProfile()
       onClaimed?.()
@@ -80,14 +88,26 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
         setReward(null)
         onClose()
       }, 3000)
-    } catch (watchError) {
+    } catch (claimError) {
       setError(
-        watchError instanceof Error ? watchError.message : 'Falha ao carregar a Visão Mágica.',
+        claimError instanceof Error ? claimError.message : 'Falha ao reivindicar a recompensa.',
       )
-      setWatching(false)
       setClaiming(false)
     }
-  }, [busy, hasReachedLimit, onClaimed, onClose])
+  }, [onClaimed, onClose])
+
+  const handleWatch = useCallback(() => {
+    if (busy || hasReachedLimit || !isAdReady) return
+    setError(null)
+    void showAd(
+      () => {
+        void claimReward()
+      },
+      () => {
+        setError('Anúncio indisponível no momento. Tente novamente.')
+      },
+    )
+  }, [busy, hasReachedLimit, isAdReady, showAd, claimReward])
 
   return (
     <div
@@ -161,8 +181,8 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
           <button
             type="button"
             data-testid="merchant-watch"
-            onClick={() => void handleWatch()}
-            disabled={busy || hasReachedLimit}
+            onClick={handleWatch}
+            disabled={busy || hasReachedLimit || !isAdReady}
             className={`mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
               reward
                 ? 'bg-green-600'
@@ -171,18 +191,20 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
           >
             {reward ? (
               'Coletado!'
-            ) : watching ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Carregando Visão Mágica...
-              </>
+            ) : hasReachedLimit ? (
+              'Limite diário atingido'
             ) : claiming ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Reivindicando...
               </>
-            ) : hasReachedLimit ? (
-              'Limite diário atingido'
+            ) : isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Carregando anúncio...
+              </>
+            ) : !isAdReady ? (
+              'Anúncio indisponível'
             ) : (
               <>
                 <MonitorPlay className="h-4 w-4" aria-hidden="true" />
