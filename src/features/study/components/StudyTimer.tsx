@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  AlertTriangle,
   Bell,
   BellOff,
   ChevronLeft,
@@ -23,7 +22,6 @@ import { hasExactAlarmPermission } from '../lib/distractionNotifications'
 import {
   isBatteryOptimizationEnabled,
   markBatteryOptimizationPromptShown,
-  requestIgnoreBatteryOptimization,
   wasBatteryOptimizationPromptShown,
 } from '../lib/backgroundSession'
 import { SoundSelector } from './SoundSelector'
@@ -170,28 +168,6 @@ export function StudyTimer() {
               className="grid h-11 w-11 place-items-center rounded-lg border border-slate-700 text-slate-400 transition hover:border-indigo-500 hover:text-white"
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
-        <AlertTriangle
-          className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
-          aria-hidden="true"
-        />
-        <div className="space-y-1">
-          <p className="text-xs leading-relaxed text-amber-200/90">
-            Mantenha o StudyQuest aberto. Minimizar o app por mais de 20s cancelará a sessão
-            sem XP.
-          </p>
-          {Capacitor.getPlatform() === 'android' && (
-            <button
-              type="button"
-              onClick={() => void requestIgnoreBatteryOptimization()}
-              className="text-xs font-medium text-amber-300 underline transition-colors hover:text-amber-200"
-            >
-              O alarme não toca com a tela bloqueada?
             </button>
           )}
         </div>

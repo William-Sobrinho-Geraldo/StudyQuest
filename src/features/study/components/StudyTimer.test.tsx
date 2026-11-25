@@ -14,7 +14,6 @@ vi.mock('../services/studySessionService', () => ({
 vi.mock('../lib/backgroundSession', () => ({
   isBatteryOptimizationEnabled: vi.fn().mockResolvedValue(false),
   markBatteryOptimizationPromptShown: vi.fn(),
-  requestIgnoreBatteryOptimization: vi.fn(),
   wasBatteryOptimizationPromptShown: vi.fn().mockReturnValue(true),
   setupFocusServiceChannel: vi.fn().mockResolvedValue(undefined),
   startFocusForegroundService: vi.fn().mockResolvedValue(undefined),
@@ -72,6 +71,17 @@ describe('StudyTimer — UI', () => {
     expect(screen.getByRole('button', { name: /diminuir 5 minutos/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /aumentar 5 minutos/i })).toBeInTheDocument()
     expect(screen.getByRole('slider')).toHaveValue('25')
+  })
+
+  it('não exibe o aviso de minimização com 20s', () => {
+    renderTimer()
+
+    expect(
+      screen.queryByText(/minimizar o app por mais de 20s/i),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/mantenha o studyquest aberto/i),
+    ).not.toBeInTheDocument()
   })
 
   it('permite ajustar a duração pelos botões e inicia a contagem', () => {
