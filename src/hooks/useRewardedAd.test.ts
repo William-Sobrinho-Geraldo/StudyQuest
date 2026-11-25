@@ -205,4 +205,20 @@ describe('useRewardedAd', () => {
 
     expect(bgMusicMock.resumeBackgroundMusicAfterAd).toHaveBeenCalledTimes(1)
   })
+
+  it('libera a música ao desmontar com o anúncio ainda aberto (Showed sem Dismissed)', async () => {
+    const { result, unmount } = renderAdHook()
+    await waitFor(() => expect(result.current.isAdReady).toBe(true))
+
+    act(() => {
+      emit('onRewardedVideoAdShowed')
+    })
+
+    expect(bgMusicMock.suspendBackgroundMusicForAd).toHaveBeenCalledTimes(1)
+    expect(bgMusicMock.resumeBackgroundMusicAfterAd).not.toHaveBeenCalled()
+
+    unmount()
+
+    expect(bgMusicMock.resumeBackgroundMusicAfterAd).toHaveBeenCalledTimes(1)
+  })
 })

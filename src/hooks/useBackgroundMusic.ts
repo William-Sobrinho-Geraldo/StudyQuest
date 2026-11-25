@@ -24,10 +24,11 @@ let retryRegistered = false
 // como contador (em vez de booleano) para absorver callbacks duplicados ou fora
 // de ordem: a música só retoma quando não há mais nenhum anúncio ativo.
 let adSuspendCount = 0
-// Quantas sessões de foco concluídas estão com recompensas pendentes (modal de
-// vitória aberto). Enquanto houver ao menos uma, a música permanece pausada para
-// não competir com o som de conclusão — sem alterar a preferência de mudo.
-let sessionEndSuspendCount = 0
+// `true` enquanto uma sessão de foco concluída aguarda coleta de recompensas.
+// É um booleano (não contador) para ser auto-curável: ao coletar/reiniciar a
+// sessão a pausa é simplesmente limpa, evitando que um callback perdido deixe a
+// música travada pausada permanentemente.
+let sessionEndPaused = false
 
 function readMuted(): boolean {
   if (typeof window === 'undefined') return DEFAULT_MUTED
@@ -79,7 +80,16 @@ function tryPlay(registerRetry = true): void {
   // anúncio em exibição ou uma sessão concluída aguardando coleta de
   // recompensas. Isso cobre visibilitychange, appStateChange, gesture-retry e
   // retomada após anúncio.
-  if (adSuspendCount > 0 || sessionEndSuspendCount > 0) return
+  if (adSuspendCount > 0 || sessionEndPaused) return
+  startPlayback(registerRetry)
+}
+
+/**
+ * Inicia a reprodução de fato. Usado tanto pela retomada automática (que
+ * respeita os bloqueios) quanto pela ação explícita do usuário.
+ */
+function startPlayback(registerRetry: boolean): void {
+  if (!audioEl || mutedState) return
   try {
     const result = audioEl.play()
     if (result && typeof result.then === 'function') {
@@ -90,6 +100,16 @@ function tryPlay(registerRetry = true): void {
   } catch {
     if (registerRetry) registerGestureRetry()
   }
+}
+
+/**
+ * Retomada explícita (ex.: usuário desmutou pelo botão). Ignora pausas
+ * automáticas temporárias — inclusive um contador de anúncio residual — para
+ * que o controle de som nunca fique "morto". O botão não fica acessível
+ * enquanto um anúncio em tela cheia está exibindo, então é seguro.
+ */
+function forcePlay(): void {
+  startPlayback(true)
 }
 
 /**
@@ -164,7 +184,7 @@ export function resumeBackgroundMusicAfterAd(): void {
  * para que o som de conclusão toque com clareza.
  */
 export function suspendBackgroundMusicForSessionEnd(): void {
-  sessionEndSuspendCount += 1
+  sessionEndPaused = true
   if (audioEl) {
     audioEl.pause()
   }
@@ -172,17 +192,15 @@ export function suspendBackgroundMusicForSessionEnd(): void {
 
 /**
  * Libera a suspensão de uma sessão concluída (após coletar as recompensas, ou
- * ao cancelar/reiniciar a sessão). A música só retoma quando não há mais
- * nenhuma sessão pendente, nenhum anúncio ativo e o usuário não está mutado.
+ * ao cancelar/reiniciar a sessão). Limpa o estado de pausa de forma idempotente
+ * e só retoma quando não há anúncio ativo e o usuário não está mutado.
  */
 export function resumeBackgroundMusicAfterSessionClaim(): void {
-  // Sem suspensão pendente não há nada a retomar: evita tentar tocar a música
-  // em fluxos que nunca a pausaram (ex.: abandono antes de 1 minuto, unmount).
-  if (sessionEndSuspendCount === 0) return
-  sessionEndSuspendCount -= 1
-  if (sessionEndSuspendCount === 0) {
-    tryPlay(true)
-  }
+  // Sem pausa pendente não há nada a retomar: evita tentar tocar a música em
+  // fluxos que nunca a pausaram (ex.: abandono antes de 1 minuto, unmount).
+  if (!sessionEndPaused) return
+  sessionEndPaused = false
+  tryPlay(true)
 }
 
 function setMuted(next: boolean): void {
@@ -193,7 +211,11 @@ function setMuted(next: boolean): void {
     if (next) {
       audioEl.pause()
     } else {
-      tryPlay(true)
+      // Ação explícita do usuário: limpa a pausa de fim de sessão e força a
+      // retomada, mesmo que exista algum bloqueio residual. Isso garante que o
+      // botão de som no topo sempre volte a ativar a música.
+      sessionEndPaused = false
+      forcePlay()
     }
   }
   listeners.forEach((listener) => listener())
@@ -216,6 +238,14 @@ function setTrack(nextId: string): void {
 }
 
 function toggleMuted(): void {
+  // Toggle inteligente: se a música ficou "ligada" mas pausada pela conclusão
+  // da sessão (pausa residual), o toque do usuário deve RETOMAR o som — não
+  // silenciá-lo. Em qualquer outro caso, alterna o mudo normalmente.
+  if (!mutedState && sessionEndPaused) {
+    sessionEndPaused = false
+    forcePlay()
+    return
+  }
   setMuted(!mutedState)
 }
 

@@ -264,7 +264,7 @@ describe('useBackgroundMusic', () => {
       expect(audio.paused).toBe(false)
     })
 
-    it('suporta múltiplas suspensões de sessão sem travar (resiliência)', () => {
+    it('a pausa de sessão é auto-curável e não trava a música (resiliência)', () => {
       renderHook(() => useBackgroundMusic())
       const audio = FakeAudio.instances[0]
 
@@ -277,12 +277,50 @@ describe('useBackgroundMusic', () => {
       act(() => {
         resumeBackgroundMusicAfterSessionClaim()
       })
-      // Ainda há uma sessão pendente.
-      expect(audio.paused).toBe(true)
+      // Um único claim limpa a pausa pendente (booleano idempotente).
+      expect(audio.paused).toBe(false)
 
+      // Chamadas extras são no-op e não deixam a música pausada.
       act(() => {
         resumeBackgroundMusicAfterSessionClaim()
       })
+      expect(audio.paused).toBe(false)
+    })
+
+    it('unmute manual retoma a música mesmo com pausa de sessão pendente', () => {
+      const { result } = renderHook(() => useBackgroundMusic())
+      const audio = FakeAudio.instances[0]
+
+      act(() => {
+        result.current.mute()
+        suspendBackgroundMusicForSessionEnd()
+      })
+      expect(audio.paused).toBe(true)
+
+      act(() => {
+        result.current.setMuted(false)
+      })
+
+      expect(result.current.isMuted).toBe(false)
+      expect(audio.paused).toBe(false)
+    })
+
+    it('o toggle retoma o som quando está ligado mas pausado (pausa residual)', () => {
+      const { result } = renderHook(() => useBackgroundMusic())
+      const audio = FakeAudio.instances[0]
+
+      act(() => {
+        suspendBackgroundMusicForSessionEnd()
+      })
+      expect(result.current.isMuted).toBe(false)
+      expect(audio.paused).toBe(true)
+
+      act(() => {
+        result.current.toggle()
+      })
+
+      // Continua sem mudo e volta a tocar, em vez de silenciar.
+      expect(result.current.isMuted).toBe(false)
       expect(audio.paused).toBe(false)
     })
   })

@@ -15,6 +15,11 @@ export function useRewardedAd() {
   const [isLoading, setIsLoading] = useState(false)
   const onSuccessRef = useRef<(() => void) | undefined>(undefined)
   const onErrorRef = useRef<(() => void) | undefined>(undefined)
+  // Marca que ESTA instância suspendeu a música ao exibir um anúncio. Garante
+  // que a suspensão seja liberada exatamente uma vez — inclusive no unmount,
+  // quando o evento `Dismissed` pode chegar depois que o modal já foi fechado
+  // (o que deixaria a música travada pausada para sempre).
+  const adSuspendedRef = useRef(false)
 
   const loadAd = useCallback(async () => {
     if (!isAndroid()) return
@@ -37,6 +42,7 @@ export function useRewardedAd() {
     // O anúncio começou a ser exibido: pausa a música de fundo para não
     // competir com o áudio do anúncio (sem alterar a preferência de mudo).
     void AdMob.addListener(RewardAdPluginEvents.Showed, () => {
+      adSuspendedRef.current = true
       suspendBackgroundMusicForAd()
     }).then((handle) => {
       handles.push(handle)
@@ -55,7 +61,10 @@ export function useRewardedAd() {
 
     // Fechado sem concluir (ou apenas encerrado): nunca concede recompensa.
     void AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-      resumeBackgroundMusicAfterAd()
+      if (adSuspendedRef.current) {
+        adSuspendedRef.current = false
+        resumeBackgroundMusicAfterAd()
+      }
       onSuccessRef.current = undefined
       onErrorRef.current = undefined
       setIsAdReady(false)
@@ -67,6 +76,7 @@ export function useRewardedAd() {
     // Anúncio carregado, mas falhou ao abrir: informa indisponibilidade e
     // recarrega sem conceder recompensa.
     void AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => {
+      adSuspendedRef.current = false
       resumeBackgroundMusicAfterAd()
       const handler = onErrorRef.current
       onSuccessRef.current = undefined
@@ -83,6 +93,12 @@ export function useRewardedAd() {
       handles.forEach((handle) => {
         void handle.remove()
       })
+      // Se o componente desmontar com o anúncio ainda aberto, libera a pausa
+      // para não deixar a música permanentemente bloqueada.
+      if (adSuspendedRef.current) {
+        adSuspendedRef.current = false
+        resumeBackgroundMusicAfterAd()
+      }
     }
   }, [loadAd])
 
@@ -98,6 +114,7 @@ export function useRewardedAd() {
       } catch (error) {
         // Falhou ao abrir (ex.: anúncio não preparado): garante que a música
         // não fique travada pausada, retomando se o usuário não estiver mutado.
+        adSuspendedRef.current = false
         resumeBackgroundMusicAfterAd()
         console.error('Falha ao exibir o anúncio:', error)
         const handler = onErrorRef.current
