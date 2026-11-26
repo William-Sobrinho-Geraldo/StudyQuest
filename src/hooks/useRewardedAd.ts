@@ -15,6 +15,11 @@ export function useRewardedAd() {
   const [isLoading, setIsLoading] = useState(false)
   const onSuccessRef = useRef<(() => void) | undefined>(undefined)
   const onErrorRef = useRef<(() => void) | undefined>(undefined)
+  // Guarda o callback de sucesso entre o momento em que a recompensa é ganha
+  // (evento `Rewarded`) e o fechamento do anúncio (`Dismissed`). A entrega é
+  // adiada para o `Dismissed` para que o feedback (toast/XP/Gold) apareça
+  // quando o WebView já está visível — e não atrás do anúncio nativo.
+  const pendingSuccessRef = useRef<(() => void) | undefined>(undefined)
   // Marca que ESTA instância suspendeu a música ao exibir um anúncio. Garante
   // que a suspensão seja liberada exatamente uma vez — inclusive no unmount,
   // quando o evento `Dismissed` pode chegar depois que o modal já foi fechado
@@ -49,17 +54,19 @@ export function useRewardedAd() {
     })
 
     // Única fonte de verdade para conceder a recompensa: o anúncio foi
-    // assistido até o fim e o usuário ganhou a recompensa.
+    // assistido até o fim e o usuário ganhou a recompensa. A entrega é
+    // adiada para o evento `Dismissed` (ver `pendingSuccessRef`) para que o
+    // feedback seja exibido com o app já visível.
     void AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
-      const handler = onSuccessRef.current
+      pendingSuccessRef.current = onSuccessRef.current
       onSuccessRef.current = undefined
       onErrorRef.current = undefined
-      handler?.()
     }).then((handle) => {
       handles.push(handle)
     })
 
-    // Fechado sem concluir (ou apenas encerrado): nunca concede recompensa.
+    // Fechado sem concluir (ou apenas encerrado): só entrega a recompensa se
+    // o usuário realmente ganhou (pendingSuccessRef preenchido no `Rewarded`).
     void AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
       if (adSuspendedRef.current) {
         adSuspendedRef.current = false
@@ -67,8 +74,11 @@ export function useRewardedAd() {
       }
       onSuccessRef.current = undefined
       onErrorRef.current = undefined
+      const handler = pendingSuccessRef.current
+      pendingSuccessRef.current = undefined
       setIsAdReady(false)
       void loadAd()
+      handler?.()
     }).then((handle) => {
       handles.push(handle)
     })
@@ -81,6 +91,7 @@ export function useRewardedAd() {
       const handler = onErrorRef.current
       onSuccessRef.current = undefined
       onErrorRef.current = undefined
+      pendingSuccessRef.current = undefined
       handler?.()
       void loadAd()
     }).then((handle) => {
@@ -120,6 +131,7 @@ export function useRewardedAd() {
         const handler = onErrorRef.current
         onSuccessRef.current = undefined
         onErrorRef.current = undefined
+        pendingSuccessRef.current = undefined
         handler?.()
         void loadAd()
       }

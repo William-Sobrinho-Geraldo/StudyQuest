@@ -69,7 +69,7 @@ describe('useRewardedAd', () => {
     expect(admobMock.prepareRewardVideoAd).toHaveBeenCalledTimes(1)
   })
 
-  it('concede a recompensa apenas quando o evento Rewarded é disparado', async () => {
+  it('concede a recompensa somente após o anúncio ser fechado (Rewarded + Dismissed)', async () => {
     const { result } = renderAdHook()
     await waitFor(() => expect(result.current.isAdReady).toBe(true))
 
@@ -80,12 +80,19 @@ describe('useRewardedAd', () => {
       await result.current.showAd(onSuccess, onError)
     })
 
-    // A exibição foi iniciada, mas sem o evento de recompensa nada é concedido.
+    // A exibição foi iniciada, mas sem recompensa nada é concedido.
     expect(onSuccess).not.toHaveBeenCalled()
     expect(onError).not.toHaveBeenCalled()
 
+    // Recompensa ganha, mas o anúncio ainda está aberto: nada é entregue ainda.
     act(() => {
       emit('onRewardedVideoAdReward')
+    })
+    expect(onSuccess).not.toHaveBeenCalled()
+
+    // Anúncio fechado: entrega a recompensa agora (app já visível).
+    act(() => {
+      emit('onRewardedVideoAdDismissed')
     })
 
     expect(onSuccess).toHaveBeenCalledTimes(1)

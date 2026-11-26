@@ -228,6 +228,25 @@ describe('VictoryModal', () => {
     expect(timerRef.current?.status).toBe('idle')
   })
 
+  it('exibe a mensagem com os valores dobrados após assistir ao anúncio', async () => {
+    rewardedAd.showAd.mockImplementationOnce((onSuccess: () => void) => {
+      onSuccess()
+    })
+    const { getByRole } = renderModal()
+    await finishSession()
+
+    await act(async () => {
+      getByRole('button', { name: /assistir vídeo/i }).click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(completeStudySessionMock).toHaveBeenCalledWith('sess-1', true)
+    expect(
+      screen.getByText('Recompensas coletadas: +750 XP e +150 Gold'),
+    ).toBeInTheDocument()
+  })
+
   it('exibe "Carregando anúncio..." e desabilita o botão quando o anúncio não está pronto', async () => {
     rewardedAd.isAdReady = false
     renderModal()
