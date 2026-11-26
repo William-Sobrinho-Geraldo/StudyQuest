@@ -9,7 +9,10 @@ import {
 
 const STORAGE_KEY = 'studyquest:bg-music-muted'
 const TRACK_STORAGE_KEY = 'studyquest:bg-music-track'
-const DEFAULT_MUTED = false
+// Padrão de primeira abertura: música DESLIGADA. Sem um valor salvo indicando
+// que o usuário ativou o som explicitamente ('false'), o app inicia mutado para
+// nunca reproduzir áudio sem uma ação do usuário (autoplay bloqueado em WebView).
+const DEFAULT_MUTED = true
 const VOLUME = 0.25
 
 type Listener = () => void
@@ -34,6 +37,8 @@ function readMuted(): boolean {
   if (typeof window === 'undefined') return DEFAULT_MUTED
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
+    // Sem chave salva (primeira instalação/abertura) o padrão é OFF (mutado).
+    // Só existe som quando o usuário gravou explicitamente 'false' ao ligar.
     if (raw === null) return DEFAULT_MUTED
     return raw === 'true'
   } catch {

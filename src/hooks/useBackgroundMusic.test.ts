@@ -45,6 +45,16 @@ class FakeAudio {
   load(): void {}
 }
 
+/**
+ * Ativa o som explicitamente (como o usuário faria ao tocar no toggle), para
+ * que os testes de pausa/retomada de anúncio e sessão partam do estado ligado.
+ */
+function activate(result: { current: { setMuted: (muted: boolean) => void } }): void {
+  act(() => {
+    result.current.setMuted(false)
+  })
+}
+
 beforeEach(async () => {
   vi.resetModules()
   localStorage.clear()
@@ -63,14 +73,73 @@ afterEach(() => {
 })
 
 describe('useBackgroundMusic', () => {
-  it('expõe o catálogo e a faixa padrão sem estar mutado', () => {
+  it('inicia mutado (OFF) sem preferência salva e não chama play() na montagem', () => {
     const { result } = renderHook(() => useBackgroundMusic())
+    const audio = FakeAudio.instances[0]
 
     expect(result.current.tracks).toHaveLength(4)
     expect(result.current.trackId).toBe('focus')
     expect(result.current.currentTrackId).toBe('focus')
     expect(result.current.track.name).toBe('Foco Calmo')
+    expect(result.current.isMuted).toBe(true)
+    expect(result.current.muted).toBe(true)
+    expect(result.current.isPlaying).toBe(false)
+    expect(result.current.playing).toBe(false)
+
+    expect(audio).toBeDefined()
+    expect(audio.muted).toBe(true)
+    expect(audio.paused).toBe(true)
+    expect(audio.playCalls).toBe(0)
+  })
+
+  it('não inicia a reprodução em cliques genéricos na página enquanto está OFF', () => {
+    renderHook(() => useBackgroundMusic())
+    const audio = FakeAudio.instances[0]
+
+    act(() => {
+      window.dispatchEvent(new Event('pointerdown'))
+      window.dispatchEvent(new Event('touchstart'))
+      window.dispatchEvent(new Event('keydown'))
+    })
+
+    expect(audio.playCalls).toBe(0)
+    expect(audio.paused).toBe(true)
+    // A preferência só passa a existir quando o usuário ativa o som de fato.
+    expect(localStorage.getItem('studyquest:bg-music-muted')).toBeNull()
+  })
+
+  it('ativa a reprodução ao alternar o toggle (OFF -> ON) e persiste a preferência', () => {
+    const { result } = renderHook(() => useBackgroundMusic())
+    const audio = FakeAudio.instances[0]
+
+    expect(result.current.isMuted).toBe(true)
+
+    act(() => {
+      result.current.toggle()
+    })
+
     expect(result.current.isMuted).toBe(false)
+    expect(result.current.muted).toBe(false)
+    expect(result.current.isPlaying).toBe(true)
+    expect(audio.paused).toBe(false)
+    expect(audio.playCalls).toBeGreaterThan(0)
+    expect(localStorage.getItem('studyquest:bg-music-muted')).toBe('false')
+  })
+
+  it('respeita a preferência salva como ativada ao recarregar', async () => {
+    localStorage.setItem('studyquest:bg-music-muted', 'false')
+    vi.resetModules()
+    FakeAudio.instances = []
+    const mod = await import('./useBackgroundMusic')
+
+    const { result } = renderHook(() => mod.useBackgroundMusic())
+    const audio = FakeAudio.instances[0]
+
+    expect(result.current.isMuted).toBe(false)
+    expect(result.current.muted).toBe(false)
+    expect(result.current.isPlaying).toBe(true)
+    expect(audio.paused).toBe(false)
+    expect(audio.playCalls).toBeGreaterThan(0)
   })
 
   it('seleciona e persiste uma faixa', () => {
@@ -96,8 +165,18 @@ describe('useBackgroundMusic', () => {
     expect(localStorage.getItem('studyquest:bg-music-track')).toBeNull()
   })
 
-  it('alterna e persiste o estado de mudo', () => {
+  it('alterna o estado de mudo e persiste a preferência (OFF -> ON -> OFF)', () => {
     const { result } = renderHook(() => useBackgroundMusic())
+
+    expect(result.current.isMuted).toBe(true)
+
+    act(() => {
+      result.current.toggle()
+    })
+
+    expect(result.current.isMuted).toBe(false)
+    expect(result.current.muted).toBe(false)
+    expect(localStorage.getItem('studyquest:bg-music-muted')).toBe('false')
 
     act(() => {
       result.current.toggle()
@@ -110,7 +189,8 @@ describe('useBackgroundMusic', () => {
 
   describe('pausa e retomada durante anúncios', () => {
     it('pausa ao iniciar o anúncio e retoma ao encerrar quando não mutado', () => {
-      renderHook(() => useBackgroundMusic())
+      const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
       expect(audio).toBeDefined()
       expect(audio.paused).toBe(false)
@@ -121,8 +201,8 @@ describe('useBackgroundMusic', () => {
 
       expect(audio.paused).toBe(true)
       expect(audio.pauseCalls).toBeGreaterThan(0)
-      // A preferência de mudo do usuário não é alterada.
-      expect(localStorage.getItem('studyquest:bg-music-muted')).toBeNull()
+      // A preferência de mudo do usuário não é alterada (segue ligada).
+      expect(localStorage.getItem('studyquest:bg-music-muted')).toBe('false')
 
       act(() => {
         resumeBackgroundMusicAfterAd()
@@ -133,6 +213,7 @@ describe('useBackgroundMusic', () => {
 
     it('permanece em silêncio quando o usuário já está mutado', () => {
       const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
 
       act(() => {
         result.current.mute()
@@ -152,7 +233,8 @@ describe('useBackgroundMusic', () => {
     })
 
     it('só retoma quando não há mais anúncios ativos (resiliência)', () => {
-      renderHook(() => useBackgroundMusic())
+      const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
 
       act(() => {
@@ -179,7 +261,8 @@ describe('useBackgroundMusic', () => {
 
   describe('pausa e retomada na conclusão da sessão de foco', () => {
     it('pausa ao concluir a sessão e retoma após coletar quando não mutado', () => {
-      renderHook(() => useBackgroundMusic())
+      const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
       expect(audio.paused).toBe(false)
 
@@ -189,8 +272,8 @@ describe('useBackgroundMusic', () => {
 
       expect(audio.paused).toBe(true)
       expect(audio.pauseCalls).toBeGreaterThan(0)
-      // A preferência de mudo do usuário não é alterada.
-      expect(localStorage.getItem('studyquest:bg-music-muted')).toBeNull()
+      // A preferência de mudo do usuário não é alterada (segue ligada).
+      expect(localStorage.getItem('studyquest:bg-music-muted')).toBe('false')
 
       act(() => {
         resumeBackgroundMusicAfterSessionClaim()
@@ -201,6 +284,7 @@ describe('useBackgroundMusic', () => {
 
     it('permanece em silêncio quando o usuário já está mutado', () => {
       const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
 
       act(() => {
         result.current.mute()
@@ -220,7 +304,8 @@ describe('useBackgroundMusic', () => {
     })
 
     it('não retoma por fim de anúncio enquanto a sessão ainda está pendente', () => {
-      renderHook(() => useBackgroundMusic())
+      const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
 
       act(() => {
@@ -242,7 +327,8 @@ describe('useBackgroundMusic', () => {
     })
 
     it('não retoma por coleta enquanto um anúncio ainda está ativo', () => {
-      renderHook(() => useBackgroundMusic())
+      const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
 
       act(() => {
@@ -265,7 +351,8 @@ describe('useBackgroundMusic', () => {
     })
 
     it('a pausa de sessão é auto-curável e não trava a música (resiliência)', () => {
-      renderHook(() => useBackgroundMusic())
+      const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
 
       act(() => {
@@ -292,7 +379,6 @@ describe('useBackgroundMusic', () => {
       const audio = FakeAudio.instances[0]
 
       act(() => {
-        result.current.mute()
         suspendBackgroundMusicForSessionEnd()
       })
       expect(audio.paused).toBe(true)
@@ -307,6 +393,7 @@ describe('useBackgroundMusic', () => {
 
     it('o toggle retoma o som quando está ligado mas pausado (pausa residual)', () => {
       const { result } = renderHook(() => useBackgroundMusic())
+      activate(result)
       const audio = FakeAudio.instances[0]
 
       act(() => {

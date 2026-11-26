@@ -118,7 +118,7 @@ describe('FocusOverlay', () => {
     expect(screen.getByRole('button', { name: /pausar/i })).toBeInTheDocument()
   })
 
-  it('silencia e reativa o som ambiente sem pausar o cronômetro', () => {
+  it('ativa e silencia o som ambiente sem pausar o cronômetro', () => {
     renderOverlay()
     act(() => {
       timerRef.current?.selectDuration(10)
@@ -126,22 +126,23 @@ describe('FocusOverlay', () => {
       timerRef.current?.openFocusMode()
     })
 
-    const audioButton = screen.getByRole('button', { name: /silenciar som ambiente/i })
-    expect(audioButton).toBeInTheDocument()
+    // O som ambiente começa desativado (padrão OFF): o primeiro toque liga.
+    const activateButton = screen.getByRole('button', { name: /ativar som ambiente/i })
+    expect(activateButton).toBeInTheDocument()
 
     act(() => {
-      audioButton.click()
+      activateButton.click()
     })
 
-    expect(screen.getByRole('button', { name: /ativar som ambiente/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /silenciar som ambiente/i })).toBeInTheDocument()
     expect(timerRef.current?.status).toBe('running')
     expect(screen.getByText('Farmando XP...')).toBeInTheDocument()
 
     act(() => {
-      screen.getByRole('button', { name: /ativar som ambiente/i }).click()
+      screen.getByRole('button', { name: /silenciar som ambiente/i }).click()
     })
 
-    expect(screen.getByRole('button', { name: /silenciar som ambiente/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /ativar som ambiente/i })).toBeInTheDocument()
     expect(timerRef.current?.status).toBe('running')
   })
 
