@@ -4,10 +4,11 @@ import { Eye, EyeOff, Loader2, Lock, Mail, Swords } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { RegisterModal } from '../features/auth/RegisterModal'
 import { ForgotPasswordModal } from '../features/auth/ForgotPasswordModal'
+import { GoogleButton } from '../features/auth/GoogleButton'
 import { EMAIL_INVALID_MESSAGE, isValidEmail, translateAuthEmailError } from '../lib/validation'
 
 export function LoginPage() {
-  const { signIn, isAuthenticated, processPendingInvite } = useAuth()
+  const { signIn, signInWithGoogle, isAuthenticated, processPendingInvite } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -15,6 +16,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
 
@@ -50,6 +52,29 @@ export function LoginPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function handleGoogleSignIn() {
+    if (googleSubmitting || submitting) return
+    setError(null)
+    setGoogleSubmitting(true)
+    try {
+      const result = await signInWithGoogle()
+      if (result.error) {
+        setError(translateGoogleAuthError(result.error))
+      }
+    } catch {
+      setError('Não foi possível entrar com o Google. Tente novamente.')
+    } finally {
+      setGoogleSubmitting(false)
+    }
+  }
+
+  function translateGoogleAuthError(message: string): string {
+    if (/provider.*(not enabled|disabled)|unsupported provider/i.test(message)) {
+      return 'O login com Google ainda não está habilitado. Entre em contato com o suporte.'
+    }
+    return message
   }
 
   return (
@@ -155,6 +180,20 @@ export function LoginPage() {
             {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <div className="mt-4 flex items-center gap-3" aria-hidden="true">
+          <span className="h-px flex-1 bg-slate-700" />
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">ou</span>
+          <span className="h-px flex-1 bg-slate-700" />
+        </div>
+
+        <div className="mt-4">
+          <GoogleButton
+            onClick={handleGoogleSignIn}
+            loading={googleSubmitting}
+            disabled={submitting}
+          />
+        </div>
 
         <p className="mt-6 text-center text-sm text-slate-400">
           Não tem uma conta?{' '}

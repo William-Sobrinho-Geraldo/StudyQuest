@@ -17,7 +17,17 @@ export function createSupabaseClient(
 ): SupabaseClient<Database> {
   const validatedUrl = assertEnv('VITE_SUPABASE_URL', url)
   const validatedAnonKey = assertEnv('VITE_SUPABASE_ANON_KEY', anonKey)
-  return createClient<Database>(validatedUrl, validatedAnonKey)
+  return createClient<Database>(validatedUrl, validatedAnonKey, {
+    auth: {
+      // PKCE: troca um code por sessão, sem expor tokens na URL (fluxo OAuth
+      // via Google). Não afeta o login tradicional por e-mail/senha nem o
+      // reset de senha — apenas o fluxo OAuth.
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  })
 }
 
 export const supabase = createSupabaseClient()

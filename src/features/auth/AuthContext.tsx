@@ -11,6 +11,12 @@ import {
 import type { User } from '@supabase/supabase-js'
 import type { Database } from '../../lib/database.types'
 import { supabase } from '../../lib/supabase'
+import { signInWithGoogle as signInWithGoogleOAuth } from './googleOAuth'
+import {
+  isNativeGoogleSignIn,
+  signInWithGoogleNative,
+  signOutGoogleNative,
+} from './googleSignIn'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -31,6 +37,7 @@ export interface AuthContextValue {
   refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<SignInResult>
   signUp: (email: string, password: string, name: string) => Promise<SignInResult>
+  signInWithGoogle: () => Promise<SignInResult>
   updateUserName: (name: string) => Promise<{ error?: string }>
   signOut: () => Promise<void>
   setProcessPendingInvite: (fn: () => void) => void
@@ -141,8 +148,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const signInWithGoogle = useCallback(async (): Promise<SignInResult> => {
+    // Android nativo: login via Google Credential Manager (sem abrir navegador),
+    // autenticando no Supabase com `signInWithIdToken`.
+    if (isNativeGoogleSignIn()) {
+      const result = await signInWithGoogleNative()
+      if (result.error) {
+        return { error: result.error }
+      }
+      if (result.session) {
+        setUser(result.session.user)
+        setStatus('authenticated')
+      }
+      return {}
+    }
+
+    // Navegador (dev/prod) e demais plataformas: fluxo OAuth via Supabase (PKCE).
+    const result = await signInWithGoogleOAuth()
+    if (result.error) {
+      return { error: result.error }
+    }
+    // No navegador a página é redirecionada para o Google e a sessão é trocada
+    // automaticamente na volta (evento onAuthStateChange).
+    return {}
+  }, [])
+
   const signOut = useCallback(async (): Promise<void> => {
     const { error } = await supabase.auth.signOut()
+    if (isNativeGoogleSignIn()) {
+      await signOutGoogleNative()
+    }
     if (!error) {
       setUser(null)
       setStatus('unauthenticated')
@@ -179,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshProfile,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       updateUserName,
       setProcessPendingInvite,
@@ -192,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshProfile,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       updateUserName,
       setProcessPendingInvite,

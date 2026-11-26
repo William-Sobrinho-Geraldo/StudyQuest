@@ -5,6 +5,7 @@ import { ConnectivityListener } from './components/ConnectivityListener'
 import { useNativeBackButton } from './hooks/useNativeBackButton'
 import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { OAuthDeepLinkHandler } from './features/auth/OAuthDeepLinkHandler'
 import { InviteLinkHandler } from './components/InviteLinkHandler'
 import { SocialProvider } from './features/social/context/SocialContext'
 import { FocusOverlay } from './features/study/components/FocusOverlay'
@@ -53,6 +54,7 @@ export function App() {
         <SocialProvider>
           <StudyTimerProvider>
             <InviteLinkHandler />
+            <OAuthDeepLinkHandler />
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />

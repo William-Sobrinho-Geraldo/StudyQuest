@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { within, screen } from '@testing-library/react'
+import { act, within, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Session } from '@supabase/supabase-js'
 import { renderApp } from '../../test/test-utils'
@@ -11,6 +11,8 @@ const authMocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   updateUser: vi.fn(),
   resetPasswordForEmail: vi.fn(),
+  signInWithOAuth: vi.fn(),
+  exchangeCodeForSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
@@ -25,6 +27,8 @@ vi.mock('../../lib/supabase', () => ({
       signOut: authMocks.signOut,
       updateUser: authMocks.updateUser,
       resetPasswordForEmail: authMocks.resetPasswordForEmail,
+      signInWithOAuth: authMocks.signInWithOAuth,
+      exchangeCodeForSession: authMocks.exchangeCodeForSession,
       onAuthStateChange: authMocks.onAuthStateChange,
     },
     from: authMocks.from,
@@ -66,6 +70,8 @@ beforeEach(() => {
   authMocks.signUp.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.updateUser.mockResolvedValue({ data: { user: null }, error: null })
   authMocks.resetPasswordForEmail.mockResolvedValue({ data: null, error: null })
+  authMocks.signInWithOAuth.mockResolvedValue({ data: { url: null }, error: null })
+  authMocks.exchangeCodeForSession.mockResolvedValue({ data: { session: null }, error: null })
   authMocks.onAuthStateChange.mockImplementation(() => ({
     data: { subscription: { unsubscribe: vi.fn() } },
   }))
@@ -198,6 +204,74 @@ describe('LoginPage — fluxo de autenticação', () => {
     await user.click(screen.getByRole('button', { name: 'Ocultar senha' }))
 
     expect(passwordInput).toHaveAttribute('type', 'password')
+  })
+})
+
+describe('LoginPage — login com Google', () => {
+  it('exibe o botão Continuar com Google', async () => {
+    renderApp('/login')
+
+    expect(
+      await screen.findByRole('button', { name: /continuar com google/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('chama o Supabase com o provedor google ao clicar', async () => {
+    authMocks.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://projeto.supabase.co/auth/v1/authorize' },
+      error: null,
+    })
+
+    renderApp('/login')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /continuar com google/i }))
+
+    await waitFor(() => {
+      expect(authMocks.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: expect.objectContaining({ skipBrowserRedirect: false }),
+      })
+    })
+  })
+
+  it('exibe mensagem amigável quando o provedor não está habilitado', async () => {
+    authMocks.signInWithOAuth.mockResolvedValue({
+      data: {},
+      error: { message: 'Unsupported provider' },
+    })
+
+    renderApp('/login')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /continuar com google/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'O login com Google ainda não está habilitado',
+    )
+  })
+
+  it('bloqueia múltiplos cliques durante a autenticação', async () => {
+    let resolveSignIn: (value: unknown) => void = () => {}
+    authMocks.signInWithOAuth.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSignIn = resolve
+      }),
+    )
+
+    renderApp('/login')
+    const user = userEvent.setup()
+    const button = await screen.findByRole('button', { name: /continuar com google/i })
+
+    await user.click(button)
+    expect(await screen.findByRole('button', { name: /conectando/i })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /conectando/i }))
+
+    expect(authMocks.signInWithOAuth).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveSignIn({ data: { url: null }, error: null })
+    })
+    expect(await screen.findByRole('button', { name: /continuar com google/i })).toBeEnabled()
   })
 })
 
