@@ -91,9 +91,20 @@ vi.mock('@capacitor/app', () => ({
 }))
 
 function setupTimer() {
-  const saveSession = vi.fn().mockResolvedValue({})
-  const utils = renderHook(() => useStudyTimer({ saveSession }))
-  return { ...utils, saveSession }
+  const createSession = vi.fn(async (durationMinutes: number) => ({
+    id: 'sess-1',
+    user_id: 'u1',
+    duration_minutes: durationMinutes,
+    xp: durationMinutes * 15,
+    gold: durationMinutes * 3,
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+    is_manual: false,
+    rewarded: false,
+    ad_rewarded: false,
+  }))
+  const utils = renderHook(() => useStudyTimer({ createSession }))
+  return { ...utils, createSession }
 }
 
 async function flushAsync() {
@@ -138,15 +149,15 @@ describe('studyRules', () => {
     expect(validateStudyMinutes(7.5)).not.toBeNull()
   })
 
-  it('calcula recompensa: 1 min = 10 XP e 2 Gold', () => {
-    expect(calculateReward(5)).toEqual({ xp: 50, gold: 10 })
-    expect(calculateReward(30)).toEqual({ xp: 300, gold: 60 })
-    expect(calculateReward(60)).toEqual({ xp: 600, gold: 120 })
+  it('calcula recompensa: 1 min = 15 XP e 3 Gold', () => {
+    expect(calculateReward(5)).toEqual({ xp: 75, gold: 15 })
+    expect(calculateReward(30)).toEqual({ xp: 450, gold: 90 })
+    expect(calculateReward(60)).toEqual({ xp: 900, gold: 180 })
   })
 
   it('calcula recompensa por segundos', () => {
-    expect(calculateRewardSeconds(300)).toEqual({ xp: 50, gold: 10 })
-    expect(calculateRewardSeconds(330)).toEqual({ xp: 55, gold: 11 })
+    expect(calculateRewardSeconds(300)).toEqual({ xp: 75, gold: 15 })
+    expect(calculateRewardSeconds(360)).toEqual({ xp: 90, gold: 18 })
     expect(calculateRewardSeconds(0)).toEqual({ xp: 0, gold: 0 })
   })
 
@@ -159,7 +170,7 @@ describe('studyRules', () => {
 
 describe('useStudyTimer — seleção de duração', () => {
   it('aceita apenas durações válidas (5-60, passo de 5)', () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     expect(result.current.selectDuration(3).ok).toBe(false)
     expect(result.current.selectDuration(95).ok).toBe(false)
@@ -177,7 +188,7 @@ describe('useStudyTimer — seleção de duração', () => {
     expect(result.current.remainingMs).toBe(30 * 60_000)
     expect(result.current.formattedTime).toBe('30:00')
 
-    expect(saveSession).not.toHaveBeenCalled()
+    expect(createSession).not.toHaveBeenCalled()
   })
 
   it('bloqueia a alteração de duração durante uma sessão', () => {
@@ -299,8 +310,8 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     expect(scheduleCompletionNotification).toHaveBeenCalledWith(expect.any(Number))
   })
 
-  it('finaliza sessão de 30 min gerando 300 XP / 60 Gold e salva no histórico', async () => {
-    const { result, saveSession } = setupTimer()
+  it('finaliza sessão de 30 min gerando 450 XP / 90 Gold e salva no histórico', async () => {
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(30)
@@ -319,20 +330,17 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     expect(result.current.remainingMs).toBe(0)
     expect(result.current.formattedTime).toBe('00:00')
     expect(result.current.lastResult).toEqual({
+      sessionId: 'sess-1',
       durationMinutes: 30,
-      xp: 300,
-      gold: 60,
+      xp: 450,
+      gold: 90,
     })
-    expect(saveSession).toHaveBeenCalledTimes(1)
-    expect(saveSession).toHaveBeenCalledWith({
-      durationMinutes: 30,
-      xp: 300,
-      gold: 60,
-    })
+    expect(createSession).toHaveBeenCalledTimes(1)
+    expect(createSession).toHaveBeenCalledWith(30)
   })
 
   it('acumula apenas o tempo efetivamente estudado entre pausas e completa a recompensa total', async () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(5)
@@ -360,15 +368,11 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     })
 
     expect(result.current.status).toBe('completed')
-    expect(saveSession).toHaveBeenCalledWith({
-      durationMinutes: 5,
-      xp: 50,
-      gold: 10,
-    })
+    expect(createSession).toHaveBeenCalledWith(5)
   })
 
   it('conclui uma sessão de 5 min com recompensa mínima', async () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(5)
@@ -384,11 +388,12 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     })
 
     expect(result.current.lastResult).toEqual({
+      sessionId: 'sess-1',
       durationMinutes: 5,
-      xp: 50,
-      gold: 10,
+      xp: 75,
+      gold: 15,
     })
-    expect(saveSession).toHaveBeenCalledTimes(1)
+    expect(createSession).toHaveBeenCalledTimes(1)
   })
 
   it('toca o alarme ao zerar apenas quando habilitado', async () => {
@@ -433,8 +438,8 @@ describe('useStudyTimer — conclusão e recompensas', () => {
   })
 
   it('não emite evento quando o salvamento da sessão falha', async () => {
-    const saveSession = vi.fn().mockRejectedValue(new Error('table does not exist'))
-    const { result } = renderHook(() => useStudyTimer({ saveSession }))
+    const createSession = vi.fn().mockRejectedValue(new Error('table does not exist'))
+    const { result } = renderHook(() => useStudyTimer({ createSession }))
 
     act(() => {
       result.current.selectDuration(5)
@@ -455,8 +460,8 @@ describe('useStudyTimer — conclusão e recompensas', () => {
   })
 
   it('registra o erro de salvamento sem quebrar a conclusão', async () => {
-    const saveSession = vi.fn().mockRejectedValue(new Error('table does not exist'))
-    const { result } = renderHook(() => useStudyTimer({ saveSession }))
+    const createSession = vi.fn().mockRejectedValue(new Error('table does not exist'))
+    const { result } = renderHook(() => useStudyTimer({ createSession }))
 
     act(() => {
       result.current.selectDuration(5)
@@ -472,11 +477,7 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     })
 
     expect(result.current.status).toBe('completed')
-    expect(result.current.lastResult).toEqual({
-      durationMinutes: 5,
-      xp: 50,
-      gold: 10,
-    })
+    expect(result.current.lastResult).toBeNull()
     expect(result.current.saveError).toBe('table does not exist')
   })
 
@@ -508,7 +509,7 @@ describe('useStudyTimer — conclusão e recompensas', () => {
   })
 
   it('não conclui duas vezes nem duplica o salvamento', async () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(5)
@@ -524,14 +525,14 @@ describe('useStudyTimer — conclusão e recompensas', () => {
     })
 
     expect(result.current.status).toBe('completed')
-    expect(saveSession).toHaveBeenCalledTimes(1)
+    expect(createSession).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       const second = await result.current.finish()
       expect(second).toBeNull()
     })
 
-    expect(saveSession).toHaveBeenCalledTimes(1)
+    expect(createSession).toHaveBeenCalledTimes(1)
   })
 
   it('cancela e reagenda a notificação de conclusão ao pausar e retomar', () => {
@@ -573,7 +574,7 @@ describe('useStudyTimer — conclusão e recompensas', () => {
 
 describe('useStudyTimer — encerramento antecipado', () => {
   it('abandona a sessão sem salvar quando o tempo estudado é menor que 1 minuto', () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(25)
@@ -594,11 +595,11 @@ describe('useStudyTimer — encerramento antecipado', () => {
     expect(outcome.ok).toBe(true)
     expect(result.current.status).toBe('idle')
     expect(result.current.isFocusMode).toBe(false)
-    expect(saveSession).not.toHaveBeenCalled()
+    expect(createSession).not.toHaveBeenCalled()
   })
 
   it('encerra com sucesso parcial proporcional ao tempo estudado', async () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(60)
@@ -620,17 +621,14 @@ describe('useStudyTimer — encerramento antecipado', () => {
 
     expect(outcome.ok).toBe(true)
     expect(result.current.status).toBe('completed')
-    expect(result.current.lastResult).toEqual({
-      durationMinutes: 2,
-      xp: 20,
-      gold: 4,
-    })
 
     await flushAsync()
-    expect(saveSession).toHaveBeenCalledWith({
+    expect(createSession).toHaveBeenCalledWith(2)
+    expect(result.current.lastResult).toEqual({
+      sessionId: 'sess-1',
       durationMinutes: 2,
-      xp: 20,
-      gold: 4,
+      xp: 30,
+      gold: 6,
     })
   })
 })
@@ -799,7 +797,7 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
   })
 
   it('cancela a sessão sem recompensas quando fica 20 segundos ou mais fora', () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(25)
@@ -821,7 +819,7 @@ describe('useStudyTimer — penalidade por distração (background)', () => {
     expect(result.current.distractionCancelReason).toBeNull()
     expect(result.current.status).toBe('running')
     expect(result.current.isFocusMode).toBe(true)
-    expect(saveSession).not.toHaveBeenCalled()
+    expect(createSession).not.toHaveBeenCalled()
   })
 
   it('exatamente 20 segundos fora já cancela a sessão ativa', () => {
@@ -1045,7 +1043,7 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
   })
 
   it('mantém a sessão ativa ao desbloquear após bloqueio de tela nativo, sem penalidade', () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(25)
@@ -1073,11 +1071,11 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
     expect(result.current.distractionRecoveryCount).toBe(0)
     expect(scheduleDistractionAlert).not.toHaveBeenCalled()
     expect(cancelPendingDistractionNotifications).not.toHaveBeenCalled()
-    expect(saveSession).not.toHaveBeenCalled()
+    expect(createSession).not.toHaveBeenCalled()
   })
 
   it('não cancela ao bloquear a tela logo após retomar uma sessão pausada', () => {
-    const { result, saveSession } = setupTimer()
+    const { result, createSession } = setupTimer()
 
     act(() => {
       result.current.selectDuration(25)
@@ -1117,7 +1115,7 @@ describe('useStudyTimer — bloqueio de tela vs minimização', () => {
     expect(result.current.status).toBe('running')
     expect(result.current.distractionCancelled).toBe(false)
     expect(scheduleDistractionAlert).not.toHaveBeenCalled()
-    expect(saveSession).not.toHaveBeenCalled()
+    expect(createSession).not.toHaveBeenCalled()
   })
 
   it('ainda penaliza a minimização quando onNativeScreenOff não chega', () => {

@@ -59,8 +59,8 @@ describe('getIdleRewards', () => {
 
     expect(result.elapsedMinutes).toBe(240)
     expect(result.elapsedSeconds).toBe(14_400)
-    expect(result.currentXp).toBe(500)
-    expect(result.currentGold).toBe(150)
+    expect(result.currentXp).toBe(50)
+    expect(result.currentGold).toBe(10)
     expect(result.progressPercentage).toBe(50)
   })
 
@@ -91,8 +91,8 @@ describe('getIdleRewards', () => {
   it('fica no teto mesmo acima de 8 horas (ex.: 24 horas)', () => {
     const result = getIdleRewards(minutesAgo(24 * 60))
 
-    expect(result.currentXp).toBe(1000)
-    expect(result.currentGold).toBe(300)
+    expect(result.currentXp).toBe(100)
+    expect(result.currentGold).toBe(20)
     expect(result.progressPercentage).toBe(100)
     expect(result.elapsedMinutes).toBe(CHEST_MAX_MINUTES)
     expect(result.elapsedSeconds).toBe(CHEST_MAX_MINUTES * 60)
@@ -101,8 +101,8 @@ describe('getIdleRewards', () => {
   it('é estritamente proporcional em pontos intermediários (2 horas)', () => {
     const result = getIdleRewards(minutesAgo(120))
 
-    expect(result.currentXp).toBe(250)
-    expect(result.currentGold).toBe(75)
+    expect(result.currentXp).toBe(25)
+    expect(result.currentGold).toBe(5)
     expect(result.progressPercentage).toBe(25)
   })
 
@@ -111,24 +111,24 @@ describe('getIdleRewards', () => {
 
     expect(result.elapsedMinutes).toBe(1)
     expect(result.elapsedSeconds).toBe(60)
-    expect(result.currentXp).toBe(Math.floor((1 / 480) * 1000))
-    expect(result.currentGold).toBe(Math.floor((1 / 480) * 300))
+    expect(result.currentXp).toBe(Math.floor((1 / 480) * 100))
+    expect(result.currentGold).toBe(Math.floor((1 / 480) * 20))
     expect(result.progressPercentage).toBe(0)
   })
 
   it('arredonda para baixo na borda do teto (8h - 1min)', () => {
     const result = getIdleRewards(minutesAgo(479))
 
-    expect(result.currentXp).toBe(Math.floor((479 / 480) * 1000))
-    expect(result.currentGold).toBe(Math.floor((479 / 480) * 300))
+    expect(result.currentXp).toBe(Math.floor((479 / 480) * 100))
+    expect(result.currentGold).toBe(Math.floor((479 / 480) * 20))
     expect(result.progressPercentage).toBe(Math.floor((479 / 480) * 100))
   })
 
   it('1 minuto acima do teto continua 100%', () => {
     const result = getIdleRewards(minutesAgo(481))
 
-    expect(result.currentXp).toBe(1000)
-    expect(result.currentGold).toBe(300)
+    expect(result.currentXp).toBe(100)
+    expect(result.currentGold).toBe(20)
     expect(result.progressPercentage).toBe(100)
     expect(result.elapsedMinutes).toBe(CHEST_MAX_MINUTES)
     expect(result.elapsedSeconds).toBe(CHEST_MAX_MINUTES * 60)

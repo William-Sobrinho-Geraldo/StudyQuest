@@ -7,16 +7,16 @@ import {
 } from '../../study/context/StudyTimerContext'
 import { StreakCard } from './StreakCard'
 
-const { rpc, saveStudySession } = vi.hoisted(() => ({
+const { rpc, createStudySession } = vi.hoisted(() => ({
   rpc: vi.fn(),
-  saveStudySession: vi.fn(),
+  createStudySession: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({
   supabase: { rpc },
 }))
 
-vi.mock('../../study/services/studySessionService', () => ({ saveStudySession }))
+vi.mock('../../study/services/studySessionService', () => ({ createStudySession }))
 
 let timerRef: { current: StudyTimerValue | null } = { current: null }
 
@@ -52,7 +52,12 @@ describe('StreakCard', () => {
   })
 
   it('atualiza a sequência automaticamente após concluir uma sessão', async () => {
-    saveStudySession.mockResolvedValue({} as never)
+    createStudySession.mockResolvedValue({
+      id: 'sess-1',
+      duration_minutes: 25,
+      xp: 375,
+      gold: 75,
+    } as never)
     rpc
       .mockResolvedValueOnce({ data: 3, error: null })
       .mockResolvedValueOnce({ data: 4, error: null })

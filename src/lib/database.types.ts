@@ -19,6 +19,9 @@ export type Database = {
           avatar_id: string | null
           avatar_url: string | null
           bio: string | null
+          chest_day: string | null
+          chest_gold_today: number
+          chest_xp_today: number
           created_at: string
           current_streak: number
           current_xp: number
@@ -45,6 +48,9 @@ export type Database = {
         Insert: {
           avatar_id?: string | null
           bio?: string | null
+          chest_day?: string | null
+          chest_gold_today?: number
+          chest_xp_today?: number
           created_at?: string
           current_streak?: number
           current_xp?: number
@@ -72,6 +78,9 @@ export type Database = {
         Update: {
           avatar_id?: string | null
           bio?: string | null
+          chest_day?: string | null
+          chest_gold_today?: number
+          chest_xp_today?: number
           created_at?: string
           current_streak?: number
           current_xp?: number
@@ -472,31 +481,37 @@ export type Database = {
       }
       study_sessions: {
         Row: {
+          ad_rewarded: boolean
           completed_at: string
           duration_minutes: number
           gold: number
           id: string
           is_manual: boolean
+          rewarded: boolean
           started_at: string
           user_id: string
           xp: number
         }
         Insert: {
+          ad_rewarded?: boolean
           completed_at?: string
           duration_minutes: number
           gold: number
           id?: string
           is_manual?: boolean
+          rewarded?: boolean
           started_at?: string
           user_id: string
           xp: number
         }
         Update: {
+          ad_rewarded?: boolean
           completed_at?: string
           duration_minutes?: number
           gold?: number
           id?: string
           is_manual?: boolean
+          rewarded?: boolean
           started_at?: string
           user_id?: string
           xp?: number
@@ -708,6 +723,69 @@ export type Database = {
       check_email_exists: {
         Args: { email_input: string }
         Returns: boolean
+      }
+      complete_study_session: {
+        Args: { p_session_id: string; p_ad_watched?: boolean }
+        Returns: {
+          ad_rewarded: boolean
+          completed_at: string
+          duration_minutes: number
+          gold: number
+          id: string
+          is_manual: boolean
+          rewarded: boolean
+          started_at: string
+          user_id: string
+          xp: number
+        }[]
+        SetofOptions: {
+          from: "study_sessions"
+          to: "study_sessions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      create_manual_study_session: {
+        Args: { p_minutes: number }
+        Returns: {
+          ad_rewarded: boolean
+          completed_at: string
+          duration_minutes: number
+          gold: number
+          id: string
+          is_manual: boolean
+          rewarded: boolean
+          started_at: string
+          user_id: string
+          xp: number
+        }[]
+        SetofOptions: {
+          from: "study_sessions"
+          to: "study_sessions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      create_study_session: {
+        Args: { p_duration_minutes: number }
+        Returns: {
+          ad_rewarded: boolean
+          completed_at: string
+          duration_minutes: number
+          gold: number
+          id: string
+          is_manual: boolean
+          rewarded: boolean
+          started_at: string
+          user_id: string
+          xp: number
+        }[]
+        SetofOptions: {
+          from: "study_sessions"
+          to: "study_sessions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       quest_progress: {
         Args: Record<string, never>

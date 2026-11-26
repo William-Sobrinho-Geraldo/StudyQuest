@@ -8,9 +8,9 @@ import {
 } from './merchantBlessing'
 
 describe('merchantBlessing', () => {
-  it('calcula 10% de um baú cheio', () => {
-    expect(MERCHANT_BLESSING_XP).toBe(100)
-    expect(MERCHANT_BLESSING_GOLD).toBe(30)
+  it('define os valores da Bênção do Mercador', () => {
+    expect(MERCHANT_BLESSING_XP).toBe(15)
+    expect(MERCHANT_BLESSING_GOLD).toBe(3)
     expect(MERCHANT_DAILY_LIMIT).toBe(10)
   })
 

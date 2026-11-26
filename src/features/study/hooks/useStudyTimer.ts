@@ -4,13 +4,12 @@ import type { PluginListenerHandle } from '@capacitor/core'
 import {
   MAX_STUDY_MINUTES,
   MIN_STUDY_MINUTES,
-  calculateRewardSeconds,
   formatTime,
   validateStudyMinutes,
 } from '../lib/studyRules'
 import {
-  saveStudySession,
-  type StudySessionSummary,
+  createStudySession,
+  type StudySessionRecord,
 } from '../services/studySessionService'
 import { emitStudySessionSaved } from '../lib/studyEvents'
 import { readAlarmEnabled } from '../lib/studyPreferences'
@@ -38,13 +37,14 @@ export type ActionResult =
   | { ok: false; message: string }
 
 export interface StudyTimerResult {
+  sessionId: string
   durationMinutes: number
   xp: number
   gold: number
 }
 
 interface UseStudyTimerOptions {
-  saveSession?: (summary: StudySessionSummary) => Promise<unknown>
+  createSession?: (durationMinutes: number) => Promise<StudySessionRecord>
 }
 
 const TICK_MS = 1000
@@ -52,7 +52,7 @@ const DEFAULT_MINUTES = 25
 
 
 export function useStudyTimer(options: UseStudyTimerOptions = {}) {
-  const saveSession = options.saveSession ?? saveStudySession
+  const createSession = options.createSession ?? createStudySession
 
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_MINUTES)
   const [remainingMs, setRemainingMs] = useState(DEFAULT_MINUTES * 60_000)
@@ -124,34 +124,37 @@ export function useStudyTimer(options: UseStudyTimerOptions = {}) {
       void stopFocusForegroundService()
 
       const targetMinutes = Math.max(1, minutesOverride ?? durationMinutesRef.current)
-      const totalSeconds = targetMinutes * 60
-      const reward = calculateRewardSeconds(totalSeconds)
-      const result: StudyTimerResult = {
-        durationMinutes: totalSeconds / 60,
-        ...reward,
-      }
 
       setRemainingMs(0)
       changeStatus('completed')
-      setLastResult(result)
       setSaveError(null)
       setIsSaving(true)
       try {
-        await saveSession(result)
+        // O servidor cria a sessão e calcula a recompensa base (o cliente não
+        // informa XP/Gold). O crédito efetivo acontece em complete_study_session.
+        const session = await createSession(targetMinutes)
+        const result: StudyTimerResult = {
+          sessionId: session.id,
+          durationMinutes: session.duration_minutes,
+          xp: session.xp,
+          gold: session.gold,
+        }
+        setLastResult(result)
         setSessionCompletedAt(Date.now())
         emitStudySessionSaved()
+        return result
       } catch (error) {
         setSaveError(
           error instanceof Error
             ? error.message
             : 'Falha ao salvar a sessão no histórico.',
         )
+        return null
       } finally {
         setIsSaving(false)
       }
-      return result
     },
-    [changeStatus, clearAllBackgroundTracking, clearTimer, saveSession],
+    [changeStatus, clearAllBackgroundTracking, clearTimer, createSession],
   )
 
   const tick = useCallback(() => {

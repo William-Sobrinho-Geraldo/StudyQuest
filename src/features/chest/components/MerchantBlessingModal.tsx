@@ -66,8 +66,9 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
     }
   }, [])
 
-  const hasReachedLimit = dailyViews >= MERCHANT_DAILY_LIMIT
   const busy = claiming || reward !== null
+  const hasReachedLimit = dailyViews >= MERCHANT_DAILY_LIMIT
+  const remaining = Math.max(0, MERCHANT_DAILY_LIMIT - dailyViews)
 
   const claimReward = useCallback(async () => {
     setClaiming(true)
@@ -131,7 +132,7 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
         </div>
         <h2 className="mt-4 text-xl font-bold text-white">Bênção do Mercador</h2>
         <p className="mt-1 text-sm text-slate-400">
-          Assista a uma Visão Mágica e receba 10% de um baú cheio.
+          Assista a uma Visão Mágica e receba 15 XP e 3 Gold.
         </p>
 
         <div className="relative mt-6 flex items-stretch justify-center gap-4">
@@ -165,9 +166,13 @@ export function MerchantBlessingModal({ onClose, onClaimed }: MerchantBlessingMo
           Resgates hoje: {dailyViews}/{MERCHANT_DAILY_LIMIT}
         </p>
 
-        {hasReachedLimit && (
+        {hasReachedLimit ? (
           <p className="mt-2 text-sm font-medium text-amber-400">
-            O Mercador precisa descansar. Volte amanhã!
+            Limite diário atingido. Volte amanhã!
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500">
+            Restam {remaining} resgates hoje.
           </p>
         )}
 

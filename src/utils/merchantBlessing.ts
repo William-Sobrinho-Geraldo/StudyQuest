@@ -1,8 +1,6 @@
-import { CHEST_MAX_GOLD, CHEST_MAX_XP } from './idleRewards'
-
 export const MERCHANT_DAILY_LIMIT = 10
-export const MERCHANT_BLESSING_XP = Math.floor(CHEST_MAX_XP * 0.1)
-export const MERCHANT_BLESSING_GOLD = Math.floor(CHEST_MAX_GOLD * 0.1)
+export const MERCHANT_BLESSING_XP = 15
+export const MERCHANT_BLESSING_GOLD = 3
 
 const SAO_PAULO_TIME_ZONE = 'America/Sao_Paulo'
 

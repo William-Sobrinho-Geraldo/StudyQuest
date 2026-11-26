@@ -1,6 +1,6 @@
 export const CHEST_MAX_MINUTES = 480
-export const CHEST_MAX_XP = 1000
-export const CHEST_MAX_GOLD = 300
+export const CHEST_MAX_XP = 100
+export const CHEST_MAX_GOLD = 20
 
 export interface IdleRewards {
   elapsedMinutes: number

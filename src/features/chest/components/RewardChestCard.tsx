@@ -119,7 +119,7 @@ export function RewardChestCard({ onClaimed }: RewardChestCardProps) {
         <Gift className="h-5 w-5 text-fuchsia-400" aria-hidden="true" />
         <div>
           <p className="font-semibold text-white">Baú de Recompensas</p>
-          <p className="text-xs text-slate-400">Acumula passivamente. Fica cheio em 8 horas.</p>
+          <p className="text-xs text-slate-400">Acumula passivamente. Máximo de 100 XP e 20 Gold por dia.</p>
         </div>
       </div>
 

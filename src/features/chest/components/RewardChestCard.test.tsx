@@ -84,8 +84,8 @@ describe('RewardChestCard', () => {
     renderCard()
     await flush()
 
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('500 / 1.000 XP')
-    expect(screen.getByTestId('chest-gold')).toHaveTextContent('150 / 300 Gold')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('50 / 100 XP')
+    expect(screen.getByTestId('chest-gold')).toHaveTextContent('10 / 20 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('4h 0m 0s')
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50')
     expect(screen.getByRole('button', { name: 'Reivindicar' })).toBeEnabled()
@@ -97,8 +97,8 @@ describe('RewardChestCard', () => {
     renderCard()
     await flush()
 
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('0 / 1.000 XP')
-    expect(screen.getByTestId('chest-gold')).toHaveTextContent('0 / 300 Gold')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('0 / 100 XP')
+    expect(screen.getByTestId('chest-gold')).toHaveTextContent('0 / 20 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('0s')
     expect(screen.queryByRole('button', { name: 'Reivindicar' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Bênção do Mercador' })).toBeEnabled()
@@ -123,8 +123,8 @@ describe('RewardChestCard', () => {
     renderCard()
     await flush()
 
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('1.000 / 1.000 XP')
-    expect(screen.getByTestId('chest-gold')).toHaveTextContent('300 / 300 Gold')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('100 / 100 XP')
+    expect(screen.getByTestId('chest-gold')).toHaveTextContent('20 / 20 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('8h 0m 0s')
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
     expect(screen.getByText('Baú cheio!')).toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('RewardChestCard', () => {
     await flush()
 
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('8h 0m 0s')
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('1.000 / 1.000 XP')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('100 / 100 XP')
     expect(screen.getByText('Baú cheio!')).toBeInTheDocument()
   })
 
@@ -170,8 +170,8 @@ describe('RewardChestCard', () => {
     })
     await flush()
 
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('0 / 1.000 XP')
-    expect(screen.getByTestId('chest-gold')).toHaveTextContent('0 / 300 Gold')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('0 / 100 XP')
+    expect(screen.getByTestId('chest-gold')).toHaveTextContent('0 / 20 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('0s')
   })
 
@@ -200,8 +200,8 @@ describe('RewardChestCard', () => {
     renderCard()
     await flush()
 
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('995 / 1.000 XP')
-    expect(screen.getByTestId('chest-gold')).toHaveTextContent('298 / 300 Gold')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('99 / 100 XP')
+    expect(screen.getByTestId('chest-gold')).toHaveTextContent('19 / 20 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('7h 58m 0s')
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '99')
 
@@ -209,8 +209,8 @@ describe('RewardChestCard', () => {
       vi.advanceTimersByTime(120_000)
     })
 
-    expect(screen.getByTestId('chest-xp')).toHaveTextContent('1.000 / 1.000 XP')
-    expect(screen.getByTestId('chest-gold')).toHaveTextContent('300 / 300 Gold')
+    expect(screen.getByTestId('chest-xp')).toHaveTextContent('100 / 100 XP')
+    expect(screen.getByTestId('chest-gold')).toHaveTextContent('20 / 20 Gold')
     expect(screen.getByTestId('chest-elapsed')).toHaveTextContent('8h 0m 0s')
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
     expect(screen.getByText('Baú cheio!')).toBeInTheDocument()

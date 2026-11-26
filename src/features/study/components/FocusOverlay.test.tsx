@@ -18,10 +18,23 @@ vi.mock('@lottiefiles/dotlottie-web', () => {
   }
 })
 
-const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
+const createStudySessionMock = vi.hoisted(() =>
+  vi.fn(async (durationMinutes: number) => ({
+    id: 'sess-1',
+    user_id: 'u1',
+    duration_minutes: durationMinutes,
+    xp: durationMinutes * 15,
+    gold: durationMinutes * 3,
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+    is_manual: false,
+    rewarded: false,
+    ad_rewarded: false,
+  })),
+)
 
 vi.mock('../services/studySessionService', () => ({
-  saveStudySession: saveStudySessionMock,
+  createStudySession: createStudySessionMock,
 }))
 
 let timerRef: { current: StudyTimerValue | null } = { current: null }
@@ -42,7 +55,7 @@ function renderOverlay() {
 
 beforeEach(() => {
   vi.useFakeTimers()
-  saveStudySessionMock.mockClear()
+  createStudySessionMock.mockClear()
   timerRef.current = null
 })
 
@@ -145,11 +158,7 @@ describe('FocusOverlay', () => {
     })
 
     expect(screen.getByText('00:00')).toBeInTheDocument()
-    expect(saveStudySessionMock).toHaveBeenCalledWith({
-      durationMinutes: 5,
-      xp: 50,
-      gold: 10,
-    })
+    expect(createStudySessionMock).toHaveBeenCalledWith(5)
   })
 
   it('só conclui a sessão após 5 toques no botão discreto do rodapé', () => {
@@ -168,18 +177,14 @@ describe('FocusOverlay', () => {
       })
     }
     expect(timerRef.current?.status).toBe('running')
-    expect(saveStudySessionMock).not.toHaveBeenCalled()
+    expect(createStudySessionMock).not.toHaveBeenCalled()
 
     act(() => {
       button.click()
     })
 
     expect(timerRef.current?.status).toBe('completed')
-    expect(saveStudySessionMock).toHaveBeenCalledWith({
-      durationMinutes: 5,
-      xp: 50,
-      gold: 10,
-    })
+    expect(createStudySessionMock).toHaveBeenCalledWith(5)
   })
 
   it('abandona a sessão ao clicar em Finalizar Sessão antes de 1 minuto', () => {
@@ -199,7 +204,7 @@ describe('FocusOverlay', () => {
     expect(screen.queryByTestId('focus-overlay')).not.toBeInTheDocument()
     expect(timerRef.current?.status).toBe('idle')
     expect(timerRef.current?.formattedTime).toBe('10:00')
-    expect(saveStudySessionMock).not.toHaveBeenCalled()
+    expect(createStudySessionMock).not.toHaveBeenCalled()
   })
 
   it('salva o progresso parcial ao clicar em Finalizar Sessão após 1 minuto', async () => {
@@ -218,21 +223,18 @@ describe('FocusOverlay', () => {
     })
 
     expect(timerRef.current?.status).toBe('completed')
-    expect(timerRef.current?.lastResult).toEqual({
-      durationMinutes: 2,
-      xp: 20,
-      gold: 4,
-    })
 
     await act(async () => {
       await Promise.resolve()
       await Promise.resolve()
     })
 
-    expect(saveStudySessionMock).toHaveBeenCalledWith({
+    expect(createStudySessionMock).toHaveBeenCalledWith(2)
+    expect(timerRef.current?.lastResult).toEqual({
+      sessionId: 'sess-1',
       durationMinutes: 2,
-      xp: 20,
-      gold: 4,
+      xp: 30,
+      gold: 6,
     })
   })
 })

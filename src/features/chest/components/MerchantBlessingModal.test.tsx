@@ -64,25 +64,48 @@ describe('MerchantBlessingModal', () => {
     vi.useRealTimers()
   })
 
-  it('exibe a recompensa de 10% e o contador diário', async () => {
-    profileMock.daily_ad_views = 3
+  it('exibe a recompensa e o contador diário', async () => {
+    profileMock.daily_ad_views = 0
 
     renderModal()
     await flush()
 
-    expect(screen.getByTestId('merchant-xp')).toHaveTextContent('100')
-    expect(screen.getByTestId('merchant-gold')).toHaveTextContent('30')
-    expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 3/10')
+    expect(screen.getByTestId('merchant-xp')).toHaveTextContent('15')
+    expect(screen.getByTestId('merchant-gold')).toHaveTextContent('3')
+    expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 0/10')
   })
 
-  it('desabilita o botão e mostra o aviso no limite de 10 resgates', async () => {
+  it('mostra quantos resgates restam quando abaixo do limite', async () => {
+    profileMock.daily_ad_views = 7
+
+    renderModal()
+    await flush()
+
+    expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 7/10')
+    expect(screen.getByText('Restam 3 resgates hoje.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Assistir Visão Mágica' })).toBeEnabled()
+  })
+
+  it('desabilita e informa quando atinge o limite de 10 resgates', async () => {
     profileMock.daily_ad_views = 10
 
     renderModal()
     await flush()
 
+    expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 10/10')
     expect(screen.getByRole('button', { name: 'Limite diário atingido' })).toBeDisabled()
-    expect(screen.getByText('O Mercador precisa descansar. Volte amanhã!')).toBeInTheDocument()
+    expect(screen.getByText('Limite diário atingido. Volte amanhã!')).toBeInTheDocument()
+  })
+
+  it('reinicia a contagem no dia seguinte', async () => {
+    profileMock.daily_ad_views = 10
+    profileMock.daily_ad_views_date = '2026-09-08'
+
+    renderModal()
+    await flush()
+
+    expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 0/10')
+    expect(screen.getByRole('button', { name: 'Assistir Visão Mágica' })).toBeEnabled()
   })
 
   it('credita a recompensa apenas quando o anúncio é concluído', async () => {
@@ -91,7 +114,7 @@ describe('MerchantBlessingModal', () => {
       onSuccess()
     })
     rpc.mockResolvedValue({
-      data: { xp: 100, gold: 30, daily_ad_views: 1, limit: 10 },
+      data: { xp: 15, gold: 3, daily_ad_views: 1 },
       error: null,
     })
 
@@ -115,7 +138,7 @@ describe('MerchantBlessingModal', () => {
       onSuccess()
     })
     rpc.mockResolvedValue({
-      data: '{"xp":100,"gold":30,"daily_ad_views":1,"limit":10}',
+      data: '{"xp":15,"gold":3,"daily_ad_views":1}',
       error: null,
     })
 
@@ -127,8 +150,8 @@ describe('MerchantBlessingModal', () => {
     await flush()
 
     expect(rpc).toHaveBeenCalledWith('claim_merchant_blessing')
-    expect(screen.getByTestId('floating-reward')).toHaveTextContent('100 XP')
-    expect(screen.getByTestId('floating-reward')).toHaveTextContent('30 Gold')
+    expect(screen.getByTestId('floating-reward')).toHaveTextContent('15 XP')
+    expect(screen.getByTestId('floating-reward')).toHaveTextContent('3 Gold')
     expect(screen.getByRole('button', { name: 'Coletado!' })).toBeInTheDocument()
     expect(screen.getByTestId('merchant-counter')).toHaveTextContent('Resgates hoje: 1/10')
     expect(onClaimed).toHaveBeenCalledTimes(1)

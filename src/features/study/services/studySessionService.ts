@@ -1,26 +1,26 @@
 import { supabase } from '../../../lib/supabase'
-import {
-  GOLD_PER_MINUTE,
-  XP_PER_MINUTE,
-  calculateManualReward,
-  calculateReward,
-  validateManualStudyMinutes,
-} from '../lib/studyRules'
-
-export interface StudySessionSummary {
-  durationMinutes: number
-  xp: number
-  gold: number
-}
+import { GOLD_PER_MINUTE, XP_PER_MINUTE } from '../lib/studyRules'
 
 export interface StudySessionRecord {
+  id: string
   user_id: string
   duration_minutes: number
   xp: number
   gold: number
   started_at: string
   completed_at: string
-  is_manual?: boolean
+  is_manual: boolean
+  rewarded: boolean
+  ad_rewarded: boolean
+}
+
+export interface CompleteStudySessionResult {
+  id: string
+  durationMinutes: number
+  xp: number
+  gold: number
+  rewarded: boolean
+  adRewarded: boolean
 }
 
 export interface ManualStudySessionResult {
@@ -31,94 +31,86 @@ export interface ManualStudySessionResult {
   gold: number
 }
 
-const STUDY_SESSIONS_TABLE = 'study_sessions'
+interface StudySessionRow {
+  id: string
+  user_id: string
+  duration_minutes: number
+  xp: number
+  gold: number
+  started_at: string
+  completed_at: string
+  is_manual: boolean
+  rewarded: boolean
+  ad_rewarded: boolean
+}
 
-export async function saveStudySession(
-  summary: StudySessionSummary,
-): Promise<StudySessionRecord> {
-  const { data: userData } = await supabase.auth.getUser()
-  if (!userData.user) {
-    throw new Error('Usuário não autenticado')
+function firstRow(data: unknown): StudySessionRow {
+  const rows = (data ?? []) as unknown[]
+  if (rows.length === 0) {
+    throw new Error('Falha ao processar a sessão de estudo.')
   }
+  return rows[0] as StudySessionRow
+}
 
-  const durationMinutes = Number.isFinite(summary.durationMinutes)
-    ? Math.max(1, Math.round(summary.durationMinutes))
-    : 1
-
-  const xp = Number.isFinite(summary.xp)
-    ? Math.max(0, Math.round(summary.xp))
-    : durationMinutes * XP_PER_MINUTE
-  const gold = Number.isFinite(summary.gold)
-    ? Math.max(0, Math.round(summary.gold))
-    : durationMinutes * GOLD_PER_MINUTE
-
-  const record: StudySessionRecord = {
-    user_id: userData.user.id,
-    duration_minutes: durationMinutes,
-    xp,
-    gold,
-    started_at: new Date(Date.now() - durationMinutes * 60_000).toISOString(),
-    completed_at: new Date().toISOString(),
-  }
-
-  const { error } = await supabase.from(STUDY_SESSIONS_TABLE).insert([record])
+// Cria a sessão no servidor. A recompensa base (15 XP / 3 Gold por minuto)
+// é calculada exclusivamente no backend; o cliente não informa XP/Gold.
+export async function createStudySession(durationMinutes: number): Promise<StudySessionRecord> {
+  const { data, error } = await supabase.rpc('create_study_session', {
+    p_duration_minutes: durationMinutes,
+  })
 
   if (error) {
     throw new Error(error.message)
   }
 
-  return record
+  return firstRow(data)
 }
 
-export async function saveManualStudySession(
-  minutesInput: number,
-): Promise<ManualStudySessionResult> {
-  const { data: userData } = await supabase.auth.getUser()
-  if (!userData.user) {
-    throw new Error('Usuário não autenticado')
-  }
-
-  const invalid = validateManualStudyMinutes(minutesInput)
-  if (invalid !== null) {
-    throw new Error(invalid)
-  }
-
-  const durationMinutes = Math.round(minutesInput)
-  const base = calculateReward(durationMinutes)
-  const manual = calculateManualReward(durationMinutes)
-
-  const record: StudySessionRecord = {
-    user_id: userData.user.id,
-    duration_minutes: durationMinutes,
-    xp: manual.xp,
-    gold: manual.gold,
-    started_at: new Date(Date.now() - durationMinutes * 60_000).toISOString(),
-    completed_at: new Date().toISOString(),
-    is_manual: true,
-  }
-
-  const { error: insertError } = await supabase
-    .from(STUDY_SESSIONS_TABLE)
-    .insert([record])
-
-  if (insertError) {
-    throw new Error(insertError.message)
-  }
-
-  const { error: xpError } = await supabase.rpc('add_xp', {
-    p_xp: manual.xp,
-    p_gold: manual.gold,
+// Conclui e credita a recompensa de uma sessão já criada, atomicamente.
+// Aplica o multiplicador 2x de anúncio quando p_ad_watched é verdadeiro.
+export async function completeStudySession(
+  sessionId: string,
+  adWatched = false,
+): Promise<CompleteStudySessionResult> {
+  const { data, error } = await supabase.rpc('complete_study_session', {
+    p_session_id: sessionId,
+    p_ad_watched: adWatched,
   })
 
-  if (xpError) {
-    throw new Error(xpError.message)
+  if (error) {
+    throw new Error(error.message)
   }
 
+  const row = firstRow(data)
   return {
-    durationMinutes,
-    baseXp: base.xp,
-    baseGold: base.gold,
-    xp: manual.xp,
-    gold: manual.gold,
+    id: row.id,
+    durationMinutes: row.duration_minutes,
+    xp: row.xp,
+    gold: row.gold,
+    rewarded: row.rewarded,
+    adRewarded: row.ad_rewarded,
+  }
+}
+
+// Registra uma sessão manual (tempo esquecido). O servidor aplica a
+// penalização de 30% e credita XP/Gold de forma atômica.
+export async function createManualStudySession(
+  minutesInput: number,
+): Promise<ManualStudySessionResult> {
+  const { data, error } = await supabase.rpc('create_manual_study_session', {
+    p_minutes: minutesInput,
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const row = firstRow(data)
+  return {
+    durationMinutes: row.duration_minutes,
+    baseXp: row.duration_minutes * XP_PER_MINUTE,
+    baseGold: row.duration_minutes * GOLD_PER_MINUTE,
+    xp: row.xp,
+    gold: row.gold,
   }
 }

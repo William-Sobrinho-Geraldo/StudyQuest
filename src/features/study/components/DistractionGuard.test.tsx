@@ -8,10 +8,23 @@ import {
 import { DistractionGuard } from './DistractionGuard'
 import { ToastProvider } from '../../../components/Toast'
 
-const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
+const createStudySessionMock = vi.hoisted(() =>
+  vi.fn(async (durationMinutes: number) => ({
+    id: 'sess-1',
+    user_id: 'u1',
+    duration_minutes: durationMinutes,
+    xp: durationMinutes * 15,
+    gold: durationMinutes * 3,
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+    is_manual: false,
+    rewarded: false,
+    ad_rewarded: false,
+  })),
+)
 
 vi.mock('../services/studySessionService', () => ({
-  saveStudySession: saveStudySessionMock,
+  createStudySession: createStudySessionMock,
 }))
 
 const { scheduleDistractionAlert, scheduleSessionCancelledNotification, schedulePausedExpiringWarning, cancelPendingDistractionNotifications, clearPendingFocusNotifications, scheduleCompletionNotification, cancelCompletionNotification } = vi.hoisted(() => ({
@@ -72,7 +85,7 @@ function renderGuard() {
 
 beforeEach(() => {
   vi.useFakeTimers()
-  saveStudySessionMock.mockClear()
+  createStudySessionMock.mockClear()
   timerRef.current = null
   localStorage.clear()
 })

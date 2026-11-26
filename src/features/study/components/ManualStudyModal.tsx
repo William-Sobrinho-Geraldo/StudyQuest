@@ -10,10 +10,7 @@ import {
   calculateReward,
   validateManualStudyMinutes,
 } from '../lib/studyRules'
-import {
-  saveManualStudySession,
-  type ManualStudySessionResult,
-} from '../services/studySessionService'
+import { createManualStudySession } from '../services/studySessionService'
 import { emitStudySessionSaved } from '../lib/studyEvents'
 
 const MANUAL_CALC_LABEL = 'text-sm text-slate-400'
@@ -47,7 +44,7 @@ export function ManualStudyModal({ onClose }: ManualStudyModalProps) {
     setSaving(true)
     setError(null)
     try {
-      const result: ManualStudySessionResult = await saveManualStudySession(minutes)
+      const result = await createManualStudySession(minutes)
       emitStudySessionSaved()
       showToast(
         `Sessão de ${result.durationMinutes}min registada! +${result.xp} XP (${receivedPercent}%) adicionados`,

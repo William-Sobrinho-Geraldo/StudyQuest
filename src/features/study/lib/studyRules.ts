@@ -1,8 +1,8 @@
 export const MIN_STUDY_MINUTES = 5
 export const MAX_STUDY_MINUTES = 90
 export const STUDY_MINUTE_STEP = 5
-export const XP_PER_MINUTE = 10
-export const GOLD_PER_MINUTE = 2
+export const XP_PER_MINUTE = 15
+export const GOLD_PER_MINUTE = 3
 export const XP_PER_SECOND = XP_PER_MINUTE / 60
 export const GOLD_PER_SECOND = GOLD_PER_MINUTE / 60
 
@@ -10,7 +10,7 @@ export const GOLD_PER_SECOND = GOLD_PER_MINUTE / 60
 export const MANUAL_REWARD_MULTIPLIER = 0.3
 export const MANUAL_PENALTY_PERCENT = 70
 export const MIN_MANUAL_STUDY_MINUTES = 1
-export const MAX_MANUAL_STUDY_MINUTES = 180
+export const MAX_MANUAL_STUDY_MINUTES = 90
 
 export interface Reward {
   xp: number

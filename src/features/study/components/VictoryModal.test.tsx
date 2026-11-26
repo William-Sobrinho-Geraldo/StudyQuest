@@ -4,10 +4,35 @@ import { StudyTimerProvider, useStudyTimerContext, type StudyTimerValue } from '
 import { VictoryModal } from './VictoryModal'
 import { ToastProvider } from '../../../components/Toast'
 
-const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
+const createStudySessionMock = vi.hoisted(() =>
+  vi.fn(async (durationMinutes: number) => ({
+    id: 'sess-1',
+    user_id: 'user-1',
+    duration_minutes: durationMinutes,
+    xp: durationMinutes * 15,
+    gold: durationMinutes * 3,
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+    is_manual: false,
+    rewarded: false,
+    ad_rewarded: false,
+  })),
+)
+
+const completeStudySessionMock = vi.hoisted(() =>
+  vi.fn(async (_sessionId: string, adWatched: boolean) => ({
+    id: 'sess-1',
+    durationMinutes: 25,
+    xp: adWatched ? 750 : 375,
+    gold: adWatched ? 150 : 75,
+    rewarded: true,
+    adRewarded: adWatched,
+  })),
+)
 
 vi.mock('../services/studySessionService', () => ({
-  saveStudySession: saveStudySessionMock,
+  createStudySession: createStudySessionMock,
+  completeStudySession: completeStudySessionMock,
 }))
 
 const { rpc } = vi.hoisted(() => ({
@@ -110,7 +135,8 @@ async function finishSession() {
 
 beforeEach(() => {
   vi.useFakeTimers()
-  saveStudySessionMock.mockClear()
+  createStudySessionMock.mockClear()
+  completeStudySessionMock.mockClear()
   rpc.mockClear()
   rpc.mockResolvedValue({ data: null, error: null })
   rewardedAd.isAdReady = true
@@ -135,8 +161,8 @@ describe('VictoryModal', () => {
     expect(screen.getByRole('dialog', { name: /sessão concluída/i })).toBeInTheDocument()
     expect(screen.getByText('Sessão Concluída!')).toBeInTheDocument()
     expect(screen.getByText('25 minutos focados. Você farmou muito bem!')).toBeInTheDocument()
-    expect(screen.getByTestId('victory-xp')).toHaveTextContent('250')
-    expect(screen.getByTestId('victory-gold')).toHaveTextContent('50')
+    expect(screen.getByTestId('victory-xp')).toHaveTextContent('375')
+    expect(screen.getByTestId('victory-gold')).toHaveTextContent('75')
   })
 
   it('não exibe o modal quando a sessão está em andamento', async () => {
@@ -159,8 +185,8 @@ describe('VictoryModal', () => {
       await Promise.resolve()
     })
 
-    expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 250, p_gold: 50 })
+    expect(completeStudySessionMock).toHaveBeenCalledTimes(1)
+    expect(completeStudySessionMock).toHaveBeenCalledWith('sess-1', false)
     expect(screen.queryByRole('dialog', { name: /sessão concluída/i })).not.toBeInTheDocument()
     expect(timerRef.current?.status).toBe('idle')
   })
@@ -196,8 +222,8 @@ describe('VictoryModal', () => {
     })
 
     expect(rewardedAd.showAd).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 500, p_gold: 100 })
+    expect(completeStudySessionMock).toHaveBeenCalledTimes(1)
+    expect(completeStudySessionMock).toHaveBeenCalledWith('sess-1', true)
     expect(screen.queryByRole('dialog', { name: /sessão concluída/i })).not.toBeInTheDocument()
     expect(timerRef.current?.status).toBe('idle')
   })
@@ -212,8 +238,8 @@ describe('VictoryModal', () => {
     expect(screen.queryByRole('button', { name: /assistir vídeo/i })).not.toBeInTheDocument()
   })
 
-  it('erro no add_xp exibe toast e mantém o modal aberto', async () => {
-    rpc.mockReturnValue(Promise.resolve({ data: null, error: { message: 'rate limit' } }))
+  it('erro no complete_study_session exibe toast e mantém o modal aberto', async () => {
+    completeStudySessionMock.mockImplementationOnce(() => Promise.reject(new Error('rate limit')))
     const { getByRole } = renderModal()
     await finishSession()
 
@@ -222,7 +248,7 @@ describe('VictoryModal', () => {
       await vi.runAllTimersAsync()
     })
 
-    expect(rpc).toHaveBeenCalledTimes(1)
+    expect(completeStudySessionMock).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('dialog', { name: /sessão concluída/i })).toBeInTheDocument()
     expect(screen.getByTestId('timer-status')).toHaveTextContent('completed')
   })

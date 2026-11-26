@@ -5,10 +5,23 @@ import { StudyTimerProvider, useStudyTimerContext } from '../context/StudyTimerC
 import { FocusOverlay } from './FocusOverlay'
 import { ToastProvider } from '../../../components/Toast'
 
-const saveStudySessionMock = vi.hoisted(() => vi.fn().mockResolvedValue({}))
+const createStudySessionMock = vi.hoisted(() =>
+  vi.fn(async (durationMinutes: number) => ({
+    id: 'sess-1',
+    user_id: 'u1',
+    duration_minutes: durationMinutes,
+    xp: durationMinutes * 15,
+    gold: durationMinutes * 3,
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+    is_manual: false,
+    rewarded: false,
+    ad_rewarded: false,
+  })),
+)
 
 vi.mock('../services/studySessionService', () => ({
-  saveStudySession: saveStudySessionMock,
+  createStudySession: createStudySessionMock,
 }))
 
 vi.mock('../lib/backgroundSession', () => ({
@@ -53,7 +66,7 @@ function renderTimerWithFocus() {
 
 beforeEach(() => {
   vi.useFakeTimers()
-  saveStudySessionMock.mockClear()
+  createStudySessionMock.mockClear()
   focusRef.current = null
   localStorage.clear()
 })
@@ -167,12 +180,8 @@ describe('StudyTimer — UI', () => {
       await Promise.resolve()
     })
 
-    expect(saveStudySessionMock).toHaveBeenCalledTimes(1)
-    expect(saveStudySessionMock).toHaveBeenCalledWith({
-      durationMinutes: 25,
-      xp: 250,
-      gold: 50,
-    })
+    expect(createStudySessionMock).toHaveBeenCalledTimes(1)
+    expect(createStudySessionMock).toHaveBeenCalledWith(25)
   })
 
   it('abre o modal de registo manual de tempo esquecido', () => {

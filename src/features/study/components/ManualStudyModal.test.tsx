@@ -80,14 +80,14 @@ describe('ManualStudyModal', () => {
 
     await user.type(screen.getByLabelText('Tempo estudado em minutos'), '60')
 
-    expect(screen.getByTestId('manual-xp-base')).toHaveTextContent('600 XP')
-    expect(screen.getByTestId('manual-xp-penalty')).toHaveTextContent('-420 XP')
-    expect(screen.getByTestId('manual-xp-final')).toHaveTextContent('180 XP')
-    expect(screen.getByTestId('manual-gold-final')).toHaveTextContent('36 Gold')
+    expect(screen.getByTestId('manual-xp-base')).toHaveTextContent('900 XP')
+    expect(screen.getByTestId('manual-xp-penalty')).toHaveTextContent('-630 XP')
+    expect(screen.getByTestId('manual-xp-final')).toHaveTextContent('270 XP')
+    expect(screen.getByTestId('manual-gold-final')).toHaveTextContent('54 Gold')
     expect(screen.getByText('Recompensa Final (30%)')).toBeInTheDocument()
   })
 
-  it('bloqueia registro acima do limite antifraude de 180 minutos', async () => {
+  it('bloqueia registro acima do limite antifraude de 90 minutos', async () => {
     const user = userEvent.setup()
     renderModal()
 
@@ -95,36 +95,34 @@ describe('ManualStudyModal', () => {
     await user.click(screen.getByRole('button', { name: /registrar sessão/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'entre 1 e 180 minutos',
+      'entre 1 e 90 minutos',
     )
   })
 
-  it('registra a sessão manual no histórico e credita XP/Gold reduzidos', async () => {
+  it('registra a sessão manual e credita XP/Gold reduzidos no servidor', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
+    rpc.mockResolvedValueOnce({
+      data: [{ duration_minutes: 60, xp: 270, gold: 54 }],
+      error: null,
+    })
     render(<OpenableModal onClose={onClose} />)
 
     await user.type(screen.getByLabelText('Tempo estudado em minutos'), '60')
     await user.click(screen.getByRole('button', { name: /registrar sessão/i }))
 
     await waitFor(() => {
-      expect(insertMock).toHaveBeenCalledWith([
-        expect.objectContaining({
-          duration_minutes: 60,
-          xp: 180,
-          gold: 36,
-          is_manual: true,
-        }),
-      ])
+      expect(rpc).toHaveBeenCalledWith('create_manual_study_session', {
+        p_minutes: 60,
+      })
     })
-    expect(rpc).toHaveBeenCalledWith('add_xp', { p_xp: 180, p_gold: 36 })
     expect(emitStudySessionSaved).toHaveBeenCalledTimes(1)
     expect(onClose).toHaveBeenCalledTimes(1)
     expect(
       screen.queryByRole('dialog', { name: /registar estudo offline/i }),
     ).not.toBeInTheDocument()
     expect(
-      screen.getByText('Sessão de 60min registada! +180 XP (30%) adicionados'),
+      screen.getByText('Sessão de 60min registada! +270 XP (30%) adicionados'),
     ).toBeInTheDocument()
   })
 

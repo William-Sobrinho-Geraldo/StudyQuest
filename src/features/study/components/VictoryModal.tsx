@@ -7,7 +7,6 @@ import {
   Sparkles,
   Trophy,
 } from 'lucide-react'
-import { supabase } from '../../../lib/supabase'
 import { REWARD_COLORS } from '../../../lib/rewardColors'
 import { useToast } from '../../../components/Toast'
 import { useStudyTimerContext } from '../context/StudyTimerContext'
@@ -15,6 +14,7 @@ import { emitStudySessionSaved } from '../lib/studyEvents'
 import { useRewardedAd } from '../../../hooks/useRewardedAd'
 import { isAndroid } from '../../../utils/platform'
 import { AndroidOnlyAdNotice } from '../../../components/ui/AndroidOnlyAdNotice'
+import { completeStudySession } from '../services/studySessionService'
 import type { StudyTimerResult } from '../hooks/useStudyTimer'
 
 const AD_MULTIPLIER = 2
@@ -68,15 +68,16 @@ function VictoryModalContent({
   const displayGold = result.gold * multiplier
   const isBusy = collecting
 
-  const finalizeCollection = async (xp: number, gold: number, message: string) => {
+  const finalizeCollection = async (adWatched: boolean) => {
+    if (!result) return
     setCollecting(true)
     try {
-      const { error } = await supabase.rpc('add_xp', { p_xp: xp, p_gold: gold })
-      if (error) {
-        throw new Error(error.message)
-      }
+      const reward = await completeStudySession(result.sessionId, adWatched)
       emitStudySessionSaved()
-      showToast(message, 'success')
+      showToast(
+        `Recompensas coletadas: +${reward.xp} XP e +${reward.gold} Gold`,
+        'success',
+      )
       onSettled()
     } catch (error) {
       showToast(
@@ -89,22 +90,14 @@ function VictoryModalContent({
 
   const handleCollectAndExit = () => {
     if (isBusy) return
-    void finalizeCollection(
-      result.xp,
-      result.gold,
-      `Recompensas coletadas: +${result.xp} XP e +${result.gold} Gold`,
-    )
+    void finalizeCollection(false)
   }
 
   const handleWatchAd = () => {
     if (isBusy || !isAdReady) return
     void showAd(() => {
       setMultiplier(AD_MULTIPLIER)
-      void finalizeCollection(
-        result.xp * AD_MULTIPLIER,
-        result.gold * AD_MULTIPLIER,
-        `Anúncio concluído! Recompensas dobradas: +${result.xp * AD_MULTIPLIER} XP e +${result.gold * AD_MULTIPLIER} Gold`,
-      )
+      void finalizeCollection(true)
     })
   }
 

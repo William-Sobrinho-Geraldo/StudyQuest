@@ -10,19 +10,19 @@ import {
 } from '../../study/context/StudyTimerContext'
 import { DailyGoalCard } from './DailyGoalCard'
 
-const { getSession, onAuthStateChange, from, rpc, saveStudySession } = vi.hoisted(() => ({
+const { getSession, onAuthStateChange, from, rpc, createStudySession } = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
-  saveStudySession: vi.fn(),
+  createStudySession: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({
   supabase: { auth: { getSession, onAuthStateChange }, from, rpc },
 }))
 
-vi.mock('../../study/services/studySessionService', () => ({ saveStudySession }))
+vi.mock('../../study/services/studySessionService', () => ({ createStudySession }))
 
 const SESSION = {
   access_token: 'test-token',
@@ -167,7 +167,12 @@ describe('DailyGoalCard', () => {
   })
 
   it('atualiza os minutos de hoje logo após concluir uma sessão', async () => {
-    saveStudySession.mockResolvedValue({} as never)
+    createStudySession.mockResolvedValue({
+      id: 'sess-1',
+      duration_minutes: 25,
+      xp: 375,
+      gold: 75,
+    } as never)
     mockGoal(40)
     rpc
       .mockResolvedValueOnce({ data: 100, error: null })
